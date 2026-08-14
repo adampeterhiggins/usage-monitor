@@ -287,11 +287,13 @@ export function SettingsPopover({
         }}
       >
         <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
-          <Popover.Trigger asChild>
-            <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
-              <Settings className="size-4" />
-            </Button>
-          </Popover.Trigger>
+          <span className="inline-flex">
+            <Popover.Trigger asChild>
+              <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
+                <Settings className="size-4" />
+              </Button>
+            </Popover.Trigger>
+          </span>
         </Tooltip>
         <Popover.Portal>
           <Popover.Content

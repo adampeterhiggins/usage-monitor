@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -171,6 +172,60 @@ fn dirs_home() -> Option<String> {
     std::env::var("HOME").ok()
 }
 
+#[derive(serde::Serialize)]
+struct HttpResponse {
+    status: u16,
+    headers: HashMap<String, String>,
+    body: String,
+}
+
+/// Fetch from Rust so the request has no webview Origin. Anthropic treats
+/// Origin-bearing calls as CORS and some orgs reject those outright; Glaze
+/// avoids this by fetching from Node instead of the renderer.
+#[tauri::command]
+async fn http_request(
+    url: String,
+    method: Option<String>,
+    headers: Option<HashMap<String, String>>,
+    body: Option<String>,
+) -> Result<HttpResponse, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| format!("HTTP client error: {e}"))?;
+
+    let method: reqwest::Method = method
+        .as_deref()
+        .unwrap_or("GET")
+        .parse()
+        .map_err(|e| format!("Invalid HTTP method: {e}"))?;
+
+    let mut request = client.request(method, &url);
+    if let Some(headers) = headers {
+        for (key, value) in headers {
+            request = request.header(key, value);
+        }
+    }
+    if let Some(body) = body {
+        request = request.body(body);
+    }
+
+    let response = request.send().await.map_err(|e| format!("Request failed: {e}"))?;
+    let status = response.status().as_u16();
+    let mut response_headers = HashMap::new();
+    for (key, value) in response.headers() {
+        if let Ok(value) = value.to_str() {
+            response_headers.insert(key.as_str().to_string(), value.to_string());
+        }
+    }
+    let body = response.text().await.map_err(|e| format!("Failed to read response: {e}"))?;
+    Ok(HttpResponse {
+        status,
+        headers: response_headers,
+        body,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -188,7 +243,8 @@ pub fn run() {
             toggle_window,
             open_settings_popover,
             read_home_file,
-            read_keychain_password
+            read_keychain_password,
+            http_request
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
