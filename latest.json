@@ -1,15 +1,15 @@
 {
-  "version": "0.1.0",
-  "notes": "**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/commits/v0.1.0",
-  "pub_date": "2026-08-14T14:02:21Z",
+  "version": "0.1.1",
+  "notes": "**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.0...v0.1.1",
+  "pub_date": "2026-08-14T14:28:50Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUURWZmVobitFN2FQSkhtU2FjT3RCdUtMMWYyV2ltTEhXWHd2OHZjR3k3eEVuYkJTdUtXYWoyREZYMXdqMElYN29iQ1I1M1NlVVNnY2RJdWdqTlNicVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE2MDkwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5KZ2hMZGNxMkJPcVhmMkN4dng2TzlQdHM2akR3SFl5VEFYc1BmVm5ZcnlJNGZodnhhcVY1Zm40b3pKK3Z1WTc3OXJWbWNucWlhWEJVaDVOWllQWEFBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514485628"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUU9hcjBQUkg3Z3hLZGYwT0lpL0NSTW9WMGtQcHphVXNEL2NzZFhlYmZmSkUxWW1leDh3U3l2VUJjS3FjU1E3UURwK2U4Y2ZMZWZwMHRMQmVUK2tKZHdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE3Njg2CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Clo2ZDFENU43cWkzYm1JbXV3SkZqUHMvRHpkVjl1S21icG5SeDFlM2RFdmg1TzFtaVdaVGNieWMxQUY1WlBMQlR3RDNNTmZhekx4SlNyVzRRZGVJckNRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514514348"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUURWZmVobitFN2FQSkhtU2FjT3RCdUtMMWYyV2ltTEhXWHd2OHZjR3k3eEVuYkJTdUtXYWoyREZYMXdqMElYN29iQ1I1M1NlVVNnY2RJdWdqTlNicVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE2MDkwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5KZ2hMZGNxMkJPcVhmMkN4dng2TzlQdHM2akR3SFl5VEFYc1BmVm5ZcnlJNGZodnhhcVY1Zm40b3pKK3Z1WTc3OXJWbWNucWlhWEJVaDVOWllQWEFBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514485628"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUU9hcjBQUkg3Z3hLZGYwT0lpL0NSTW9WMGtQcHphVXNEL2NzZFhlYmZmSkUxWW1leDh3U3l2VUJjS3FjU1E3UURwK2U4Y2ZMZWZwMHRMQmVUK2tKZHdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE3Njg2CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Clo2ZDFENU43cWkzYm1JbXV3SkZqUHMvRHpkVjl1S21icG5SeDFlM2RFdmg1TzFtaVdaVGNieWMxQUY1WlBMQlR3RDNNTmZhekx4SlNyVzRRZGVJckNRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514514348"
     }
   }
 }
