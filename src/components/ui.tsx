@@ -19,11 +19,12 @@ export function Text({
   return (
     <span
       className={cn(
-        variant === "strong" && "font-semibold",
-        variant === "small" && "text-[12px]",
-        variant === "small-strong" && "text-[12px] font-semibold",
-        variant === "mini" && "text-[11px]",
-        variant === "large-strong" && "text-[16px] font-semibold",
+        variant === "strong" && "text-[13px] font-medium leading-[18px]",
+        variant === "small" && "text-[11px] font-normal leading-[14px]",
+        variant === "small-strong" && "text-[11px] font-medium leading-[14px]",
+        variant === "mini" && "text-[8px] font-normal leading-[10px]",
+        variant === "large-strong" && "text-[16px] font-medium leading-[22px]",
+        variant === "body" && "text-[13px] font-normal leading-[18px]",
         color === "primary" && "text-ink",
         color === "secondary" && "text-secondary",
         color === "tertiary" && "text-tertiary",
@@ -54,14 +55,14 @@ export function Badge({
     green: "text-support-green bg-support-green/10",
     blue: "text-support-blue bg-support-blue/10",
     red: "text-support-red bg-support-red/10",
-    yellow: "text-support-yellow bg-support-yellow/12",
+    yellow: "text-support-yellow bg-support-yellow/10",
     secondary: "text-secondary bg-control-subtle",
   };
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full font-medium",
-        size === "small" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]",
+        size === "small" ? "px-1.5 py-px text-[10px]" : "px-2 py-0.5 text-[11px] leading-[14px]",
         tones[color],
         className,
       )}
@@ -110,12 +111,12 @@ export const Button = React.forwardRef<
         iconOnly && size === "large" && "size-8",
         iconOnly && size === "medium" && "size-7",
         iconOnly && size === "small" && "size-6",
-        !iconOnly && size === "small" && "h-7 px-2.5 text-[12px]",
+        !iconOnly && size === "small" && "h-7 px-2.5 text-[11px]",
         !iconOnly && size === "medium" && "h-8 px-3 text-[13px]",
         !iconOnly && size === "large" && "h-9 px-3.5 text-[13px]",
-        variant === "glass" && "bg-control-subtle hover:bg-control text-ink",
-        variant === "filled" && "bg-control hover:bg-control text-ink",
-        variant === "transparent" && "bg-transparent hover:bg-control-subtle text-tertiary",
+        variant === "glass" && "glass-button",
+        variant === "filled" && "bg-control text-ink hover:bg-control",
+        variant === "transparent" && "bg-transparent text-tertiary hover:bg-control-subtle",
         variant === "accent" && "bg-support-blue text-white hover:opacity-90",
         variant === "destructive" && "bg-support-red text-white hover:opacity-90",
         className,

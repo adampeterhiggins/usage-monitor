@@ -44,7 +44,7 @@ export async function setLayout(layout: Layout): Promise<void> {
 }
 
 export async function getTheme(): Promise<ThemeSource> {
-  return (await store.get<ThemeSource>("theme")) ?? "system";
+  return (await store.get<ThemeSource>("theme")) ?? "light";
 }
 
 export async function setTheme(theme: ThemeSource): Promise<void> {

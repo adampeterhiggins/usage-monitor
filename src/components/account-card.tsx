@@ -28,7 +28,7 @@ export function AccountCard({ account, state, onEdit, onRemoved, onRefresh }: Ac
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-2xl border border-separator bg-surface p-3.5 shadow-sm",
+        "flex min-w-0 flex-col gap-3 rounded-[18px] border border-separator bg-surface p-3.5",
         isError && !snapshot && "border-support-red/40",
       )}
     >

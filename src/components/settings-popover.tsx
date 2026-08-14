@@ -130,7 +130,7 @@ export function SettingsPopover({
   const [open, setOpen] = React.useState(false);
   const [page, setPage] = React.useState<Page>("root");
   const [query, setQuery] = React.useState("");
-  const [themeSource, setThemeSource] = React.useState<ThemeSource>("system");
+  const [themeSource, setThemeSource] = React.useState<ThemeSource>("light");
   const [shortcut, setShortcut] = React.useState(DEFAULT_TOGGLE_SHORTCUT);
   const [recordingShortcut, setRecordingShortcut] = React.useState(false);
   const [recordingRefreshShortcut, setRecordingRefreshShortcut] = React.useState(false);

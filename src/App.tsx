@@ -203,7 +203,7 @@ function Shell() {
   function renderBody() {
     if (accountsQuery.isLoading) {
       return (
-        <div className="@md:grid-cols-2 grid grid-cols-1 gap-3 p-4">
+        <div className="grid grid-cols-2 gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-36 animate-pulse rounded-2xl bg-control-subtle" />
           ))}
@@ -280,7 +280,7 @@ function Shell() {
                     {group.accounts.length}
                   </Text>
                 </div>
-                <div className={layout === "stacked" ? "grid grid-cols-1 gap-3" : "@lg:grid-cols-2 grid grid-cols-1 gap-3"}>
+                <div className={layout === "stacked" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
                   {group.accounts.map((account) => (
                     <AccountCard
                       key={account.id}
@@ -299,7 +299,7 @@ function Shell() {
       case "wall":
       default:
         return (
-          <div className="@lg:grid-cols-2 grid grid-cols-1 gap-3 p-4 pb-8">
+          <div className="grid grid-cols-2 gap-3 p-4 pb-8">
             {orderedAccounts.map((account) => (
               <AccountCard
                 key={account.id}
@@ -324,11 +324,11 @@ function Shell() {
     );
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="drag-region flex h-13 items-center justify-between px-4 pt-1">
+    <div className="app-shell flex flex-col">
+      <header className="drag-region flex h-13 items-center justify-between px-4">
         <div>
-          <div className="text-[15px] font-semibold">AI Usage</div>
-          <div className="text-[11px] text-tertiary">
+          <div className="text-[18px] font-medium leading-6 tracking-[-0.11px]">AI Usage</div>
+          <div className="text-[11px] leading-[14px] text-tertiary">
             {visibleAccounts.length > 0
               ? `${visibleAccounts.length} account${visibleAccounts.length === 1 ? "" : "s"}`
               : "No accounts yet"}

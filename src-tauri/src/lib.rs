@@ -195,6 +195,17 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             if let Some(win) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
+                {
+                    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+                    let _ = apply_vibrancy(
+                        &win,
+                        NSVisualEffectMaterial::Popover,
+                        Some(NSVisualEffectState::FollowsWindowActiveState),
+                        Some(16.0),
+                    );
+                }
+
                 let handle = app.handle().clone();
                 win.on_window_event(move |event| {
                     if let tauri::WindowEvent::Focused(false) = event {
