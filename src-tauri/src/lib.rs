@@ -1,18 +1,30 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Rect, WebviewWindow};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, Rect, WebviewWindow,
+};
 
 const WINDOW_SHOWN_EVENT: &str = "window:shown";
 const OPEN_SETTINGS_EVENT: &str = "settings:openPopover";
 
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+struct WindowFrame {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
 struct PanelState {
     ignore_next_blur: AtomicBool,
     last_tray_rect: Mutex<Option<Rect>>,
+    saved_frame: Mutex<Option<WindowFrame>>,
 }
 
 impl Default for PanelState {
@@ -20,6 +32,7 @@ impl Default for PanelState {
         Self {
             ignore_next_blur: AtomicBool::new(false),
             last_tray_rect: Mutex::new(None),
+            saved_frame: Mutex::new(None),
         }
     }
 }
@@ -63,25 +76,106 @@ fn center_on_cursor_screen(win: &WebviewWindow) {
     let _ = win.set_position(PhysicalPosition::new(x, y));
 }
 
+fn frame_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_data_dir().ok().map(|dir| dir.join("window-frame.json"))
+}
+
+fn load_saved_frame(app: &AppHandle) -> Option<WindowFrame> {
+    let data = std::fs::read_to_string(frame_path(app)?).ok()?;
+    serde_json::from_str(&data).ok()
+}
+
+fn persist_frame(app: &AppHandle, frame: WindowFrame) {
+    let Some(path) = frame_path(app) else { return };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string(&frame) {
+        let _ = std::fs::write(path, json);
+    }
+}
+
+fn current_frame(win: &WebviewWindow) -> Option<WindowFrame> {
+    let pos = win.outer_position().ok()?;
+    let size = win.outer_size().ok()?;
+    let scale = win.scale_factor().unwrap_or(1.0);
+    Some(WindowFrame {
+        x: (pos.x as f64 / scale).round() as i32,
+        y: (pos.y as f64 / scale).round() as i32,
+        width: (size.width as f64 / scale).round() as u32,
+        height: (size.height as f64 / scale).round() as u32,
+    })
+}
+
+fn apply_frame(win: &WebviewWindow, frame: WindowFrame) {
+    let _ = win.set_size(LogicalSize::new(frame.width, frame.height));
+    let _ = win.set_position(LogicalPosition::new(frame.x, frame.y));
+}
+
+fn frame_is_on_screen(win: &WebviewWindow, frame: WindowFrame) -> bool {
+    let Ok(monitors) = win.available_monitors() else {
+        return true;
+    };
+    let scale = win.scale_factor().unwrap_or(1.0);
+    let x = (frame.x as f64 * scale) as i32;
+    let y = (frame.y as f64 * scale) as i32;
+    let w = (frame.width as f64 * scale) as i32;
+    let h = (frame.height as f64 * scale) as i32;
+    monitors.iter().any(|monitor| {
+        let pos = monitor.position();
+        let size = monitor.size();
+        let left = x.max(pos.x);
+        let top = y.max(pos.y);
+        let right = (x + w).min(pos.x + size.width as i32);
+        let bottom = (y + h).min(pos.y + size.height as i32);
+        right - left > 40 && bottom - top > 40
+    })
+}
+
+fn remember_frame(app: &AppHandle) {
+    let Some(win) = main_window(app) else { return };
+    let Some(frame) = current_frame(&win) else { return };
+    if let Ok(mut saved) = app.state::<PanelState>().saved_frame.lock() {
+        *saved = Some(frame);
+    }
+    persist_frame(app, frame);
+}
+
+fn place_panel(app: &AppHandle, win: &WebviewWindow, tray_bounds: Option<Rect>) {
+    let state = app.state::<PanelState>();
+    if let Some(bounds) = tray_bounds {
+        if let Ok(mut last) = state.last_tray_rect.lock() {
+            *last = Some(bounds);
+        }
+    }
+
+    let saved = state.saved_frame.lock().ok().and_then(|frame| *frame);
+    if let Some(frame) = saved {
+        if frame_is_on_screen(win, frame) {
+            apply_frame(win, frame);
+            return;
+        }
+    }
+
+    if let Some(bounds) = tray_bounds {
+        position_under_tray(win, bounds);
+    } else if let Ok(last) = state.last_tray_rect.lock() {
+        if let Some(bounds) = *last {
+            position_under_tray(win, bounds);
+        } else {
+            center_on_cursor_screen(win);
+        }
+    } else {
+        center_on_cursor_screen(win);
+    }
+}
+
 fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     let Some(win) = main_window(app) else { return };
     let was_visible = win.is_visible().unwrap_or(false);
     let state = app.state::<PanelState>();
 
-    if let Some(bounds) = tray_bounds {
-        if let Ok(mut last) = state.last_tray_rect.lock() {
-            *last = Some(bounds);
-        }
-        position_under_tray(&win, bounds);
-    } else if let Ok(last) = state.last_tray_rect.lock() {
-        if let Some(bounds) = *last {
-            position_under_tray(&win, bounds);
-        } else {
-            center_on_cursor_screen(&win);
-        }
-    } else {
-        center_on_cursor_screen(&win);
-    }
+    place_panel(app, &win, tray_bounds);
 
     state.ignore_next_blur.store(true, Ordering::SeqCst);
     let _ = win.show();
@@ -102,6 +196,7 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
 }
 
 fn hide_panel(app: &AppHandle) {
+    remember_frame(app);
     if let Some(win) = main_window(app) {
         let _ = win.hide();
     }
@@ -250,6 +345,12 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            if let Some(frame) = load_saved_frame(app.handle()) {
+                if let Ok(mut saved) = app.state::<PanelState>().saved_frame.lock() {
+                    *saved = Some(frame);
+                }
+            }
+
             if let Some(win) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
                 {
@@ -263,14 +364,30 @@ pub fn run() {
                 }
 
                 let handle = app.handle().clone();
-                win.on_window_event(move |event| {
-                    if let tauri::WindowEvent::Focused(false) = event {
+                win.on_window_event(move |event| match event {
+                    tauri::WindowEvent::Focused(false) => {
                         let state = handle.state::<PanelState>();
                         if state.ignore_next_blur.load(Ordering::SeqCst) {
                             return;
                         }
                         hide_panel(&handle);
                     }
+                    tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                        handle
+                            .state::<PanelState>()
+                            .ignore_next_blur
+                            .store(true, Ordering::SeqCst);
+                        remember_frame(&handle);
+                        let clear = handle.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_millis(400));
+                            clear
+                                .state::<PanelState>()
+                                .ignore_next_blur
+                                .store(false, Ordering::SeqCst);
+                        });
+                    }
+                    _ => {}
                 });
             }
 

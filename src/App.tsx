@@ -1,6 +1,7 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
 import { AccountCard, type AccountFetchState } from "./components/account-card";
@@ -333,8 +334,18 @@ function Shell() {
 
   return (
     <div className="app-shell relative flex flex-col">
-      <header ref={headerRef} className="drag-region flex h-13 items-center justify-between px-4">
-        <div>
+      <header
+        ref={headerRef}
+        className="drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
+        data-tauri-drag-region
+        onMouseDown={(event) => {
+          if (event.button !== 0) return;
+          const target = event.target as HTMLElement | null;
+          if (target?.closest(".no-drag")) return;
+          void getCurrentWindow().startDragging();
+        }}
+      >
+        <div data-tauri-drag-region className="min-w-0 flex-1">
           <div className="text-[18px] font-medium leading-6 tracking-[-0.11px]">AI Usage</div>
         </div>
         <div className="no-drag flex items-center gap-1.5">
