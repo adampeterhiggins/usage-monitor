@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0",
+  "notes": "**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/commits/v0.1.0",
+  "pub_date": "2026-08-14T14:02:21Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUURWZmVobitFN2FQSkhtU2FjT3RCdUtMMWYyV2ltTEhXWHd2OHZjR3k3eEVuYkJTdUtXYWoyREZYMXdqMElYN29iQ1I1M1NlVVNnY2RJdWdqTlNicVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE2MDkwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5KZ2hMZGNxMkJPcVhmMkN4dng2TzlQdHM2akR3SFl5VEFYc1BmVm5ZcnlJNGZodnhhcVY1Zm40b3pKK3Z1WTc3OXJWbWNucWlhWEJVaDVOWllQWEFBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514485628"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUURWZmVobitFN2FQSkhtU2FjT3RCdUtMMWYyV2ltTEhXWHd2OHZjR3k3eEVuYkJTdUtXYWoyREZYMXdqMElYN29iQ1I1M1NlVVNnY2RJdWdqTlNicVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NzE2MDkwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5KZ2hMZGNxMkJPcVhmMkN4dng2TzlQdHM2akR3SFl5VEFYc1BmVm5ZcnlJNGZodnhhcVY1Zm40b3pKK3Z1WTc3OXJWbWNucWlhWEJVaDVOWllQWEFBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/514485628"
+    }
+  }
+}
