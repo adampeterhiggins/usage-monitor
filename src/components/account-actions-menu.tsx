@@ -1,11 +1,11 @@
 import * as React from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Ellipsis } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
+import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { removeAccount } from "../lib/accounts";
 import { toast } from "../lib/toast";
 import { PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
-import { Button } from "./ui";
+import { Button, cn } from "./ui";
 
 const DASHBOARD_URLS: Record<ProviderId, string> = {
   claude: "https://claude.ai/settings/usage",
@@ -18,9 +18,17 @@ interface AccountActionsMenuProps {
   onEdit: (account: AccountPublic) => void;
   onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
+  triggerSize?: "small" | "medium";
 }
 
-export function AccountActionsMenu({ account, onEdit, onRemoved, onRefresh }: AccountActionsMenuProps) {
+export function AccountActionsMenu({
+  account,
+  onEdit,
+  onRemoved,
+  onRefresh,
+  triggerSize = "small",
+}: AccountActionsMenuProps) {
+  const [open, setOpen] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
   const meta = PROVIDERS[account.provider];
 
@@ -39,22 +47,49 @@ export function AccountActionsMenu({ account, onEdit, onRemoved, onRefresh }: Ac
 
   return (
     <>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <Button iconOnly variant="transparent" size="small" aria-label="Account actions">
+      <Popover.Root modal={false} open={open} onOpenChange={setOpen}>
+        <Popover.Trigger asChild>
+          <Button
+            iconOnly
+            variant="transparent"
+            size={triggerSize}
+            aria-label="Account actions"
+            className={open ? "bg-control-subtle" : undefined}
+          >
             <Ellipsis className="size-4" />
           </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
             align="end"
+            side="bottom"
             sideOffset={4}
-            className="z-50 min-w-40 rounded-xl bg-surface p-1 shadow-lg ring-1 ring-black/10"
+            collisionPadding={8}
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            className="z-[80] min-w-[176px] rounded-[12px] bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
           >
-            <MenuItem onSelect={() => onRefresh(account)}>Refresh</MenuItem>
-            <MenuItem onSelect={() => onEdit(account)}>Edit</MenuItem>
             <MenuItem
+              icon={RefreshCw}
               onSelect={() => {
+                setOpen(false);
+                onRefresh(account);
+              }}
+            >
+              Refresh
+            </MenuItem>
+            <MenuItem
+              icon={Pencil}
+              onSelect={() => {
+                setOpen(false);
+                onEdit(account);
+              }}
+            >
+              Edit
+            </MenuItem>
+            <MenuItem
+              icon={Compass}
+              onSelect={() => {
+                setOpen(false);
                 void openUrl(DASHBOARD_URLS[account.provider]).catch((e) =>
                   toast.error("Couldn’t open dashboard", {
                     description: e instanceof Error ? e.message : String(e),
@@ -64,16 +99,23 @@ export function AccountActionsMenu({ account, onEdit, onRemoved, onRefresh }: Ac
             >
               Open Dashboard
             </MenuItem>
-            <DropdownMenu.Separator className="my-1 h-px bg-separator" />
-            <MenuItem danger onSelect={() => setConfirmRemove(true)}>
+            <div className="mx-1.5 my-1 h-px bg-separator" />
+            <MenuItem
+              icon={Trash2}
+              danger
+              onSelect={() => {
+                setOpen(false);
+                setConfirmRemove(true);
+              }}
+            >
               Remove
             </MenuItem>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
 
       {confirmRemove ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-6">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/20 p-6">
           <div className="w-full max-w-sm rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
             <div className="text-[15px] font-semibold">Remove {account.label}?</div>
             <p className="mt-1 text-[12px] text-secondary">
@@ -99,19 +141,24 @@ function MenuItem({
   children,
   onSelect,
   danger,
+  icon: Icon,
 }: {
   children: React.ReactNode;
   onSelect: () => void;
   danger?: boolean;
+  icon: LucideIcon;
 }) {
   return (
-    <DropdownMenu.Item
-      onSelect={onSelect}
-      className={`flex cursor-default rounded-lg px-2.5 py-1.5 text-[13px] outline-none data-[highlighted]:bg-control-subtle ${
-        danger ? "text-support-red" : "text-ink"
-      }`}
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "flex w-full cursor-default items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-control-subtle",
+        danger ? "text-support-red" : "text-ink",
+      )}
     >
+      <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
       {children}
-    </DropdownMenu.Item>
+    </button>
   );
 }

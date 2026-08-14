@@ -5,11 +5,13 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tan
 import { Plus, RefreshCw } from "lucide-react";
 import { AccountCard, type AccountFetchState } from "./components/account-card";
 import { AccountDialog } from "./components/account-dialog";
+import { FitCorner } from "./components/fit-corner";
 import { FocusView } from "./components/focus-view";
 import { LedgerView } from "./components/ledger-view";
 import { SettingsPopover } from "./components/settings-popover";
 import { StripView } from "./components/strip-view";
 import { ToastHost } from "./components/toast-host";
+import { Tooltip } from "./components/tooltip";
 import { Button, EmptyState, Text } from "./components/ui";
 import { fetchAccountUsage, listAccounts } from "./lib/accounts";
 import { initToggleShortcut } from "./lib/global-shortcut";
@@ -53,6 +55,8 @@ function Shell() {
   const [refreshingAll, setRefreshingAll] = React.useState(false);
   const [githubToken, setGithubTokenState] = React.useState<string | null>(null);
   const [, setTick] = React.useState(0);
+  const headerRef = React.useRef<HTMLElement>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   const accountsQuery = useQuery({ queryKey: ACCOUNTS_KEY, queryFn: listAccounts });
   const accounts = accountsQuery.data ?? [];
@@ -299,7 +303,7 @@ function Shell() {
       case "wall":
       default:
         return (
-          <div className="grid grid-cols-2 gap-3 p-4 pb-8">
+          <div className="grid grid-cols-2 gap-3 p-4">
             {orderedAccounts.map((account) => (
               <AccountCard
                 key={account.id}
@@ -318,34 +322,36 @@ function Shell() {
   const body = renderBody();
   const scrolledBody =
     layout === "focus" && !isEmpty && !accountsQuery.isLoading ? (
-      body
+      <div ref={contentRef} className="h-full">
+        {body}
+      </div>
     ) : (
-      <div className="h-full overflow-y-auto">{body}</div>
+      <div className="h-full overflow-y-auto">
+        <div ref={contentRef}>{body}</div>
+      </div>
     );
 
   return (
-    <div className="app-shell flex flex-col">
-      <header className="drag-region flex h-13 items-center justify-between px-4">
+    <div className="app-shell relative flex flex-col">
+      <header ref={headerRef} className="drag-region flex h-13 items-center justify-between px-4">
         <div>
           <div className="text-[18px] font-medium leading-6 tracking-[-0.11px]">AI Usage</div>
-          <div className="text-[11px] leading-[14px] text-tertiary">
-            {visibleAccounts.length > 0
-              ? `${visibleAccounts.length} account${visibleAccounts.length === 1 ? "" : "s"}`
-              : "No accounts yet"}
-          </div>
         </div>
         <div className="no-drag flex items-center gap-1.5">
-          <Button
-            iconOnly
-            variant="glass"
-            size="large"
-            aria-label="Refresh all"
-            disabled={accounts.length === 0 || refreshingAll}
-            onClick={() => void refreshAll(true)}
-          >
-            <RefreshCw className={`size-4 ${refreshingAll ? "animate-spin" : ""}`} />
-          </Button>
-          <span className="sr-only">{acceleratorGlyphs(refreshShortcut).join("")}</span>
+          <Tooltip label="Refresh All" shortcut={acceleratorGlyphs(refreshShortcut)}>
+            <span className="inline-flex">
+              <Button
+                iconOnly
+                variant="glass"
+                size="large"
+                aria-label="Refresh all"
+                disabled={accounts.length === 0 || refreshingAll}
+                onClick={() => void refreshAll(true)}
+              >
+                <RefreshCw className={`size-4 ${refreshingAll ? "animate-spin" : ""}`} />
+              </Button>
+            </span>
+          </Tooltip>
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}
@@ -362,6 +368,7 @@ function Shell() {
         </div>
       </header>
       <div className="@container min-h-0 flex-1">{scrolledBody}</div>
+      <FitCorner contentRef={contentRef} headerRef={headerRef} />
       <AccountDialog open={dialogOpen} onOpenChange={setDialogOpen} account={editing} onSaved={handleSaved} />
     </div>
   );

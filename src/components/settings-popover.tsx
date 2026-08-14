@@ -19,6 +19,7 @@ import {
   Moon,
   Pencil,
   Plus,
+  Power,
   RefreshCw,
   Settings,
   Sun,
@@ -50,6 +51,8 @@ import {
 import { registerToggleShortcut } from "../lib/global-shortcut";
 import { toast } from "../lib/toast";
 import { PROVIDERS, type AccountPublic, type Layout } from "../lib/usage-types";
+import { exit } from "@tauri-apps/plugin-process";
+import { Tooltip } from "./tooltip";
 import { UpdatePanel } from "./update-panel";
 import { Badge, Button, cn } from "./ui";
 
@@ -283,11 +286,13 @@ export function SettingsPopover({
           setOpen(next);
         }}
       >
-        <Popover.Trigger asChild>
-          <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
-            <Settings className="size-4" />
-          </Button>
-        </Popover.Trigger>
+        <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
+          <Popover.Trigger asChild>
+            <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
+              <Settings className="size-4" />
+            </Button>
+          </Popover.Trigger>
+        </Tooltip>
         <Popover.Portal>
           <Popover.Content
             ref={contentRef}
@@ -379,6 +384,13 @@ export function SettingsPopover({
                       onSelect={() => setRecordingShortcut((prev) => !prev)}
                     />
                     <Item icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+                    <Item
+                      icon={Power}
+                      label="Quit"
+                      onSelect={() => {
+                        void exit(0);
+                      }}
+                    />
                   </Command.Group>
                 )}
                 {page === "layout" &&

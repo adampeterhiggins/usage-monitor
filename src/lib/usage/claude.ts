@@ -152,6 +152,9 @@ async function fetchViaClaudeCode(): Promise<UsageSnapshot> {
     headers: {
       Authorization: `Bearer ${token}`,
       "anthropic-beta": "oauth-2025-04-20",
+      // Tauri's HTTP plugin still sends the webview Origin, so Anthropic
+      // treats this as a CORS request and 401s without the opt-in header.
+      "anthropic-dangerous-direct-browser-access": "true",
       "User-Agent": "claude-code/2.1.0",
       "Content-Type": "application/json",
     },
