@@ -10,6 +10,26 @@ use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, Rect, WebviewWindow,
 };
 
+#[cfg(target_os = "macos")]
+use objc2_app_kit::NSApplication;
+#[cfg(target_os = "macos")]
+use tauri_nspanel::{
+    tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
+};
+
+#[cfg(target_os = "macos")]
+tauri_panel! {
+    panel!(MainPanel {
+        config: {
+            can_become_key_window: true,
+            can_become_main_window: false,
+            is_floating_panel: true,
+            becomes_key_only_if_needed: false,
+            hides_on_deactivate: false
+        }
+    })
+}
+
 const WINDOW_SHOWN_EVENT: &str = "window:shown";
 const OPEN_SETTINGS_EVENT: &str = "settings:openPopover";
 
@@ -170,19 +190,72 @@ fn place_panel(app: &AppHandle, win: &WebviewWindow, tray_bounds: Option<Rect>) 
     }
 }
 
+fn panel_visible(app: &AppHandle) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        return app
+            .get_webview_panel("main")
+            .map(|panel| panel.is_visible())
+            .unwrap_or(false);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        main_window(app)
+            .and_then(|win| win.is_visible().ok())
+            .unwrap_or(false)
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn resign_app_activation() {
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let ns_app = NSApplication::sharedApplication(mtm);
+    if ns_app.isActive() {
+        ns_app.hide(None);
+    }
+}
+
 fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     let Some(win) = main_window(app) else { return };
-    let was_visible = win.is_visible().unwrap_or(false);
     let state = app.state::<PanelState>();
 
     place_panel(app, &win, tray_bounds);
 
     state.ignore_next_blur.store(true, Ordering::SeqCst);
-    let _ = win.show();
-    let _ = win.set_focus();
 
-    if !was_visible {
-        let _ = win.emit(WINDOW_SHOWN_EVENT, ());
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(panel) = app.get_webview_panel("main") {
+            let was_visible = panel.is_visible();
+            panel.show();
+            panel.make_key_window();
+
+            if let Ok(ns_view) = win.ns_view() {
+                let view = ns_view as *const tauri_nspanel::NSView;
+                if !view.is_null() {
+                    let view_ref = unsafe { &*view };
+                    let _ = panel.make_first_responder(Some(view_ref.as_ref()));
+                }
+            }
+
+            if !was_visible {
+                let _ = win.emit(WINDOW_SHOWN_EVENT, ());
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let was_visible = win.is_visible().unwrap_or(false);
+        let _ = win.show();
+        let _ = win.set_focus();
+
+        if !was_visible {
+            let _ = win.emit(WINDOW_SHOWN_EVENT, ());
+        }
     }
 
     let handle = app.clone();
@@ -197,16 +270,28 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
 
 fn hide_panel(app: &AppHandle) {
     remember_frame(app);
-    if let Some(win) = main_window(app) {
-        let _ = win.hide();
+
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(panel) = app.get_webview_panel("main") {
+            if panel.is_visible() {
+                panel.resign_key_window();
+                panel.hide();
+            }
+        }
+        resign_app_activation();
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if let Some(win) = main_window(app) {
+            let _ = win.hide();
+        }
     }
 }
 
 fn toggle_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
-    let visible = main_window(app)
-        .and_then(|w| w.is_visible().ok())
-        .unwrap_or(false);
-    if visible {
+    if panel_visible(app) {
         hide_panel(app);
     } else {
         show_panel(app, tray_bounds);
@@ -323,14 +408,21 @@ async fn http_request(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_nspanel::init());
+    }
+
+    builder
         .manage(PanelState::default())
         .invoke_handler(tauri::generate_handler![
             hide_window,
@@ -352,6 +444,26 @@ pub fn run() {
             }
 
             if let Some(win) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
+                {
+                    let panel = win
+                        .to_panel::<MainPanel>()
+                        .expect("convert main window to NSPanel");
+
+                    let current_mask = panel.as_panel().styleMask();
+                    let style = StyleMask::from_raw(current_mask).nonactivating_panel();
+                    panel.set_style_mask(style.into());
+                    panel.set_level(PanelLevel::Floating.into());
+
+                    let behavior = CollectionBehavior::new()
+                        .can_join_all_spaces()
+                        .full_screen_auxiliary()
+                        .transient()
+                        .stationary()
+                        .ignores_cycle();
+                    panel.set_collection_behavior(behavior.into());
+                }
+
                 #[cfg(target_os = "macos")]
                 {
                     use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
