@@ -218,6 +218,21 @@ fn resign_app_activation() {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn first_responder_view(
+    view: &tauri_nspanel::NSView,
+) -> Option<tauri_nspanel::objc2::rc::Retained<tauri_nspanel::NSView>> {
+    for subview in view.subviews().to_vec() {
+        if subview.acceptsFirstResponder() {
+            return Some(subview);
+        }
+        if let Some(found) = first_responder_view(&subview) {
+            return Some(found);
+        }
+    }
+    None
+}
+
 fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     let Some(win) = main_window(app) else { return };
     let state = app.state::<PanelState>();
@@ -236,8 +251,13 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
             if let Ok(ns_view) = win.ns_view() {
                 let view = ns_view as *const tauri_nspanel::NSView;
                 if !view.is_null() {
-                    let view_ref = unsafe { &*view };
-                    let _ = panel.make_first_responder(Some(view_ref.as_ref()));
+                    let content = unsafe { &*view };
+                    // The window's content view never accepts first responder status, so
+                    // handing it the focus leaves key events stranded at the panel and the
+                    // web content only starts seeing them after a click. Target the webview.
+                    let webview = first_responder_view(content);
+                    let responder = webview.as_deref().unwrap_or(content);
+                    let _ = panel.make_first_responder(Some(responder.as_ref()));
                 }
             }
 

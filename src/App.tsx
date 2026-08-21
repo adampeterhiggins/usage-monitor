@@ -157,6 +157,8 @@ function Shell() {
   React.useEffect(() => {
     let unlisten: (() => void) | undefined;
     void listen("window:shown", () => {
+      // Make sure the document owns keyboard focus so Escape works without a click first.
+      window.focus();
       if (dialogOpen || visibleAccounts.length === 0 || refreshingAll) return;
       void refreshAll(true);
     }).then((fn) => {
