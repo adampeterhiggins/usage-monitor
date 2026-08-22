@@ -33,7 +33,7 @@ export function StripView({ grouped, fetchStates, onEdit, onRemoved, onRefresh }
             const snapshot = result?.snapshot;
             const stale = result?.stale === true;
             const isErrorOnly = state.status === "error" && !snapshot;
-            const windows = (snapshot?.windows ?? []).filter((w) => w.usedPercent !== undefined).slice(0, 4);
+            const windows = (snapshot?.windows ?? []).filter((w) => w.usedPercent !== undefined);
 
             return (
               <div

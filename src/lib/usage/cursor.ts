@@ -22,6 +22,19 @@ interface CursorUsageSummary {
   };
 }
 
+interface GrokBotUsage {
+  usedPercent: number;
+  resetsAt?: number;
+}
+
+interface CursorGrokBotUsageResponse {
+  usagePercent?: number;
+  nextResetTimestampUtc?: string;
+  hasAvailableUsage?: boolean;
+  hasNonZeroIncludedLimit?: boolean;
+  grokPlanLabel?: string;
+}
+
 const PLAN_NAMES: Record<string, string> = {
   free: "Free",
   pro: "Pro",
@@ -33,10 +46,79 @@ const PLAN_NAMES: Record<string, string> = {
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-function ms(iso?: string): number | undefined {
-  if (!iso) return undefined;
-  const t = new Date(iso).getTime();
+function ms(value?: string | number | null): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const t = typeof value === "number" ? (value < 10_000_000_000 ? value * 1000 : value) : new Date(value).getTime();
   return Number.isNaN(t) ? undefined : t;
+}
+
+function number(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Grok Bot is exposed by Cursor's dashboard response, but the response is an
+ * undocumented/private API and its nesting has changed as the product has
+ * rolled out. Find a metric object only when it lives below a Grok/Bot-ish
+ * key, so an unrelated weekly field cannot be mistaken for this meter.
+ */
+function findGrokBotUsage(value: unknown, path: string[] = []): GrokBotUsage | undefined {
+  if (!value || typeof value !== "object") return undefined;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findGrokBotUsage(item, path);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const pathLooksLikeGrokBot = path.some((part) => {
+    const key = part.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return key.includes("grok") || key.includes("bot");
+  });
+  if (pathLooksLikeGrokBot) {
+    const usedPercent =
+      number(record.usedPercent) ?? number(record.percentUsed) ?? number(record.usagePercent) ?? number(record.percent);
+    const used = number(record.used);
+    const limit = number(record.limit) ?? number(record.total);
+    const derivedPercent = used !== undefined && limit !== undefined && limit > 0 ? (used / limit) * 100 : undefined;
+    const percent = usedPercent ?? derivedPercent;
+    if (percent !== undefined && percent >= 0) {
+      const resetValue =
+        record.resetsAt ?? record.resetAt ?? record.nextResetAt ?? record.weekEnd ?? record.resetDate;
+      return { usedPercent: percent, resetsAt: ms(typeof resetValue === "string" || typeof resetValue === "number" ? resetValue : undefined) };
+    }
+  }
+
+  for (const [key, child] of Object.entries(record)) {
+    const found = findGrokBotUsage(child, [...path, key]);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+async function fetchGrokBotUsage(headers: Record<string, string>): Promise<GrokBotUsage | undefined> {
+  try {
+    const data = await fetchJson<CursorGrokBotUsageResponse>("https://cursor.com/api/dashboard/get-sand-usage-status", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    if (data.usagePercent === undefined || data.usagePercent === null) return undefined;
+    if (data.hasNonZeroIncludedLimit === false && data.hasAvailableUsage === false) return undefined;
+    return { usedPercent: data.usagePercent, resetsAt: ms(data.nextResetTimestampUtc) };
+  } catch {
+    // Grok Bot access is optional; an unavailable secondary endpoint must not
+    // hide the normal Cursor Models / Other Models usage meters.
+    return undefined;
+  }
 }
 
 export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot> {
@@ -68,6 +150,11 @@ export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot>
   }
   if (plan?.apiPercentUsed !== undefined && plan?.apiPercentUsed !== null) {
     windows.push({ label: "Other Models", usedPercent: plan.apiPercentUsed, resetsAt });
+  }
+
+  const grokBot = (await fetchGrokBotUsage(headers)) ?? findGrokBotUsage(data);
+  if (grokBot) {
+    windows.push({ label: "Grok Bot", usedPercent: grokBot.usedPercent, resetsAt: grokBot.resetsAt, detail: "weekly" });
   }
   if (windows.length === 0 && plan?.totalPercentUsed !== undefined && plan?.totalPercentUsed !== null) {
     windows.push({ label: "Included usage", usedPercent: plan.totalPercentUsed, resetsAt });
