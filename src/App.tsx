@@ -17,15 +17,15 @@ import { Button, EmptyState, Text } from "./components/ui";
 import { fetchAccountUsage, listAccounts } from "./lib/accounts";
 import { initToggleShortcut } from "./lib/global-shortcut";
 import {
-  applyTheme,
   getGithubToken,
   getLayout,
   getRefreshShortcut,
-  getTheme,
   getToggleShortcut,
   REFRESH_SHORTCUT_QUERY_KEY,
+  refreshAppliedAppearance,
   setLayout as persistLayout,
 } from "./lib/settings";
+import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
 import { provideUpdateToken, useUpdates } from "./lib/state/updates";
 import { acceleratorFromKeyDown, acceleratorGlyphs, DEFAULT_REFRESH_SHORTCUT } from "./lib/shortcut";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type Layout } from "./lib/usage-types";
@@ -41,6 +41,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Shell />
       <ToastHost />
+      <ThemeEditorHost />
     </QueryClientProvider>
   );
 }
@@ -67,13 +68,22 @@ function Shell() {
 
   React.useEffect(() => {
     void (async () => {
-      applyTheme(await getTheme());
+      await refreshAppliedAppearance();
       setLayout(await getLayout());
       const token = await getGithubToken();
       setGithubTokenState(token);
       const saved = await getToggleShortcut();
       await initToggleShortcut(saved);
     })();
+  }, []);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      void refreshAppliedAppearance();
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
   }, []);
 
   React.useEffect(() => {

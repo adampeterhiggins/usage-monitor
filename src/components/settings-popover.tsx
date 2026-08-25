@@ -15,31 +15,25 @@ import {
   AlignJustify,
   Rows3,
   Columns2,
-  Monitor,
-  Moon,
   Pencil,
   Plus,
   Power,
   RefreshCw,
   Settings,
-  Sun,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
 import {
-  applyTheme,
   getGithubToken,
   getRefreshShortcut,
-  getTheme,
   getToggleShortcut,
   importTokenFromGhCli,
   REFRESH_SHORTCUT_QUERY_KEY,
   setGithubToken,
   setRefreshShortcut,
-  setTheme,
   setToggleShortcut,
-  type ThemeSource,
 } from "../lib/settings";
+import { AppearanceDialog } from "./appearance/appearance-dialog";
 import { setAccountHidden, removeAccount } from "../lib/accounts";
 import {
   acceleratorFromKeyDown,
@@ -59,7 +53,7 @@ import { Badge, Button, cn } from "./ui";
 const OPEN_SETTINGS_EVENT = "settings:openPopover";
 const WINDOW_SHOWN_EVENT = "window:shown";
 
-type Page = "root" | "layout" | "theme" | "editAccount" | "removeAccount" | "selectAccounts" | "updates";
+type Page = "root" | "layout" | "editAccount" | "removeAccount" | "selectAccounts" | "updates";
 
 const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "wall", label: "Wall", icon: LayoutGrid },
@@ -68,12 +62,6 @@ const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "ledger", label: "Ledger", icon: AlignJustify },
   { id: "strip", label: "Strip", icon: Rows3 },
   { id: "focus", label: "Focus", icon: Columns2 },
-];
-
-const THEME_OPTIONS: Array<{ id: ThemeSource; label: string; icon: LucideIcon }> = [
-  { id: "system", label: "Auto", icon: Monitor },
-  { id: "light", label: "Light", icon: Sun },
-  { id: "dark", label: "Dark", icon: Moon },
 ];
 
 function useShortcutRecorder(
@@ -131,9 +119,9 @@ export function SettingsPopover({
   const contentRef = React.useRef<HTMLDivElement>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [open, setOpen] = React.useState(false);
+  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [page, setPage] = React.useState<Page>("root");
   const [query, setQuery] = React.useState("");
-  const [themeSource, setThemeSource] = React.useState<ThemeSource>("light");
   const [shortcut, setShortcut] = React.useState(DEFAULT_TOGGLE_SHORTCUT);
   const [recordingShortcut, setRecordingShortcut] = React.useState(false);
   const [recordingRefreshShortcut, setRecordingRefreshShortcut] = React.useState(false);
@@ -192,7 +180,6 @@ export function SettingsPopover({
 
   React.useEffect(() => {
     if (!open) return;
-    void getTheme().then(setThemeSource);
     void getToggleShortcut().then(setShortcut);
     void getGithubToken().then((t) => setTokenDraft(t ?? ""));
   }, [open]);
@@ -241,12 +228,6 @@ export function SettingsPopover({
     (accelerator) => void applyShortcut(accelerator),
   );
 
-  async function handleThemeChange(source: ThemeSource) {
-    setThemeSource(source);
-    applyTheme(source);
-    await setTheme(source);
-  }
-
   async function handleToggleHidden(account: AccountPublic) {
     try {
       await setAccountHidden(account.id, !account.hidden);
@@ -274,7 +255,6 @@ export function SettingsPopover({
   }
 
   const currentLayoutLabel = LAYOUT_OPTIONS.find((o) => o.id === layout)?.label ?? "Wall";
-  const currentThemeLabel = THEME_OPTIONS.find((o) => o.id === themeSource)?.label ?? "Auto";
 
   return (
     <>
@@ -367,9 +347,11 @@ export function SettingsPopover({
                     />
                     <Item
                       icon={Contrast}
-                      label="Theme…"
-                      accessory={currentThemeLabel}
-                      onSelect={() => setPage("theme")}
+                      label="Appearance…"
+                      onSelect={() => {
+                        setOpen(false);
+                        setAppearanceOpen(true);
+                      }}
                     />
                     <Item
                       icon={RefreshCw}
@@ -404,19 +386,6 @@ export function SettingsPopover({
                       accessory={id === layout ? "✓" : undefined}
                       onSelect={() => {
                         onLayoutChange(id);
-                        setPage("root");
-                      }}
-                    />
-                  ))}
-                {page === "theme" &&
-                  THEME_OPTIONS.map(({ id, label, icon }) => (
-                    <Item
-                      key={id}
-                      icon={icon}
-                      label={label}
-                      accessory={id === themeSource ? "✓" : undefined}
-                      onSelect={() => {
-                        void handleThemeChange(id);
                         setPage("root");
                       }}
                     />
@@ -546,6 +515,7 @@ export function SettingsPopover({
           </div>
         </div>
       ) : null}
+      <AppearanceDialog open={appearanceOpen} onOpenChange={setAppearanceOpen} />
     </>
   );
 }

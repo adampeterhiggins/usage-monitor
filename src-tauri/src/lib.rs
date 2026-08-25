@@ -376,18 +376,22 @@ fn dirs_home() -> Option<String> {
 struct HttpResponse {
     status: u16,
     headers: HashMap<String, String>,
+    /// UTF-8 text, or base64 when `encoding` is `"base64"`.
     body: String,
 }
 
 /// Fetch from Rust so the request has no webview Origin. Anthropic treats
 /// Origin-bearing calls as CORS and some orgs reject those outright; Glaze
 /// avoids this by fetching from Node instead of the renderer.
+///
+/// Pass `encoding: "base64"` for binary bodies (Open VSX VSIX packages).
 #[tauri::command]
 async fn http_request(
     url: String,
     method: Option<String>,
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
+    encoding: Option<String>,
 ) -> Result<HttpResponse, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
@@ -418,7 +422,20 @@ async fn http_request(
             response_headers.insert(key.as_str().to_string(), value.to_string());
         }
     }
-    let body = response.text().await.map_err(|e| format!("Failed to read response: {e}"))?;
+    let want_base64 = encoding.as_deref() == Some("base64");
+    let body = if want_base64 {
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read response: {e}"))?;
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    } else {
+        response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response: {e}"))?
+    };
     Ok(HttpResponse {
         status,
         headers: response_headers,
