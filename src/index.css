@@ -3,29 +3,25 @@
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: var(--app-theme-canvas, #ffffff);
-  --fg: var(--app-theme-text, #000000);
-  --page-plane: var(--app-theme-chrome, rgb(255 255 255 / 42%));
-  --surface: var(--app-theme-surface, #fcfcfc);
-  --text-primary: var(--app-theme-text, #000000);
-  --text-secondary: var(--app-theme-text-muted, rgb(0 0 0 / 60%));
-  --text-tertiary: var(--app-theme-muted-foreground, rgb(0 0 0 / 40%));
-  --text-quaternary: var(--app-theme-placeholder, rgb(0 0 0 / 20%));
-  --separator: var(--app-theme-border, rgb(0 0 0 / 10%));
-  --control: var(--app-theme-muted, rgb(0 0 0 / 10%));
-  --control-subtle: var(--app-theme-secondary, rgb(0 0 0 / 5%));
-  --support-orange: var(--app-theme-warning, #c75d07);
-  --support-green: var(--app-theme-update, #006b4f);
-  --support-yellow: var(--app-theme-warning-foreground, #f8a300);
-  --support-red: var(--app-theme-error, #b12424);
-  --support-blue: var(--app-theme-accent, #138af2);
+  --bg: #ffffff;
+  --fg: #000000;
+  --page-plane: rgb(255 255 255 / 42%);
+  --surface: #fcfcfc;
+  --text-primary: #000000;
+  --text-secondary: rgb(0 0 0 / 60%);
+  --text-tertiary: rgb(0 0 0 / 40%);
+  --text-quaternary: rgb(0 0 0 / 20%);
+  --separator: rgb(0 0 0 / 10%);
+  --control: rgb(0 0 0 / 10%);
+  --control-subtle: rgb(0 0 0 / 5%);
+  --support-orange: #c75d07;
+  --support-green: #006b4f;
+  --support-yellow: #f8a300;
+  --support-red: #b12424;
+  --support-blue: #138af2;
   --glass-opacity: 80%;
-  --glass: color-mix(
-    in srgb,
-    var(--app-theme-surface-overlay, #ffffff) var(--glass-opacity),
-    transparent
-  );
-  --glass-ring: var(--app-theme-border, rgb(0 0 0 / 8%));
+  --glass: #ffffff;
+  --glass-ring: rgb(0 0 0 / 8%);
   --appearance-contrast-base: 100%;
   --appearance-contrast-boost: 0%;
   --appearance-contrast-border-boost: 0%;
@@ -36,58 +32,50 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --bg: var(--app-theme-canvas, #1c1c1e);
-    --fg: var(--app-theme-text, #ffffff);
-    --page-plane: var(--app-theme-chrome, rgb(28 28 30 / 55%));
-    --surface: var(--app-theme-surface, #2c2c2e);
-    --text-primary: var(--app-theme-text, #ffffff);
-    --text-secondary: var(--app-theme-text-muted, rgb(255 255 255 / 60%));
-    --text-tertiary: var(--app-theme-muted-foreground, rgb(255 255 255 / 40%));
-    --text-quaternary: var(--app-theme-placeholder, rgb(255 255 255 / 22%));
-    --separator: var(--app-theme-border, rgb(255 255 255 / 12%));
-    --control: var(--app-theme-muted, rgb(255 255 255 / 12%));
-    --control-subtle: var(--app-theme-secondary, rgb(255 255 255 / 7%));
-    --support-orange: var(--app-theme-warning, #f0a15a);
-    --support-green: var(--app-theme-update, #3dba7a);
-    --support-yellow: var(--app-theme-warning-foreground, #e0c04a);
-    --support-red: var(--app-theme-error, #e66767);
-    --support-blue: var(--app-theme-accent, #5aa0f0);
-    --glass: color-mix(
-      in srgb,
-      var(--app-theme-surface-overlay, rgb(255 255 255 / 10%)) var(--glass-opacity),
-      transparent
-    );
-    --glass-ring: var(--app-theme-border, rgb(255 255 255 / 12%));
+    --bg: #1c1c1e;
+    --fg: #ffffff;
+    --page-plane: rgb(28 28 30 / 55%);
+    --surface: #2c2c2e;
+    --text-primary: #ffffff;
+    --text-secondary: rgb(255 255 255 / 60%);
+    --text-tertiary: rgb(255 255 255 / 40%);
+    --text-quaternary: rgb(255 255 255 / 22%);
+    --separator: rgb(255 255 255 / 12%);
+    --control: rgb(255 255 255 / 12%);
+    --control-subtle: rgb(255 255 255 / 7%);
+    --support-orange: #f0a15a;
+    --support-green: #3dba7a;
+    --support-yellow: #e0c04a;
+    --support-red: #e66767;
+    --support-blue: #5aa0f0;
+    --glass: rgb(255 255 255 / 10%);
+    --glass-ring: rgb(255 255 255 / 12%);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: var(--app-theme-canvas, #1c1c1e);
-  --fg: var(--app-theme-text, #ffffff);
-  --page-plane: var(--app-theme-chrome, rgb(28 28 30 / 55%));
-  --surface: var(--app-theme-surface, #2c2c2e);
-  --text-primary: var(--app-theme-text, #ffffff);
-  --text-secondary: var(--app-theme-text-muted, rgb(255 255 255 / 60%));
-  --text-tertiary: var(--app-theme-muted-foreground, rgb(255 255 255 / 40%));
-  --text-quaternary: var(--app-theme-placeholder, rgb(255 255 255 / 22%));
-  --separator: var(--app-theme-border, rgb(255 255 255 / 12%));
-  --control: var(--app-theme-muted, rgb(255 255 255 / 12%));
-  --control-subtle: var(--app-theme-secondary, rgb(255 255 255 / 7%));
-  --support-orange: var(--app-theme-warning, #f0a15a);
-  --support-green: var(--app-theme-update, #3dba7a);
-  --support-yellow: var(--app-theme-warning-foreground, #e0c04a);
-  --support-red: var(--app-theme-error, #e66767);
-  --support-blue: var(--app-theme-accent, #5aa0f0);
-  --glass: color-mix(
-    in srgb,
-    var(--app-theme-surface-overlay, rgb(255 255 255 / 10%)) var(--glass-opacity),
-    transparent
-  );
-  --glass-ring: var(--app-theme-border, rgb(255 255 255 / 12%));
+  --bg: #1c1c1e;
+  --fg: #ffffff;
+  --page-plane: rgb(28 28 30 / 55%);
+  --surface: #2c2c2e;
+  --text-primary: #ffffff;
+  --text-secondary: rgb(255 255 255 / 60%);
+  --text-tertiary: rgb(255 255 255 / 40%);
+  --text-quaternary: rgb(255 255 255 / 22%);
+  --separator: rgb(255 255 255 / 12%);
+  --control: rgb(255 255 255 / 12%);
+  --control-subtle: rgb(255 255 255 / 7%);
+  --support-orange: #f0a15a;
+  --support-green: #3dba7a;
+  --support-yellow: #e0c04a;
+  --support-red: #e66767;
+  --support-blue: #5aa0f0;
+  --glass: rgb(255 255 255 / 10%);
+  --glass-ring: rgb(255 255 255 / 12%);
 }
 
-/* When a palette theme is active, prefer its vars over the static fallbacks. */
+/* Palette themes (built-in / custom / Open VSX) override the classic tokens. */
 :root[data-theme-id] {
   --bg: var(--app-theme-canvas);
   --fg: var(--app-theme-text);
@@ -177,6 +165,10 @@ body {
 }
 
 .glass-button:hover {
+  background: #ffffff;
+}
+
+:root[data-theme-id] .glass-button:hover {
   background: var(--app-theme-surface-raised, #ffffff);
 }
 
