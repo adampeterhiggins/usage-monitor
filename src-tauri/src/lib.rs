@@ -43,6 +43,9 @@ struct WindowFrame {
 
 struct PanelState {
     ignore_next_blur: AtomicBool,
+    /// When true, hide the tray panel without calling NSApp.hide — used while the
+    /// Appearance window is open so it isn't swept away with the panel.
+    keep_app_active: AtomicBool,
     last_tray_rect: Mutex<Option<Rect>>,
     saved_frame: Mutex<Option<WindowFrame>>,
 }
@@ -51,6 +54,7 @@ impl Default for PanelState {
     fn default() -> Self {
         Self {
             ignore_next_blur: AtomicBool::new(false),
+            keep_app_active: AtomicBool::new(false),
             last_tray_rect: Mutex::new(None),
             saved_frame: Mutex::new(None),
         }
@@ -281,11 +285,17 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     let handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(250));
-        handle
-            .state::<PanelState>()
-            .ignore_next_blur
-            .store(false, Ordering::SeqCst);
+        let state = handle.state::<PanelState>();
+        if !state.keep_app_active.load(Ordering::SeqCst) {
+            state.ignore_next_blur.store(false, Ordering::SeqCst);
+        }
     });
+}
+
+fn appearance_window_visible(app: &AppHandle) -> bool {
+    app.get_webview_window("appearance")
+        .and_then(|win| win.is_visible().ok())
+        .unwrap_or(false)
 }
 
 fn hide_panel(app: &AppHandle) {
@@ -299,7 +309,16 @@ fn hide_panel(app: &AppHandle) {
                 panel.hide();
             }
         }
-        resign_app_activation();
+        // Never NSApp.hide while Appearance (or another settings window) needs to stay up —
+        // that call hides every window in the accessory app, not just the tray panel.
+        let keep_active = app
+            .state::<PanelState>()
+            .keep_app_active
+            .load(Ordering::SeqCst)
+            || appearance_window_visible(app);
+        if !keep_active {
+            resign_app_activation();
+        }
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -345,6 +364,22 @@ fn open_settings_popover(app: AppHandle) {
     open_settings(&app);
 }
 
+/// Call before creating/focusing the Appearance window so the tray panel's
+/// blur-to-hide path does not NSApp.hide() the new window away.
+#[tauri::command]
+fn prepare_open_appearance(app: AppHandle) {
+    let state = app.state::<PanelState>();
+    state.ignore_next_blur.store(true, Ordering::SeqCst);
+    state.keep_app_active.store(true, Ordering::SeqCst);
+}
+
+#[tauri::command]
+fn appearance_window_closed(app: AppHandle) {
+    let state = app.state::<PanelState>();
+    state.keep_app_active.store(false, Ordering::SeqCst);
+    state.ignore_next_blur.store(false, Ordering::SeqCst);
+}
+
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).
 #[tauri::command]
 fn read_home_file(rel_path: String) -> Result<String, String> {
@@ -376,18 +411,22 @@ fn dirs_home() -> Option<String> {
 struct HttpResponse {
     status: u16,
     headers: HashMap<String, String>,
+    /// UTF-8 text, or base64 when `encoding` is `"base64"`.
     body: String,
 }
 
 /// Fetch from Rust so the request has no webview Origin. Anthropic treats
 /// Origin-bearing calls as CORS and some orgs reject those outright; Glaze
 /// avoids this by fetching from Node instead of the renderer.
+///
+/// Pass `encoding: "base64"` for binary bodies (Open VSX VSIX packages).
 #[tauri::command]
 async fn http_request(
     url: String,
     method: Option<String>,
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
+    encoding: Option<String>,
 ) -> Result<HttpResponse, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
@@ -418,7 +457,20 @@ async fn http_request(
             response_headers.insert(key.as_str().to_string(), value.to_string());
         }
     }
-    let body = response.text().await.map_err(|e| format!("Failed to read response: {e}"))?;
+    let want_base64 = encoding.as_deref() == Some("base64");
+    let body = if want_base64 {
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read response: {e}"))?;
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    } else {
+        response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response: {e}"))?
+    };
     Ok(HttpResponse {
         status,
         headers: response_headers,
@@ -449,6 +501,8 @@ pub fn run() {
             show_window,
             toggle_window,
             open_settings_popover,
+            prepare_open_appearance,
+            appearance_window_closed,
             read_home_file,
             read_keychain_password,
             http_request
@@ -513,10 +567,10 @@ pub fn run() {
                         let clear = handle.clone();
                         std::thread::spawn(move || {
                             std::thread::sleep(std::time::Duration::from_millis(400));
-                            clear
-                                .state::<PanelState>()
-                                .ignore_next_blur
-                                .store(false, Ordering::SeqCst);
+                            let state = clear.state::<PanelState>();
+                            if !state.keep_app_active.load(Ordering::SeqCst) {
+                                state.ignore_next_blur.store(false, Ordering::SeqCst);
+                            }
                         });
                     }
                     _ => {}

@@ -17,15 +17,17 @@ import { Button, EmptyState, Text } from "./components/ui";
 import { fetchAccountUsage, listAccounts } from "./lib/accounts";
 import { initToggleShortcut } from "./lib/global-shortcut";
 import {
-  applyTheme,
   getGithubToken,
   getLayout,
   getRefreshShortcut,
-  getTheme,
   getToggleShortcut,
   REFRESH_SHORTCUT_QUERY_KEY,
+  refreshAppliedAppearance,
   setLayout as persistLayout,
 } from "./lib/settings";
+import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
+import { AppearancePanel } from "./components/appearance/appearance-dialog";
+import { APPEARANCE_CHANGED_EVENT } from "./lib/appearance-window";
 import { provideUpdateToken, useUpdates } from "./lib/state/updates";
 import { acceleratorFromKeyDown, acceleratorGlyphs, DEFAULT_REFRESH_SHORTCUT } from "./lib/shortcut";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type Layout } from "./lib/usage-types";
@@ -37,12 +39,37 @@ const queryClient = new QueryClient({
 const ACCOUNTS_KEY = ["usage", "accounts"] as const;
 
 export default function App() {
+  const label = getCurrentWindow().label;
+  const isAppearanceWindow = label === "appearance";
+
+  React.useEffect(() => {
+    document.documentElement.dataset.window = label;
+  }, [label]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Shell />
+      {isAppearanceWindow ? <AppearanceWindowApp /> : <Shell />}
       <ToastHost />
+      {isAppearanceWindow ? <ThemeEditorHost /> : null}
     </QueryClientProvider>
   );
+}
+
+function AppearanceWindowApp() {
+  React.useEffect(() => {
+    void refreshAppliedAppearance();
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      void refreshAppliedAppearance();
+    };
+    media.addEventListener("change", onChange);
+    return () => {
+      media.removeEventListener("change", onChange);
+      void invoke("appearance_window_closed");
+    };
+  }, []);
+
+  return <AppearancePanel />;
 }
 
 function Shell() {
@@ -67,13 +94,32 @@ function Shell() {
 
   React.useEffect(() => {
     void (async () => {
-      applyTheme(await getTheme());
+      await refreshAppliedAppearance();
       setLayout(await getLayout());
       const token = await getGithubToken();
       setGithubTokenState(token);
       const saved = await getToggleShortcut();
       await initToggleShortcut(saved);
     })();
+  }, []);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      void refreshAppliedAppearance();
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  React.useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listen(APPEARANCE_CHANGED_EVENT, () => {
+      void refreshAppliedAppearance();
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => unlisten?.();
   }, []);
 
   React.useEffect(() => {

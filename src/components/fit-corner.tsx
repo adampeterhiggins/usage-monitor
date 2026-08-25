@@ -25,7 +25,7 @@ export function FitCorner({
       type="button"
       aria-label="Fit window to content"
       title="Fit to content"
-      className="no-drag absolute bottom-0 right-0 z-20 size-6 text-quaternary transition-colors hover:text-secondary"
+      className="fit-corner no-drag absolute bottom-0 right-0 z-50 transition-opacity hover:opacity-100"
       onClick={() => {
         const content = contentRef.current;
         if (!content) return;

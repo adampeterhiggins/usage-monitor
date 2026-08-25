@@ -19,8 +19,14 @@
   --support-yellow: #f8a300;
   --support-red: #b12424;
   --support-blue: #138af2;
+  --glass-opacity: 80%;
   --glass: #ffffff;
   --glass-ring: rgb(0 0 0 / 8%);
+  --appearance-contrast-base: 100%;
+  --appearance-contrast-boost: 0%;
+  --appearance-contrast-border-boost: 0%;
+  --font-size-interface: 13px;
+  --font-size-code: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,6 +75,32 @@
   --glass-ring: rgb(255 255 255 / 12%);
 }
 
+/* Palette themes (built-in / custom / Open VSX) override the classic tokens. */
+:root[data-theme-id] {
+  --bg: var(--app-theme-canvas);
+  --fg: var(--app-theme-text);
+  --page-plane: color-mix(in srgb, var(--app-theme-chrome) 88%, transparent);
+  --surface: var(--app-theme-surface);
+  --text-primary: var(--app-theme-text);
+  --text-secondary: var(--app-theme-text-muted);
+  --text-tertiary: var(--app-theme-muted-foreground);
+  --text-quaternary: var(--app-theme-placeholder);
+  --separator: color-mix(
+    in srgb,
+    var(--app-theme-border),
+    black var(--appearance-contrast-border-boost)
+  );
+  --control: var(--app-theme-muted);
+  --control-subtle: var(--app-theme-secondary);
+  --support-orange: var(--app-theme-warning);
+  --support-green: var(--app-theme-update);
+  --support-yellow: var(--app-theme-warning-foreground);
+  --support-red: var(--app-theme-error);
+  --support-blue: var(--app-theme-accent);
+  --glass: color-mix(in srgb, var(--app-theme-surface-overlay) var(--glass-opacity), transparent);
+  --glass-ring: var(--app-theme-border);
+}
+
 @theme inline {
   --color-plane: var(--page-plane);
   --color-surface: var(--surface);
@@ -85,7 +117,9 @@
   --color-support-red: var(--support-red);
   --color-support-blue: var(--support-blue);
   --color-glass: var(--glass);
-  --font-sans: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+  --font-mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 html,
@@ -95,11 +129,25 @@ body,
   background: transparent;
 }
 
+html[data-window="appearance"],
+html[data-window="appearance"] body,
+html[data-window="appearance"] #root {
+  background: var(--surface);
+}
+
 body {
   margin: 0;
   color: var(--text-primary);
-  font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-size: 13px;
+  font-family: var(
+    --font-sans,
+    "SF Pro Text",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif
+  );
+  font-size: var(--font-size-interface, 13px);
   letter-spacing: 0.1px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -114,6 +162,38 @@ body {
   overflow: hidden;
 }
 
+/* Fit-corner grip: keep contrast independent of theme placeholder tokens. */
+/* Fixed px size so interface font prefs can't shrink rem utilities and clip
+   this grip under .app-shell { overflow: hidden; border-radius }. */
+.fit-corner {
+  width: 24px;
+  height: 24px;
+  color: rgb(0 0 0 / 38%);
+  opacity: 0.9;
+}
+.fit-corner:hover {
+  color: rgb(0 0 0 / 55%);
+  opacity: 1;
+}
+:root[data-theme="dark"] .fit-corner,
+:root.dark .fit-corner,
+:root[data-theme-mode="dark"] .fit-corner {
+  color: rgb(255 255 255 / 45%);
+}
+:root[data-theme="dark"] .fit-corner:hover,
+:root.dark .fit-corner:hover,
+:root[data-theme-mode="dark"] .fit-corner:hover {
+  color: rgb(255 255 255 / 70%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .fit-corner {
+    color: rgb(255 255 255 / 45%);
+  }
+  :root:where(:not([data-theme="light"])) .fit-corner:hover {
+    color: rgb(255 255 255 / 70%);
+  }
+}
+
 .glass-button {
   background: var(--glass);
   color: var(--text-primary);
@@ -124,6 +204,10 @@ body {
 
 .glass-button:hover {
   background: #ffffff;
+}
+
+:root[data-theme-id] .glass-button:hover {
+  background: var(--app-theme-surface-raised, #ffffff);
 }
 
 input,
