@@ -13,7 +13,7 @@ import {
   type ThemeColors,
   type ThemeDefinition,
 } from "../../lib/theme/palette";
-import { installAndPersistTheme, refreshAppliedAppearance } from "../../lib/settings";
+import { installAndPersistTheme, refreshAppliedAppearanceAndBroadcast } from "../../lib/settings";
 import { toast } from "../../lib/toast";
 import { Button, cn } from "../ui";
 import { useThemeEditorStore } from "./theme-editor-store";
@@ -117,7 +117,7 @@ export function ThemeEditorHost() {
     if (!session) return;
     applyThemeColorPreview(draftColors, appearance);
     return () => {
-      void refreshAppliedAppearance();
+      void refreshAppliedAppearanceAndBroadcast();
     };
   }, [session, draftColors, appearance]);
 
@@ -159,7 +159,7 @@ export function ThemeEditorHost() {
         description: toSave.label,
       });
       closeThemeEditor();
-      await refreshAppliedAppearance();
+      await refreshAppliedAppearanceAndBroadcast();
     } catch (error) {
       toast.error("Couldn’t save theme", {
         description: error instanceof Error ? error.message : String(error),

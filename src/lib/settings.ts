@@ -1,7 +1,9 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { Command } from "@tauri-apps/plugin-shell";
+import { emit } from "@tauri-apps/api/event";
 import {
-  DEFAULT_APPEARANCE_SETTINGS,
+  normalizeAppearanceSettings,
+  type AppearancePreset,
   type AppearanceSettings,
 } from "./theme/appearance";
 import {
@@ -24,6 +26,7 @@ import {
   type ThemePreference,
   type ThemePreferenceMode,
 } from "./theme/palette";
+import { APPEARANCE_CHANGED_EVENT } from "./appearance-window";
 import { DEFAULT_REFRESH_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "./shortcut";
 import type { Layout } from "./usage-types";
 
@@ -113,16 +116,82 @@ export async function setThemeHalves(halves: ThemeHalves | null): Promise<void> 
 
 export async function getAppearanceSettings(): Promise<AppearanceSettings> {
   const stored = (await store.get<Partial<AppearanceSettings>>("appearance")) ?? {};
-  return { ...DEFAULT_APPEARANCE_SETTINGS, ...stored };
+  return normalizeAppearanceSettings(stored);
 }
 
 export async function setAppearanceSettings(
   patch: Partial<AppearanceSettings>,
 ): Promise<AppearanceSettings> {
-  const next = { ...(await getAppearanceSettings()), ...patch };
+  const next = normalizeAppearanceSettings({ ...(await getAppearanceSettings()), ...patch });
   await store.set("appearance", next);
   await store.save();
   return next;
+}
+
+function parseAppearancePresets(raw: unknown): AppearancePreset[] {
+  if (!Array.isArray(raw)) return [];
+  const presets: AppearancePreset[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    if (typeof record.id !== "string" || typeof record.name !== "string") continue;
+    const name = record.name.trim();
+    if (!name) continue;
+    presets.push({
+      id: record.id,
+      name,
+      settings: normalizeAppearanceSettings(
+        record.settings && typeof record.settings === "object"
+          ? (record.settings as Partial<AppearanceSettings>)
+          : undefined,
+      ),
+      updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : Date.now(),
+    });
+  }
+  return presets.sort((left, right) => right.updatedAt - left.updatedAt);
+}
+
+export async function getAppearancePresets(): Promise<AppearancePreset[]> {
+  return parseAppearancePresets(await store.get("appearancePresets"));
+}
+
+export async function saveAppearancePreset(
+  name: string,
+  settings: AppearanceSettings,
+): Promise<AppearancePreset> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Name is required");
+  const presets = await getAppearancePresets();
+  const existing = presets.find(
+    (preset) => preset.name.toLowerCase() === trimmed.toLowerCase(),
+  );
+  const next: AppearancePreset = {
+    id: existing?.id ?? `preset-${crypto.randomUUID()}`,
+    name: trimmed,
+    settings: normalizeAppearanceSettings(settings),
+    updatedAt: Date.now(),
+  };
+  const updated = existing
+    ? presets.map((preset) => (preset.id === existing.id ? next : preset))
+    : [next, ...presets];
+  await store.set("appearancePresets", updated);
+  await store.save();
+  return next;
+}
+
+export async function deleteAppearancePreset(id: string): Promise<void> {
+  const presets = await getAppearancePresets();
+  await store.set(
+    "appearancePresets",
+    presets.filter((preset) => preset.id !== id),
+  );
+  await store.save();
+}
+
+export async function applyAppearancePreset(id: string): Promise<AppearanceSettings> {
+  const preset = (await getAppearancePresets()).find((item) => item.id === id);
+  if (!preset) throw new Error("Preset not found");
+  return setAppearanceSettings(preset.settings);
 }
 
 export async function loadCustomThemesIntoMemory(): Promise<void> {
@@ -216,4 +285,10 @@ export async function refreshAppliedAppearance(): Promise<void> {
     systemDark: systemPrefersDark(),
   });
   applyAppearanceChrome(appearance);
+}
+
+/** Apply locally, then notify other windows (e.g. main panel ↔ Appearance). */
+export async function refreshAppliedAppearanceAndBroadcast(): Promise<void> {
+  await refreshAppliedAppearance();
+  await emit(APPEARANCE_CHANGED_EVENT, null);
 }

@@ -37,3 +37,31 @@ export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   fontFamilyCode: "",
   fontSmoothing: true,
 };
+
+export type AppearancePreset = {
+  id: string;
+  name: string;
+  settings: AppearanceSettings;
+  updatedAt: number;
+};
+
+export function normalizeAppearanceSettings(
+  value: Partial<AppearanceSettings> | null | undefined,
+): AppearanceSettings {
+  return { ...DEFAULT_APPEARANCE_SETTINGS, ...(value ?? {}) };
+}
+
+export function appearanceSettingsEqual(
+  left: AppearanceSettings,
+  right: AppearanceSettings,
+): boolean {
+  return (
+    left.appearanceContrast === right.appearanceContrast &&
+    left.glassOpacity === right.glassOpacity &&
+    left.fontSizeInterface === right.fontSizeInterface &&
+    left.fontFamilySans === right.fontFamilySans &&
+    left.fontSizeCode === right.fontSizeCode &&
+    left.fontFamilyCode === right.fontFamilyCode &&
+    left.fontSmoothing === right.fontSmoothing
+  );
+}

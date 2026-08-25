@@ -33,7 +33,7 @@ import {
   setRefreshShortcut,
   setToggleShortcut,
 } from "../lib/settings";
-import { AppearanceDialog } from "./appearance/appearance-dialog";
+import { openAppearanceWindow } from "../lib/appearance-window";
 import { setAccountHidden, removeAccount } from "../lib/accounts";
 import {
   acceleratorFromKeyDown,
@@ -119,7 +119,6 @@ export function SettingsPopover({
   const contentRef = React.useRef<HTMLDivElement>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [open, setOpen] = React.useState(false);
-  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [page, setPage] = React.useState<Page>("root");
   const [query, setQuery] = React.useState("");
   const [shortcut, setShortcut] = React.useState(DEFAULT_TOGGLE_SHORTCUT);
@@ -350,7 +349,7 @@ export function SettingsPopover({
                       label="Appearance…"
                       onSelect={() => {
                         setOpen(false);
-                        setAppearanceOpen(true);
+                        void openAppearanceWindow();
                       }}
                     />
                     <Item
@@ -515,7 +514,6 @@ export function SettingsPopover({
           </div>
         </div>
       ) : null}
-      <AppearanceDialog open={appearanceOpen} onOpenChange={setAppearanceOpen} />
     </>
   );
 }

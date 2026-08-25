@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main and appearance windows",
+  "windows": ["main", "appearance"],
   "permissions": [
     "core:default",
     "core:window:allow-hide",
@@ -16,7 +16,9 @@
     "core:window:allow-is-visible",
     "core:window:allow-set-always-on-top",
     "core:window:allow-start-dragging",
+    "core:window:allow-close",
     "core:webview:allow-set-webview-zoom",
+    "core:webview:allow-create-webview-window",
     "opener:default",
     "store:default",
     "updater:default",
@@ -34,7 +36,8 @@
         { "url": "https://cursor.com/*" },
         { "url": "https://chatgpt.com/*" },
         { "url": "https://api.github.com/*" },
-        { "url": "https://raw.githubusercontent.com/*" }
+        { "url": "https://raw.githubusercontent.com/*" },
+        { "url": "https://open-vsx.org/*" }
       ]
     },
     {

@@ -129,6 +129,12 @@ body,
   background: transparent;
 }
 
+html[data-window="appearance"],
+html[data-window="appearance"] body,
+html[data-window="appearance"] #root {
+  background: var(--surface);
+}
+
 body {
   margin: 0;
   color: var(--text-primary);
@@ -157,19 +163,26 @@ body {
 }
 
 /* Fit-corner grip: keep contrast independent of theme placeholder tokens. */
+/* Fixed px size so interface font prefs can't shrink rem utilities and clip
+   this grip under .app-shell { overflow: hidden; border-radius }. */
 .fit-corner {
+  width: 24px;
+  height: 24px;
   color: rgb(0 0 0 / 38%);
   opacity: 0.9;
 }
 .fit-corner:hover {
   color: rgb(0 0 0 / 55%);
+  opacity: 1;
 }
 :root[data-theme="dark"] .fit-corner,
-:root.dark .fit-corner {
+:root.dark .fit-corner,
+:root[data-theme-mode="dark"] .fit-corner {
   color: rgb(255 255 255 / 45%);
 }
 :root[data-theme="dark"] .fit-corner:hover,
-:root.dark .fit-corner:hover {
+:root.dark .fit-corner:hover,
+:root[data-theme-mode="dark"] .fit-corner:hover {
   color: rgb(255 255 255 / 70%);
 }
 @media (prefers-color-scheme: dark) {
@@ -213,8 +226,6 @@ textarea,
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: var(--font-size-code, 12px);
 }
 
 ::-webkit-scrollbar {
