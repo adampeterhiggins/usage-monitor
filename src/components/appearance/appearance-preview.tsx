@@ -57,7 +57,15 @@ function barFill(pct: number): string {
  * Miniature usage-monitor shell. Reads live theme / font / glass CSS vars from
  * the document so Appearance tweaks show up immediately without mirroring state.
  */
-export function AppearancePreview({ className }: { className?: string }) {
+export function AppearancePreview({
+  className,
+  caption,
+  loading,
+}: {
+  className?: string;
+  caption?: string | null;
+  loading?: boolean;
+}) {
   return (
     <aside
       aria-hidden
@@ -66,8 +74,15 @@ export function AppearancePreview({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-tertiary">
-        Preview
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Preview</div>
+        {loading ? (
+          <div className="text-[10px] text-tertiary">Loading…</div>
+        ) : caption ? (
+          <div className="min-w-0 truncate text-[10px] text-tertiary" title={caption}>
+            {caption}
+          </div>
+        ) : null}
       </div>
       <div
         className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"

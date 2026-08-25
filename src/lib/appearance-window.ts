@@ -1,17 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
+import { LogicalSize } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { toast } from "./toast";
 
 export const APPEARANCE_WINDOW_LABEL = "appearance";
 export const APPEARANCE_CHANGED_EVENT = "appearance:changed";
 
+const APPEARANCE_WINDOW_WIDTH = 760;
+const APPEARANCE_WINDOW_HEIGHT = 820;
+
 const APPEARANCE_WINDOW_OPTIONS = {
   url: "index.html",
   title: "Appearance",
-  width: 760,
-  height: 640,
+  width: APPEARANCE_WINDOW_WIDTH,
+  height: APPEARANCE_WINDOW_HEIGHT,
   minWidth: 700,
-  minHeight: 520,
+  minHeight: 680,
   resizable: true,
   decorations: true,
   transparent: false,
@@ -41,6 +45,9 @@ export async function openAppearanceWindow(): Promise<void> {
   if (existing) {
     try {
       watchAppearanceLifecycle(existing);
+      await existing.setSize(
+        new LogicalSize(APPEARANCE_WINDOW_WIDTH, APPEARANCE_WINDOW_HEIGHT),
+      );
       await existing.show();
       await existing.setFocus();
     } catch (error) {

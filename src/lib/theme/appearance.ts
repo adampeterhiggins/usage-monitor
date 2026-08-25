@@ -42,6 +42,10 @@ export type AppearancePreset = {
   id: string;
   name: string;
   settings: AppearanceSettings;
+  /** Optional full look — older presets may omit these. */
+  theme?: string;
+  mode?: "system" | "light" | "dark";
+  halves?: { light?: string; dark?: string } | null;
   updatedAt: number;
 };
 
@@ -64,4 +68,18 @@ export function appearanceSettingsEqual(
     left.fontFamilyCode === right.fontFamilyCode &&
     left.fontSmoothing === right.fontSmoothing
   );
+}
+
+export function appearancePresetMatches(
+  preset: AppearancePreset,
+  current: {
+    settings: AppearanceSettings;
+    theme: string;
+    mode: "system" | "light" | "dark";
+  },
+): boolean {
+  if (!appearanceSettingsEqual(preset.settings, current.settings)) return false;
+  if (preset.theme !== undefined && preset.theme !== current.theme) return false;
+  if (preset.mode !== undefined && preset.mode !== current.mode) return false;
+  return true;
 }

@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   Download,
+  Eye,
   Moon,
   Monitor,
   Paintbrush,
@@ -21,7 +22,7 @@ import {
   MIN_CODE_FONT_SIZE,
   MIN_GLASS_OPACITY,
   MIN_INTERFACE_FONT_SIZE,
-  appearanceSettingsEqual,
+  appearancePresetMatches,
   type AppearancePreset,
   type AppearanceSettings,
 } from "../../lib/theme/appearance";
@@ -31,6 +32,7 @@ import {
   IRIS_THEME,
   OCEAN_THEME,
   T3_CHAT_THEME,
+  applyThemeColorPreview,
   getCustomThemes,
   getThemeColorsForMode,
   getThemeDefinition,
@@ -134,6 +136,12 @@ export function AppearancePanel() {
   const [searching, setSearching] = React.useState(false);
   const [results, setResults] = React.useState<ReadonlyArray<OpenVsxThemeExtension> | null>(null);
   const [installingId, setInstallingId] = React.useState<string | null>(null);
+  const [previewingId, setPreviewingId] = React.useState<string | null>(null);
+  const [previewThemes, setPreviewThemes] = React.useState<ReadonlyArray<ThemeDefinition>>([]);
+  const [previewThemeId, setPreviewThemeId] = React.useState<string | null>(null);
+  const [previewExtensionName, setPreviewExtensionName] = React.useState<string | null>(null);
+  const previewCacheRef = React.useRef(new Map<string, ReadonlyArray<ThemeDefinition>>());
+  const previewAbortRef = React.useRef<AbortController | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -145,7 +153,64 @@ export function AppearancePanel() {
       setAppearanceState(await getAppearanceSettings());
       setPresets(await getAppearancePresets());
     })();
+    return () => {
+      previewAbortRef.current?.abort();
+    };
   }, []);
+
+  async function clearOpenVsxPreview() {
+    previewAbortRef.current?.abort();
+    previewAbortRef.current = null;
+    setPreviewingId(null);
+    setPreviewThemes([]);
+    setPreviewThemeId(null);
+    setPreviewExtensionName(null);
+    await refreshAppliedAppearanceAndBroadcast();
+  }
+
+  function paintPreviewTheme(themeDef: ThemeDefinition) {
+    const appearanceMode = themeDef.appearance;
+    const colors = getThemeColorsForMode(themeDef, appearanceMode) ?? themeDef.colors;
+    applyThemeColorPreview(colors, appearanceMode);
+    setPreviewThemeId(themeDef.id);
+  }
+
+  async function previewExtension(extension: OpenVsxThemeExtension) {
+    previewAbortRef.current?.abort();
+    const controller = new AbortController();
+    previewAbortRef.current = controller;
+    setPreviewingId(extension.id);
+    setPreviewExtensionName(extension.name);
+    try {
+      let themes = previewCacheRef.current.get(extension.id);
+      if (!themes) {
+        themes = await importOpenVsxThemeExtension(extension, controller.signal);
+        if (controller.signal.aborted) return;
+        previewCacheRef.current.set(extension.id, themes);
+      }
+      if (controller.signal.aborted) return;
+      setPreviewThemes(themes);
+      const preferred =
+        themes.find((item) => item.appearance === (mode === "dark" ? "dark" : "light")) ??
+        themes[0];
+      if (!preferred) throw new Error("No themes in that extension.");
+      paintPreviewTheme(preferred);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setPreviewThemes([]);
+      setPreviewThemeId(null);
+      setPreviewExtensionName(null);
+      toast.error("Couldn’t preview theme", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+      await refreshAppliedAppearanceAndBroadcast();
+    } finally {
+      if (previewAbortRef.current === controller) {
+        setPreviewingId(null);
+        previewAbortRef.current = null;
+      }
+    }
+  }
 
   async function selectTheme(next: ThemePreference) {
     setThemeState(next);
@@ -178,16 +243,22 @@ export function AppearancePanel() {
   async function handleSavePreset() {
     const name = presetName.trim();
     if (!name) {
-      toast.error("Name required", { description: "Give this control config a name." });
+      toast.error("Name required", { description: "Give this configuration a name." });
       return;
     }
     try {
-      const saved = await saveAppearancePreset(name, appearance);
+      const saved = await saveAppearancePreset({
+        name,
+        settings: appearance,
+        theme,
+        mode,
+        halves,
+      });
       setPresets(await getAppearancePresets());
       setPresetName("");
-      toast.success("Config saved", { description: saved.name });
+      toast.success("Configuration saved", { description: saved.name });
     } catch (error) {
-      toast.error("Couldn’t save config", {
+      toast.error("Couldn’t save configuration", {
         description: error instanceof Error ? error.message : String(error),
       });
     }
@@ -195,11 +266,14 @@ export function AppearancePanel() {
 
   async function handleApplyPreset(preset: AppearancePreset) {
     try {
-      const next = await applyAppearancePreset(preset.id);
-      setAppearanceState(next);
+      const applied = await applyAppearancePreset(preset.id);
+      setAppearanceState(applied.settings);
+      setThemeState(applied.theme);
+      setModeState(applied.mode);
+      setHalvesState(applied.halves);
       await refreshAppliedAppearanceAndBroadcast();
     } catch (error) {
-      toast.error("Couldn’t apply config", {
+      toast.error("Couldn’t apply configuration", {
         description: error instanceof Error ? error.message : String(error),
       });
     }
@@ -210,7 +284,7 @@ export function AppearancePanel() {
       await deleteAppearancePreset(preset.id);
       setPresets(await getAppearancePresets());
     } catch (error) {
-      toast.error("Couldn’t delete config", {
+      toast.error("Couldn’t delete configuration", {
         description: error instanceof Error ? error.message : String(error),
       });
     }
@@ -249,6 +323,18 @@ export function AppearancePanel() {
       toast.success("Themes installed", {
         description: `${extension.name} · ${themes.length} theme${themes.length === 1 ? "" : "s"}`,
       });
+      previewAbortRef.current?.abort();
+      previewAbortRef.current = null;
+      setPreviewingId(null);
+      setPreviewThemes([]);
+      setPreviewThemeId(null);
+      setPreviewExtensionName(null);
+      previewCacheRef.current.set(extension.id, themes);
+      const preferred =
+        themes.find((item) => item.appearance === (mode === "dark" ? "dark" : "light")) ??
+        themes[0];
+      if (preferred) await selectTheme(preferred.id);
+      else await refreshAppliedAppearanceAndBroadcast();
       setTab("themes");
     } catch (error) {
       toast.error("Couldn’t install theme", {
@@ -305,23 +391,26 @@ export function AppearancePanel() {
             ["openvsx", "Open VSX"],
             ["controls", "Controls"],
           ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={cn(
-              "rounded-lg px-2.5 py-1 text-[12px]",
-              tab === id ? "bg-control text-ink" : "text-secondary hover:bg-control-subtle",
-            )}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={cn(
+                  "rounded-lg px-2.5 py-1 text-[12px]",
+                  tab === id ? "bg-control text-ink" : "text-secondary hover:bg-control-subtle",
+                )}
+                onClick={() => {
+                  if (tab === "openvsx" && id !== "openvsx") void clearOpenVsxPreview();
+                  setTab(id);
+                }}
+              >
+                {label}
+              </button>
+            ))}
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
           {tab === "themes" && (
             <div className="grid gap-4">
               <Section title="Mode">
@@ -503,11 +592,11 @@ export function AppearancePanel() {
           )}
 
           {tab === "openvsx" && (
-            <div className="grid gap-3">
-              <div className="relative">
+            <div className="grid min-w-0 gap-3 overflow-x-hidden">
+              <div className="relative min-w-0">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-tertiary" />
                 <input
-                  className="h-9 w-full rounded-lg border border-separator bg-transparent pl-8 pr-3 text-[13px] outline-none"
+                  className="h-9 w-full min-w-0 rounded-lg border border-separator bg-transparent pl-8 pr-3 text-[13px] outline-none"
                   placeholder="Search Open VSX themes…"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -525,37 +614,86 @@ export function AppearancePanel() {
                   </button>
                 ))}
               </div>
+              {previewThemes.length > 1 ? (
+                <label className="grid min-w-0 gap-1 text-[12px] text-secondary">
+                  Preview variant
+                  <select
+                    className="h-8 w-full min-w-0 rounded-lg border border-separator bg-transparent px-2 text-[13px] text-ink"
+                    value={previewThemeId ?? ""}
+                    onChange={(event) => {
+                      const next = previewThemes.find((item) => item.id === event.target.value);
+                      if (next) paintPreviewTheme(next);
+                    }}
+                  >
+                    {previewThemes.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                        {item.appearance ? ` (${item.appearance})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               {searching ? (
                 <p className="text-[12px] text-tertiary">Searching…</p>
               ) : results === null ? (
-                <p className="text-[12px] text-tertiary">Search for a theme pack to install.</p>
+                <p className="text-[12px] text-tertiary">
+                  Search for a theme pack, then Preview it before installing.
+                </p>
               ) : results.length === 0 ? (
                 <p className="text-[12px] text-tertiary">No themes found.</p>
               ) : (
-                <div className="grid gap-1">
-                  {results.map((extension) => (
-                    <div
-                      key={extension.id}
-                      className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-control-subtle"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-[13px] font-medium">{extension.name}</div>
-                        <div className="truncate text-[11px] text-tertiary">
-                          {extension.publisher} · {extension.downloadCount.toLocaleString()} downloads
-                          {extension.description ? ` · ${extension.description}` : ""}
+                <div className="grid min-w-0 gap-1">
+                  {results.map((extension) => {
+                    const isPreviewing = previewingId === extension.id;
+                    const isActivePreview =
+                      previewExtensionName === extension.name && previewThemes.length > 0;
+                    return (
+                      <div
+                        key={extension.id}
+                        className={cn(
+                          "flex min-w-0 items-start justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-control-subtle",
+                          isActivePreview && "bg-control",
+                        )}
+                      >
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <div className="break-words text-[13px] font-medium [overflow-wrap:anywhere]">
+                            {extension.name}
+                          </div>
+                          <div className="break-words text-[11px] text-tertiary [overflow-wrap:anywhere]">
+                            {extension.publisher} · {extension.downloadCount.toLocaleString()}{" "}
+                            downloads
+                            {extension.description ? ` · ${extension.description}` : ""}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            iconOnly
+                            size="small"
+                            variant="transparent"
+                            aria-label={`Preview ${extension.name}`}
+                            disabled={isPreviewing || installingId === extension.id}
+                            onClick={() => void previewExtension(extension)}
+                          >
+                            {isPreviewing ? (
+                              <span className="text-[11px]">…</span>
+                            ) : (
+                              <Eye className="size-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="filled"
+                            disabled={installingId === extension.id}
+                            onClick={() => void installExtension(extension)}
+                          >
+                            <Download className="size-3.5" />
+                            {installingId === extension.id ? "…" : "Install"}
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        size="small"
-                        variant="filled"
-                        disabled={installingId === extension.id}
-                        onClick={() => void installExtension(extension)}
-                      >
-                        <Download className="size-3.5" />
-                        {installingId === extension.id ? "…" : "Install"}
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -563,11 +701,15 @@ export function AppearancePanel() {
 
           {tab === "controls" && (
             <div className="grid gap-4">
-              <Section title="Saved configs">
+              <Section title="Configurations">
+                <p className="text-[12px] text-tertiary">
+                  Save the current theme, mode, and control settings, then click a name to restore
+                  it later.
+                </p>
                 <div className="flex gap-1.5">
                   <input
                     className="h-8 min-w-0 flex-1 rounded-lg border border-separator bg-transparent px-2 text-[13px] outline-none"
-                    placeholder="Name this config…"
+                    placeholder="Configuration name…"
                     value={presetName}
                     onChange={(event) => setPresetName(event.target.value)}
                     onKeyDown={(event) => {
@@ -579,17 +721,19 @@ export function AppearancePanel() {
                   />
                   <Button size="small" variant="filled" onClick={() => void handleSavePreset()}>
                     <Save className="size-3.5" />
-                    Save
+                    Save configuration
                   </Button>
                 </div>
                 {presets.length === 0 ? (
-                  <p className="text-[12px] text-tertiary">
-                    Save the current contrast, glass, and font settings to reuse later.
-                  </p>
+                  <p className="text-[12px] text-tertiary">No saved configurations yet.</p>
                 ) : (
                   <div className="grid gap-1">
                     {presets.map((preset) => {
-                      const active = appearanceSettingsEqual(appearance, preset.settings);
+                      const active = appearancePresetMatches(preset, {
+                        settings: appearance,
+                        theme,
+                        mode,
+                      });
                       return (
                         <div
                           key={preset.id}
@@ -714,7 +858,20 @@ export function AppearancePanel() {
             </div>
           )}
         </div>
-        <AppearancePreview />
+        <AppearancePreview
+          loading={previewingId !== null}
+          caption={
+            previewThemeId
+              ? (() => {
+                  const active = previewThemes.find((item) => item.id === previewThemeId);
+                  if (!active) return previewExtensionName;
+                  return previewExtensionName
+                    ? `${previewExtensionName} · ${active.label}`
+                    : active.label;
+                })()
+              : null
+          }
+        />
       </div>
     </div>
   );
