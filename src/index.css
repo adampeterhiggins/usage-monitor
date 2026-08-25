@@ -156,6 +156,31 @@ body {
   overflow: hidden;
 }
 
+/* Fit-corner grip: keep contrast independent of theme placeholder tokens. */
+.fit-corner {
+  color: rgb(0 0 0 / 38%);
+  opacity: 0.9;
+}
+.fit-corner:hover {
+  color: rgb(0 0 0 / 55%);
+}
+:root[data-theme="dark"] .fit-corner,
+:root.dark .fit-corner {
+  color: rgb(255 255 255 / 45%);
+}
+:root[data-theme="dark"] .fit-corner:hover,
+:root.dark .fit-corner:hover {
+  color: rgb(255 255 255 / 70%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .fit-corner {
+    color: rgb(255 255 255 / 45%);
+  }
+  :root:where(:not([data-theme="light"])) .fit-corner:hover {
+    color: rgb(255 255 255 / 70%);
+  }
+}
+
 .glass-button {
   background: var(--glass);
   color: var(--text-primary);

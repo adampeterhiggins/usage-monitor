@@ -25,20 +25,17 @@ export function FitCorner({
       type="button"
       aria-label="Fit window to content"
       title="Fit to content"
-      className="no-drag absolute bottom-0 right-0 z-20 size-6 text-quaternary transition-colors hover:text-secondary"
+      className="fit-corner no-drag absolute bottom-1 right-1 z-50 flex size-5 items-center justify-center transition-opacity hover:opacity-100"
       onClick={() => {
         const content = contentRef.current;
         if (!content) return;
         void fitWindowToContent(content, headerRef.current);
       }}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M8 20.5A12.5 12.5 0 0 0 20.5 8"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+        <path d="M9 1L1 9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+        <path d="M9 4.5L4.5 9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+        <path d="M9 8L8 9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
       </svg>
     </button>
   );
