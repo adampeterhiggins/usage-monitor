@@ -10,61 +10,13 @@ import {
   THEME_FILE_VERSION,
   themeColorToHex,
   type ThemeAppearance,
-  type ThemeColors,
   type ThemeDefinition,
 } from "../../lib/theme/palette";
 import { installAndPersistTheme, refreshAppliedAppearanceAndBroadcast } from "../../lib/settings";
 import { toast } from "../../lib/toast";
 import { Button, cn } from "../ui";
+import { UsageMonitorPreview } from "./appearance-preview";
 import { useThemeEditorStore } from "./theme-editor-store";
-
-function ThemeWireframe({ colors }: { colors: ThemeColors }) {
-  return (
-    <div
-      className="overflow-hidden rounded-xl border border-separator"
-      style={{ background: colors.canvas, color: colors.text }}
-    >
-      <div
-        className="flex items-center justify-between px-3 py-2 text-[11px]"
-        style={{ background: colors.toolbar, borderBottom: `1px solid ${colors.toolbarBorder}` }}
-      >
-        <span style={{ color: colors.toolbarForeground }}>Usage Monitor</span>
-        <span
-          className="rounded-md px-2 py-0.5"
-          style={{ background: colors.toolbarControl, color: colors.toolbarControlForeground }}
-        >
-          Settings
-        </span>
-      </div>
-      <div className="grid gap-2 p-3">
-        {["Claude", "Cursor", "Codex"].map((label) => (
-          <div
-            key={label}
-            className="rounded-lg px-3 py-2"
-            style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
-          >
-            <div className="mb-1 flex items-center justify-between text-[11px]">
-              <span style={{ color: colors.text }}>{label}</span>
-              <span style={{ color: colors.textMuted }}>62%</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full" style={{ background: colors.muted }}>
-              <div
-                className="h-full w-[62%] rounded-full"
-                style={{ background: colors.accent }}
-              />
-            </div>
-          </div>
-        ))}
-        <div
-          className="rounded-lg px-3 py-2 text-[11px]"
-          style={{ background: colors.messageSurface, color: colors.messageForeground }}
-        >
-          Session remaining looks healthy.
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function ThemeEditorHost() {
   const session = useThemeEditorStore((s) => s.session);
@@ -178,7 +130,7 @@ export function ThemeEditorHost() {
     >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] w-[min(420px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] max-h-[calc(100vh-24px)] w-[min(420px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="text-[14px] font-medium">
               {editingTheme ? "Edit theme" : "Create theme"}
@@ -233,7 +185,7 @@ export function ThemeEditorHost() {
                 />
               </label>
             </div>
-            <ThemeWireframe colors={draftColors} />
+            <UsageMonitorPreview />
             <div className="flex justify-end gap-2">
               <Button variant="transparent" size="small" onClick={closeThemeEditor}>
                 Cancel
