@@ -8,6 +8,7 @@ import {
   Plus,
   Save,
   Search,
+  Shuffle,
   Sun,
   Trash2,
   Upload,
@@ -46,6 +47,8 @@ import {
 import { parse as parseJsonc } from "jsonc-parser";
 import {
   importOpenVsxThemeExtension,
+  OPEN_VSX_SEARCH_PAGE_SIZE,
+  pickRandomOpenVsxTheme,
   searchOpenVsxThemes,
   type OpenVsxThemeExtension,
 } from "../../lib/theme/openVsx";
@@ -89,6 +92,12 @@ const BUILT_INS: ReadonlyArray<ThemeDefinition> = [
 ];
 
 const SUGGESTED = ["Dracula", "Catppuccin", "Nord", "Tokyo Night"];
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === "AbortError"
+    : error instanceof Error && error.name === "AbortError";
+}
 
 function useCustomThemes() {
   return React.useSyncExternalStore(subscribeToCustomThemes, getCustomThemes, () => []);
@@ -134,7 +143,11 @@ export function AppearancePanel() {
   const [tab, setTab] = React.useState<"themes" | "openvsx" | "controls">("themes");
   const [query, setQuery] = React.useState("");
   const [searching, setSearching] = React.useState(false);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const [results, setResults] = React.useState<ReadonlyArray<OpenVsxThemeExtension> | null>(null);
+  const [hasMore, setHasMore] = React.useState(false);
+  const [randomPick, setRandomPick] = React.useState<OpenVsxThemeExtension | null>(null);
+  const [randomizing, setRandomizing] = React.useState(false);
   const [installingId, setInstallingId] = React.useState<string | null>(null);
   const [previewingId, setPreviewingId] = React.useState<string | null>(null);
   const [previewThemes, setPreviewThemes] = React.useState<ReadonlyArray<ThemeDefinition>>([]);
@@ -142,6 +155,10 @@ export function AppearancePanel() {
   const [previewExtensionName, setPreviewExtensionName] = React.useState<string | null>(null);
   const previewCacheRef = React.useRef(new Map<string, ReadonlyArray<ThemeDefinition>>());
   const previewAbortRef = React.useRef<AbortController | null>(null);
+  const randomAbortRef = React.useRef<AbortController | null>(null);
+  const searchAbortRef = React.useRef<AbortController | null>(null);
+  const seenRandomIdsRef = React.useRef(new Set<string>());
+  const nextOffsetRef = React.useRef(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -155,6 +172,7 @@ export function AppearancePanel() {
     })();
     return () => {
       previewAbortRef.current?.abort();
+      randomAbortRef.current?.abort();
     };
   }, []);
 
@@ -290,30 +308,108 @@ export function AppearancePanel() {
     }
   }
 
-  async function runSearch(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed) {
-      setResults(null);
-      return;
+  async function runSearch(
+    text: string,
+    { append = false, signal }: { append?: boolean; signal?: AbortSignal } = {},
+  ) {
+    if (append) setLoadingMore(true);
+    else {
+      setSearching(true);
+      setLoadingMore(false);
+      setHasMore(false);
     }
-    setSearching(true);
     try {
-      setResults(await searchOpenVsxThemes(trimmed));
+      let requestedOffset = append ? nextOffsetRef.current : 0;
+      let page = await searchOpenVsxThemes(text, {
+        signal,
+        offset: requestedOffset,
+      });
+      if (signal?.aborted) return;
+      // Open VSX sometimes returns an empty page for a valid offset. Skip ahead
+      // a couple of times so "Load more" keeps moving through the catalog.
+      let skips = 0;
+      while (
+        append &&
+        page.fetched === 0 &&
+        requestedOffset + OPEN_VSX_SEARCH_PAGE_SIZE < page.totalSize &&
+        skips < 3 &&
+        !signal?.aborted
+      ) {
+        skips += 1;
+        requestedOffset += OPEN_VSX_SEARCH_PAGE_SIZE;
+        page = await searchOpenVsxThemes(text, { signal, offset: requestedOffset });
+        if (signal?.aborted) return;
+      }
+      const step = page.fetched > 0 ? page.fetched : OPEN_VSX_SEARCH_PAGE_SIZE;
+      nextOffsetRef.current = requestedOffset + step;
+      setHasMore(page.totalSize > 0 && nextOffsetRef.current < page.totalSize);
+      setResults((current) => {
+        if (!append) return page.extensions;
+        const seen = new Set((current ?? []).map((item) => item.id));
+        return [...(current ?? []), ...page.extensions.filter((item) => !seen.has(item.id))];
+      });
     } catch (error) {
-      setResults([]);
+      if (isAbortError(error) || signal?.aborted) return;
+      if (!append) {
+        setResults([]);
+        setHasMore(false);
+      }
       toast.error("Open VSX search failed", {
         description: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      setSearching(false);
+      if (!signal?.aborted) {
+        setSearching(false);
+        setLoadingMore(false);
+      }
     }
   }
 
   React.useEffect(() => {
     if (tab !== "openvsx") return;
-    const handle = window.setTimeout(() => void runSearch(query), 350);
-    return () => window.clearTimeout(handle);
+    randomAbortRef.current?.abort();
+    setRandomPick(null);
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    const handle = window.setTimeout(
+      () => {
+        void runSearch(query, { signal: controller.signal });
+      },
+      query.trim() ? 350 : 0,
+    );
+    return () => {
+      window.clearTimeout(handle);
+      controller.abort();
+    };
   }, [query, tab]);
+
+  async function cycleRandomTheme() {
+    randomAbortRef.current?.abort();
+    const controller = new AbortController();
+    randomAbortRef.current = controller;
+    setRandomizing(true);
+    try {
+      const extension = await pickRandomOpenVsxTheme({
+        signal: controller.signal,
+        excludeIds: seenRandomIdsRef.current,
+        fallback: openVsxItems,
+      });
+      if (controller.signal.aborted) return;
+      seenRandomIdsRef.current.add(extension.id);
+      setRandomPick(extension);
+      await previewExtension(extension);
+    } catch (error) {
+      if (isAbortError(error) || controller.signal.aborted) return;
+      toast.error("Couldn’t pick a random theme", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      if (randomAbortRef.current === controller) {
+        setRandomizing(false);
+        randomAbortRef.current = null;
+      }
+    }
+  }
 
   async function installExtension(extension: OpenVsxThemeExtension) {
     setInstallingId(extension.id);
@@ -381,6 +477,11 @@ export function AppearancePanel() {
   }
 
   const paletteOptions = [...BUILT_INS, ...customThemes];
+  const listedOpenVsxThemes = results ?? [];
+  const openVsxItems =
+    randomPick && !listedOpenVsxThemes.some((item) => item.id === randomPick.id)
+      ? [randomPick, ...listedOpenVsxThemes]
+      : listedOpenVsxThemes;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface text-ink">
@@ -400,7 +501,10 @@ export function AppearancePanel() {
                   tab === id ? "bg-control text-ink" : "text-secondary hover:bg-control-subtle",
                 )}
                 onClick={() => {
-                  if (tab === "openvsx" && id !== "openvsx") void clearOpenVsxPreview();
+                  if (tab === "openvsx" && id !== "openvsx") {
+                    randomAbortRef.current?.abort();
+                    void clearOpenVsxPreview();
+                  }
                   setTab(id);
                 }}
               >
@@ -593,14 +697,27 @@ export function AppearancePanel() {
 
           {tab === "openvsx" && (
             <div className="grid min-w-0 gap-3 overflow-x-hidden">
-              <div className="relative min-w-0">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-tertiary" />
-                <input
-                  className="h-9 w-full min-w-0 rounded-lg border border-separator bg-transparent pl-8 pr-3 text-[13px] outline-none"
-                  placeholder="Search Open VSX themes…"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-tertiary" />
+                  <input
+                    className="h-9 w-full min-w-0 rounded-lg border border-separator bg-transparent pl-8 pr-3 text-[13px] outline-none"
+                    placeholder="Search Open VSX themes…"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </div>
+                <Button
+                  size="small"
+                  variant="transparent"
+                  aria-label="Preview a random Open VSX theme"
+                  disabled={randomizing}
+                  className="h-9 shrink-0 px-2.5"
+                  onClick={() => void cycleRandomTheme()}
+                >
+                  <Shuffle className="size-3.5" />
+                  {randomizing ? "Picking…" : "Random"}
+                </Button>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {SUGGESTED.map((suggestion) => (
@@ -634,17 +751,15 @@ export function AppearancePanel() {
                   </select>
                 </label>
               ) : null}
-              {searching ? (
-                <p className="text-[12px] text-tertiary">Searching…</p>
-              ) : results === null ? (
+              {openVsxItems.length === 0 && (results === null || (searching && !loadingMore)) ? (
                 <p className="text-[12px] text-tertiary">
-                  Search for a theme pack, then Preview it before installing.
+                  {query.trim() ? "Searching…" : "Loading themes…"}
                 </p>
-              ) : results.length === 0 ? (
+              ) : openVsxItems.length === 0 ? (
                 <p className="text-[12px] text-tertiary">No themes found.</p>
               ) : (
                 <div className="grid min-w-0 gap-1">
-                  {results.map((extension) => {
+                  {openVsxItems.map((extension) => {
                     const isPreviewing = previewingId === extension.id;
                     const isActivePreview =
                       previewExtensionName === extension.name && previewThemes.length > 0;
@@ -694,6 +809,21 @@ export function AppearancePanel() {
                       </div>
                     );
                   })}
+                  {hasMore ? (
+                    <Button
+                      variant="transparent"
+                      className="justify-center"
+                      disabled={loadingMore || searching}
+                      onClick={() =>
+                        void runSearch(query, {
+                          append: true,
+                          signal: searchAbortRef.current?.signal,
+                        })
+                      }
+                    >
+                      {loadingMore ? "Loading…" : "Load more"}
+                    </Button>
+                  ) : null}
                 </div>
               )}
             </div>

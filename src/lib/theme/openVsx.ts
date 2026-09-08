@@ -100,10 +100,31 @@ export type OpenVsxThemeExtension = {
   license: string;
 };
 
+export const OPEN_VSX_SEARCH_PAGE_SIZE = 16;
+const OPEN_VSX_SEARCH_MAX_SIZE = 32;
+const RANDOM_THEME_HYDRATE_LIMIT = 5;
+
 export type OpenVsxThemeSearchOptions = {
   signal?: AbortSignal;
   sortBy?: OpenVsxThemeSort;
+  offset?: number;
+  size?: number;
 };
+
+export type OpenVsxThemeSearchPage = {
+  extensions: OpenVsxThemeExtension[];
+  offset: number;
+  totalSize: number;
+  fetched: number;
+};
+
+type OpenVsxSearchHits = {
+  identities: Array<[string, string]>;
+  offset: number;
+  totalSize: number;
+};
+
+let cachedCatalogSize = 0;
 
 type ThemeContribution = { label?: unknown; uiTheme?: unknown; path?: unknown };
 
@@ -234,20 +255,37 @@ async function withSearchTimeout<T>(
   }
 }
 
-export async function searchOpenVsxThemes(
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === "AbortError"
+    : error instanceof Error && error.name === "AbortError";
+}
+
+function clampSearchSize(size: number | undefined): number {
+  const requested = size ?? OPEN_VSX_SEARCH_PAGE_SIZE;
+  if (!Number.isFinite(requested)) return OPEN_VSX_SEARCH_PAGE_SIZE;
+  return Math.min(OPEN_VSX_SEARCH_MAX_SIZE, Math.max(1, Math.floor(requested)));
+}
+
+function clampSearchOffset(offset: number | undefined): number {
+  if (offset === undefined || !Number.isFinite(offset) || offset <= 0) return 0;
+  return Math.floor(offset);
+}
+
+async function fetchOpenVsxSearchHits(
   query: string,
-  { signal, sortBy = "downloadCount" }: OpenVsxThemeSearchOptions = {},
-): Promise<OpenVsxThemeExtension[]> {
+  { signal, sortBy = "downloadCount", offset = 0, size }: OpenVsxThemeSearchOptions = {},
+): Promise<OpenVsxSearchHits> {
   const searchText = query.trim();
-  if (!searchText) return [];
   const url = new URL(OPEN_VSX_SEARCH_URL);
-  url.searchParams.set("query", searchText);
+  if (searchText) url.searchParams.set("query", searchText);
   url.searchParams.set("category", "Themes");
   url.searchParams.set("sortBy", sortBy);
   url.searchParams.set("sortOrder", "desc");
+  url.searchParams.set("offset", String(clampSearchOffset(offset)));
   // Ask for a few extras because results without a supported SPDX license
   // are intentionally omitted.
-  url.searchParams.set("size", "16");
+  url.searchParams.set("size", String(clampSearchSize(size)));
   const value = await withSearchTimeout(async (requestSignal) => {
     const response = await fetchText(url.toString(), { signal: requestSignal });
     if (response.status < 200 || response.status >= 300) {
@@ -271,52 +309,148 @@ export async function searchOpenVsxThemes(
     const name = typeof candidate.name === "string" ? candidate.name : "";
     return namespace && name ? [[namespace, name]] : [];
   });
+  const reportedSize =
+    typeof value.totalSize === "number" && Number.isFinite(value.totalSize)
+      ? Math.max(0, Math.floor(value.totalSize))
+      : 0;
+  const totalSize = reportedSize > 0 ? reportedSize : cachedCatalogSize || identities.length;
+  if (!searchText && totalSize > 0) cachedCatalogSize = totalSize;
+  // The registry often echoes offset: 0 even when a later page was requested.
+  // Pagination has to advance from the offset we asked for.
+  return { identities, offset: clampSearchOffset(offset), totalSize };
+}
+
+async function hydrateOpenVsxExtension(
+  namespace: string,
+  name: string,
+  signal?: AbortSignal,
+): Promise<OpenVsxThemeExtension | null> {
+  return withSearchTimeout(async (requestSignal) => {
+    const detailUrl = `https://open-vsx.org/api/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+    const detailResponse = await fetchText(detailUrl, { signal: requestSignal });
+    if (detailResponse.status < 200 || detailResponse.status >= 300) {
+      throw new Error("Open VSX theme details are unavailable.");
+    }
+    if (detailResponse.body.length > MAX_DETAIL_BYTES) {
+      throw new Error("Open VSX returned an unexpectedly large detail response.");
+    }
+    try {
+      const extension = extensionFromDetail(JSON.parse(detailResponse.body));
+      if (!extension) return null;
+      const [manifestResponse, packageResponse] = await Promise.all([
+        fetchText(extension.manifestUrl, { signal: requestSignal }),
+        fetchText(extension.vsixUrl, { method: "HEAD", signal: requestSignal }),
+      ]);
+      if (manifestResponse.status < 200 || manifestResponse.status >= 300) {
+        throw new Error("manifest unavailable");
+      }
+      if (packageResponse.status < 200 || packageResponse.status >= 300) return null;
+      const packageLength = Number(header(packageResponse.headers, "content-length"));
+      if (Number.isFinite(packageLength) && packageLength > MAX_VSIX_BYTES) {
+        return null;
+      }
+      if (manifestResponse.body.length > MAX_MANIFEST_BYTES) {
+        throw new Error("Open VSX returned an unexpectedly large manifest.");
+      }
+      const manifest = parseJsoncObject(manifestResponse.body, "Extension manifest");
+      return themeContributions(manifest).length > 0 &&
+        manifestLicenseMatches(manifest, extension.license)
+        ? extension
+        : null;
+    } catch (error) {
+      if (isAbortError(error) || requestSignal.aborted) throw error;
+      throw new Error("Open VSX returned unreadable theme details.");
+    }
+  }, signal);
+}
+
+export async function searchOpenVsxThemes(
+  query: string,
+  options: OpenVsxThemeSearchOptions = {},
+): Promise<OpenVsxThemeSearchPage> {
+  const hits = await fetchOpenVsxSearchHits(query, options);
   const details = await Promise.allSettled(
-    identities.slice(0, 16).map(([namespace, name]) =>
-      withSearchTimeout(async (requestSignal) => {
-        const detailUrl = `https://open-vsx.org/api/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
-        const detailResponse = await fetchText(detailUrl, { signal: requestSignal });
-        if (detailResponse.status < 200 || detailResponse.status >= 300) {
-          throw new Error("Open VSX theme details are unavailable.");
-        }
-        if (detailResponse.body.length > MAX_DETAIL_BYTES) {
-          throw new Error("Open VSX returned an unexpectedly large detail response.");
-        }
-        try {
-          const extension = extensionFromDetail(JSON.parse(detailResponse.body));
-          if (!extension) return null;
-          const [manifestResponse, packageResponse] = await Promise.all([
-            fetchText(extension.manifestUrl, { signal: requestSignal }),
-            fetchText(extension.vsixUrl, { method: "HEAD", signal: requestSignal }),
-          ]);
-          if (manifestResponse.status < 200 || manifestResponse.status >= 300) {
-            throw new Error("manifest unavailable");
-          }
-          if (packageResponse.status < 200 || packageResponse.status >= 300) return null;
-          const packageLength = Number(header(packageResponse.headers, "content-length"));
-          if (Number.isFinite(packageLength) && packageLength > MAX_VSIX_BYTES) {
-            return null;
-          }
-          if (manifestResponse.body.length > MAX_MANIFEST_BYTES) {
-            throw new Error("Open VSX returned an unexpectedly large manifest.");
-          }
-          const manifest = parseJsoncObject(manifestResponse.body, "Extension manifest");
-          return themeContributions(manifest).length > 0 &&
-            manifestLicenseMatches(manifest, extension.license)
-            ? extension
-            : null;
-        } catch {
-          throw new Error("Open VSX returned unreadable theme details.");
-        }
-      }, signal),
+    hits.identities.map(([namespace, name]) =>
+      hydrateOpenVsxExtension(namespace, name, options.signal),
     ),
   );
-  if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
+  if (options.signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
   const completedDetails = details.filter((result) => result.status === "fulfilled");
-  if (identities.length > 0 && completedDetails.length === 0) {
+  if (hits.identities.length > 0 && completedDetails.length === 0) {
     throw new Error("Open VSX theme details are unavailable right now.");
   }
-  return completedDetails.flatMap((result) => (result.value ? [result.value] : [])).slice(0, 8);
+  return {
+    extensions: completedDetails.flatMap((result) => (result.value ? [result.value] : [])),
+    offset: hits.offset,
+    totalSize: hits.totalSize,
+    fetched: hits.identities.length,
+  };
+}
+
+function shuffleInPlace<T>(items: T[]): T[] {
+  for (let i = items.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const current = items[i]!;
+    items[i] = items[j]!;
+    items[j] = current;
+  }
+  return items;
+}
+
+function pickFromExtensions(
+  items: ReadonlyArray<OpenVsxThemeExtension>,
+  excludeIds?: ReadonlySet<string>,
+): OpenVsxThemeExtension | null {
+  const unused = excludeIds ? items.filter((item) => !excludeIds.has(item.id)) : [...items];
+  const pool = unused.length > 0 ? unused : items;
+  if (pool.length === 0) return null;
+  return pool[Math.floor(Math.random() * pool.length)] ?? null;
+}
+
+export async function pickRandomOpenVsxTheme(
+  {
+    signal,
+    excludeIds,
+    fallback = [],
+  }: {
+    signal?: AbortSignal;
+    excludeIds?: ReadonlySet<string>;
+    fallback?: ReadonlyArray<OpenVsxThemeExtension>;
+  } = {},
+): Promise<OpenVsxThemeExtension> {
+  try {
+    const totalSize =
+      cachedCatalogSize > 0
+        ? cachedCatalogSize
+        : (await fetchOpenVsxSearchHits("", { signal, offset: 0, size: 1 })).totalSize;
+    if (totalSize > 0) {
+      const offset = Math.floor(Math.random() * totalSize);
+      const hits = await fetchOpenVsxSearchHits("", {
+        signal,
+        offset,
+        size: OPEN_VSX_SEARCH_PAGE_SIZE,
+      });
+      let hydrates = 0;
+      for (const [namespace, name] of shuffleInPlace([...hits.identities])) {
+        if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
+        if (hydrates >= RANDOM_THEME_HYDRATE_LIMIT) break;
+        hydrates += 1;
+        try {
+          const extension = await hydrateOpenVsxExtension(namespace, name, signal);
+          if (extension && !excludeIds?.has(extension.id)) return extension;
+        } catch (error) {
+          if (isAbortError(error) || signal?.aborted) throw error;
+        }
+      }
+    }
+  } catch (error) {
+    if (isAbortError(error) || signal?.aborted) throw error;
+  }
+
+  const fromFallback = pickFromExtensions(fallback, excludeIds);
+  if (fromFallback) return fromFallback;
+
+  throw new Error("Couldn’t find another Open VSX theme to try.");
 }
 
 function parseJsoncObject(source: string, description: string): Record<string, unknown> {
