@@ -56,7 +56,7 @@ async function nativeRequest(url: string, init: HttpInit = {}): Promise<NativeHt
 
 export async function fetchJson<T>(
   url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: string } = {},
+  init: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal } = {},
 ): Promise<T> {
   const res = await nativeRequest(url, {
     ...init,

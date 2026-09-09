@@ -84,8 +84,8 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
 
       <p className="text-[10.5px] leading-relaxed text-quaternary">
         {hasToken
-          ? "Updates come from this app's private repository, using the GitHub token stored in Settings."
-          : "Updates are served from a private repository. Add a GitHub token in Settings to enable checks."}
+          ? "Updates come from this app's private repository, using your GitHub sign-in."
+          : "Updates are served from a private repository. Sign in with GitHub to enable checks."}
       </p>
     </div>
   );
