@@ -75,8 +75,11 @@
   --glass-ring: rgb(255 255 255 / 12%);
 }
 
-/* Palette themes (built-in / custom / Open VSX) override the classic tokens. */
-:root[data-theme-id] {
+/* Palette themes (built-in / custom / Open VSX) override the classic tokens.
+   `.theme-preview-shell` remaps the same tokens locally so a miniature can
+   follow a draft palette even when :root is still wearing another theme. */
+:root[data-theme-id],
+.theme-preview-shell {
   --bg: var(--app-theme-canvas);
   --fg: var(--app-theme-text);
   --page-plane: color-mix(in srgb, var(--app-theme-chrome) 88%, transparent);
@@ -99,6 +102,24 @@
   --support-blue: var(--app-theme-accent);
   --glass: color-mix(in srgb, var(--app-theme-surface-overlay) var(--glass-opacity), transparent);
   --glass-ring: var(--app-theme-border);
+}
+
+.theme-preview-shell {
+  --color-plane: var(--page-plane);
+  --color-surface: var(--surface);
+  --color-ink: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-quaternary: var(--text-quaternary);
+  --color-separator: var(--separator);
+  --color-control: var(--control);
+  --color-control-subtle: var(--control-subtle);
+  --color-support-orange: var(--support-orange);
+  --color-support-green: var(--support-green);
+  --color-support-yellow: var(--support-yellow);
+  --color-support-red: var(--support-red);
+  --color-support-blue: var(--support-blue);
+  --color-glass: var(--glass);
 }
 
 @theme inline {
