@@ -1,4 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
 import { fetchJson } from "../http";
+import { CURSOR_IDE_PIN, KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface CursorUsageSummary {
@@ -121,10 +123,110 @@ async function fetchGrokBotUsage(headers: Record<string, string>): Promise<GrokB
   }
 }
 
+function decodeJwtPayload(token: string, describe: string): Record<string, unknown> {
+  const parts = token.split(".");
+  if (parts.length < 2) throw new Error(`${describe} is not a Cursor session token.`);
+  const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (parts[1].length % 4)) % 4);
+  try {
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
+  } catch {
+    throw new Error(`${describe} is not a Cursor session token.`);
+  }
+}
+
+function rawJwtFromSecret(raw: string, describe: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    let json: { accessToken?: string };
+    try {
+      json = JSON.parse(trimmed) as { accessToken?: string };
+    } catch {
+      throw new Error(`${describe} is not valid JSON.`);
+    }
+    if (!json.accessToken) throw new Error(`${describe} is missing an access token.`);
+    return json.accessToken;
+  }
+  return trimmed;
+}
+
+/** Build the `WorkosCursorSessionToken` cookie the dashboard API expects: `userId::jwt`. */
+function sessionCookieFromJwt(raw: string, describe: string): string {
+  const token = rawJwtFromSecret(raw, describe);
+  const payload = decodeJwtPayload(token, describe);
+  const sub = typeof payload.sub === "string" ? payload.sub : "";
+  if (!sub) throw new Error(`${describe} is missing a subject claim.`);
+  if (payload.type && payload.type !== "session") {
+    throw new Error(
+      `${describe} is an API key login — usage needs a Cursor session. Sign in to the Cursor app or cursor-agent.`,
+    );
+  }
+  if (typeof payload.exp === "number" && payload.exp * 1000 < Date.now()) {
+    throw new Error(`${describe} has expired. Sign in to Cursor, then retry.`);
+  }
+  const userId = sub.includes("|") ? sub.slice(sub.lastIndexOf("|") + 1) : sub;
+  return `${userId}::${token}`;
+}
+
+function cookieFromPasted(raw: string): string {
+  const trimmed = raw.replace(/^WorkosCursorSessionToken=/i, "").trim();
+  if (trimmed.includes("::") || trimmed.includes("%3A%3A")) return trimmed;
+  if (trimmed.split(".").length === 3) return sessionCookieFromJwt(trimmed, "Pasted credential");
+  return trimmed;
+}
+
+async function cookieFromIde(): Promise<string> {
+  const jwt = await invoke<string>("read_cursor_ide_access_token");
+  return sessionCookieFromJwt(jwt, "Cursor IDE login");
+}
+
+async function cookieFromAuthFile(): Promise<string> {
+  const raw = await invoke<string>("read_home_file", { relPath: ".cursor/auth.json" });
+  return sessionCookieFromJwt(raw, "~/.cursor/auth.json");
+}
+
+/**
+ * Native mode: the Cursor desktop app keeps a session JWT in `state.vscdb`;
+ * `cursor-agent` keeps one in the Keychain (`cursor-access-token`). Prefer the
+ * IDE (it is refreshed while Cursor is running), then the Keychain, then
+ * `~/.cursor/auth.json` when that file holds a session token.
+ *
+ * `pin` is `ide` for the desktop app, or a Keychain account for cursor-agent.
+ */
+async function resolveNativeCookie(pin?: string): Promise<string> {
+  if (pin === CURSOR_IDE_PIN) return cookieFromIde();
+  if (pin) {
+    const fromKeychain = await resolveKeychainCredential(KEYCHAIN_LOGINS.cursor!, pin, sessionCookieFromJwt);
+    if (fromKeychain) return fromKeychain.value;
+    throw new Error(
+      `cursor-agent login "${pin}" no longer exists in the Keychain. Edit this account and pick another.`,
+    );
+  }
+
+  try {
+    return await cookieFromIde();
+  } catch {
+    // IDE missing or unusable — try the other local sources.
+  }
+
+  const fromKeychain = await resolveKeychainCredential(KEYCHAIN_LOGINS.cursor!, undefined, sessionCookieFromJwt);
+  if (fromKeychain) return fromKeychain.value;
+
+  try {
+    return await cookieFromAuthFile();
+  } catch {
+    // File missing, expired, or an API-key login.
+  }
+
+  throw new Error(
+    "Cursor login not found. Sign in to the Cursor app or cursor-agent, or paste a WorkosCursorSessionToken cookie.",
+  );
+}
+
 export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot> {
-  const token = account.credential.trim();
+  const pasted = account.credential.trim();
+  const cookie = pasted ? cookieFromPasted(pasted) : await resolveNativeCookie(account.extra?.trim() || undefined);
   const headers = {
-    Cookie: `WorkosCursorSessionToken=${token}`,
+    Cookie: `WorkosCursorSessionToken=${cookie}`,
     Origin: "https://cursor.com",
     Referer: "https://cursor.com/dashboard?tab=usage",
   };
@@ -135,7 +237,9 @@ export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot>
   } catch (e) {
     if (e instanceof Error && /HTTP 401|not_authenticated/.test(e.message)) {
       throw new Error(
-        "Cursor session expired — copy a fresh `WorkosCursorSessionToken` cookie from cursor.com and edit this account.",
+        pasted
+          ? "Cursor session expired — copy a fresh `WorkosCursorSessionToken` cookie from cursor.com and edit this account."
+          : "Cursor session expired — sign in to the Cursor app or cursor-agent, then retry.",
       );
     }
     throw e;

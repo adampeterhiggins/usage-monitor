@@ -20,6 +20,8 @@ export interface Account {
    * Provider-specific secondary setting.
    * - Native mode (blank credential) for Claude and Codex: the macOS Keychain
    *   account to read the CLI login from when several exist (blank = automatic).
+   * - Native mode for Cursor: `ide` pins the Cursor app login; a Keychain
+   *   account name pins cursor-agent (blank = automatic, IDE first).
    * - Codex with a pasted raw access token: the ChatGPT account id.
    */
   extra?: string;
@@ -91,9 +93,9 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     accent: "blue",
     credentialTitle: "Session Cookie",
     credentialHelp:
-      "Value of the WorkosCursorSessionToken cookie on cursor.com. DevTools → Application → Cookies → https://cursor.com",
-    credentialOptional: false,
-    credentialPlaceholder: "WorkosCursorSessionToken value",
+      "Value of the WorkosCursorSessionToken cookie on cursor.com. Leave blank to use your Cursor app or cursor-agent login.",
+    credentialOptional: true,
+    credentialPlaceholder: "Optional — uses Cursor / cursor-agent login",
   },
 };
 

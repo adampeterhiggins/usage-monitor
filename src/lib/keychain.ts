@@ -5,6 +5,10 @@ import type { ProviderId } from "./usage-types";
 export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 /** Keychain service name the Codex CLI uses when `cli_auth_credentials_store = "keyring"`. */
 export const CODEX_KEYCHAIN_SERVICE = "Codex Auth";
+/** Keychain service name `cursor-agent` stores its session JWT under. */
+export const CURSOR_ACCESS_TOKEN_SERVICE = "cursor-access-token";
+/** Native-mode `extra` pin for the Cursor desktop app's `state.vscdb` login. */
+export const CURSOR_IDE_PIN = "ide";
 
 export interface KeychainLogin {
   service: string;
@@ -16,7 +20,22 @@ export interface KeychainLogin {
 export const KEYCHAIN_LOGINS: Partial<Record<ProviderId, KeychainLogin>> = {
   claude: { service: CLAUDE_CODE_KEYCHAIN_SERVICE, noun: "Claude Code login" },
   codex: { service: CODEX_KEYCHAIN_SERVICE, noun: "Codex CLI login" },
+  cursor: { service: CURSOR_ACCESS_TOKEN_SERVICE, noun: "cursor-agent login" },
 };
+
+export interface CursorIdeLogin {
+  email?: string | null;
+  membership?: string | null;
+}
+
+/** Picker metadata for the Cursor IDE login. Does not read the access token. */
+export async function cursorIdeLoginMeta(): Promise<CursorIdeLogin | null> {
+  try {
+    return await invoke<CursorIdeLogin | null>("cursor_ide_login_meta");
+  } catch {
+    return null;
+  }
+}
 
 export interface KeychainEntry {
   account: string;
