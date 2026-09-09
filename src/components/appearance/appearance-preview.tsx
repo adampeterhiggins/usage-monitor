@@ -1,5 +1,21 @@
+import type { CSSProperties } from "react";
 import { RefreshCw, Settings } from "lucide-react";
+import {
+  getThemeColorVariable,
+  isThemeColor,
+  THEME_COLOR_ROLES,
+  type ThemeColors,
+} from "../../lib/theme/palette";
 import { cn } from "../ui";
+
+function cssVarsForThemeColors(colors: ThemeColors): CSSProperties {
+  const vars: Record<string, string> = {};
+  for (const role of THEME_COLOR_ROLES) {
+    const value = colors[role];
+    if (isThemeColor(value)) vars[getThemeColorVariable(role)] = value;
+  }
+  return vars as CSSProperties;
+}
 
 type MockBar = {
   label: string;
@@ -56,13 +72,21 @@ function barFill(pct: number): string {
 /**
  * Miniature usage-monitor shell. Reads live theme / font / glass CSS vars from
  * the document so Appearance tweaks show up immediately without mirroring state.
+ * Pass `colors` to bind a draft palette onto this shell instead of :root.
  */
-export function UsageMonitorPreview({ className }: { className?: string }) {
+export function UsageMonitorPreview({
+  className,
+  colors,
+}: {
+  className?: string;
+  colors?: ThemeColors;
+}) {
   return (
     <div
       aria-hidden
       className={cn(
         "flex min-h-0 flex-col overflow-hidden rounded-[14px] shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8",
+        colors && "theme-preview-shell",
         className,
       )}
       style={{
@@ -71,6 +95,7 @@ export function UsageMonitorPreview({ className }: { className?: string }) {
         fontFamily: "var(--font-sans)",
         fontSize: "var(--font-size-interface)",
         WebkitFontSmoothing: "inherit",
+        ...(colors ? cssVarsForThemeColors(colors) : null),
       }}
     >
       <div className="flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2">
