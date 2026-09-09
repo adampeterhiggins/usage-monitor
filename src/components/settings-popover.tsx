@@ -24,12 +24,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
-  getGithubToken,
   getRefreshShortcut,
   getToggleShortcut,
-  importTokenFromGhCli,
   REFRESH_SHORTCUT_QUERY_KEY,
-  setGithubToken,
   setRefreshShortcut,
   setToggleShortcut,
 } from "../lib/settings";
@@ -47,6 +44,7 @@ import { toast } from "../lib/toast";
 import { PROVIDERS, type AccountPublic, type Layout } from "../lib/usage-types";
 import { exit } from "@tauri-apps/plugin-process";
 import { Tooltip } from "./tooltip";
+import { GithubAuthSettings } from "./github-auth-settings";
 import { UpdatePanel } from "./update-panel";
 import { Badge, Button, cn } from "./ui";
 
@@ -125,7 +123,6 @@ export function SettingsPopover({
   const [recordingShortcut, setRecordingShortcut] = React.useState(false);
   const [recordingRefreshShortcut, setRecordingRefreshShortcut] = React.useState(false);
   const [removeCandidate, setRemoveCandidate] = React.useState<AccountPublic | null>(null);
-  const [tokenDraft, setTokenDraft] = React.useState("");
 
   const refreshShortcutQuery = useQuery({ queryKey: REFRESH_SHORTCUT_QUERY_KEY, queryFn: getRefreshShortcut });
   const refreshShortcut = refreshShortcutQuery.data ?? DEFAULT_REFRESH_SHORTCUT;
@@ -180,7 +177,6 @@ export function SettingsPopover({
   React.useEffect(() => {
     if (!open) return;
     void getToggleShortcut().then(setShortcut);
-    void getGithubToken().then((t) => setTokenDraft(t ?? ""));
   }, [open]);
 
   const applyShortcut = React.useCallback(async (accelerator: string) => {
@@ -439,54 +435,7 @@ export function SettingsPopover({
                 {page === "updates" && (
                   <div>
                     <UpdatePanel hasToken={!!githubToken} />
-                    <div className="border-t border-separator px-3 py-2">
-                      <div className="mb-1 text-[12px] font-semibold">GitHub token</div>
-                      <p className="mb-2 text-[11px] text-tertiary">
-                        Needed to download updates from the private repository. Import from the gh CLI or paste a
-                        PAT with repo read access.
-                      </p>
-                      <input
-                        type="password"
-                        value={tokenDraft}
-                        onChange={(e) => setTokenDraft(e.target.value)}
-                        placeholder="ghp_…"
-                        className="mb-2 h-8 w-full rounded-lg border border-separator bg-surface px-2 text-[12px]"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="small"
-                          variant="glass"
-                          onClick={() => {
-                            void importTokenFromGhCli().then(async (token) => {
-                              if (!token) {
-                                toast.error("Couldn’t import from gh CLI");
-                                return;
-                              }
-                              await setGithubToken(token);
-                              setTokenDraft(token);
-                              onGithubTokenChange(token);
-                              toast.success("Imported GitHub token from gh");
-                            });
-                          }}
-                        >
-                          Import from gh
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="accent"
-                          onClick={() => {
-                            void (async () => {
-                              if (!tokenDraft.trim()) return;
-                              await setGithubToken(tokenDraft.trim());
-                              onGithubTokenChange(tokenDraft.trim());
-                              toast.success("GitHub token saved");
-                            })();
-                          }}
-                        >
-                          Save
-                        </Button>
-                      </div>
-                    </div>
+                    <GithubAuthSettings githubToken={githubToken} onGithubTokenChange={onGithubTokenChange} />
                   </div>
                 )}
               </Command.List>

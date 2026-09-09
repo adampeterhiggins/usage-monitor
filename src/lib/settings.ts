@@ -283,18 +283,56 @@ export async function removeAndPersistThemes(themeIds: ReadonlyArray<string>): P
   await persistCustomThemesFromMemory();
 }
 
+export type GithubAuthSource = "oauth" | "pat" | "gh";
+
+export interface GithubAuth {
+  source: GithubAuthSource;
+  login?: string;
+}
+
+export async function getGithubOAuthClientId(): Promise<string | null> {
+  return (await store.get<string>("githubOAuthClientId")) ?? null;
+}
+
+export async function setGithubOAuthClientId(clientId: string): Promise<void> {
+  const trimmed = clientId.trim();
+  if (trimmed) await store.set("githubOAuthClientId", trimmed);
+  else await store.delete("githubOAuthClientId");
+  await store.save();
+}
+
 export async function getGithubToken(): Promise<string | null> {
   return (await store.get<string>("githubToken")) ?? null;
 }
 
-export async function setGithubToken(token: string): Promise<void> {
+export async function getGithubAuth(): Promise<GithubAuth | null> {
+  const token = await getGithubToken();
+  if (!token) return null;
+  const stored = await store.get<GithubAuth>("githubAuth");
+  if (stored?.source === "oauth" || stored?.source === "pat" || stored?.source === "gh") {
+    return stored;
+  }
+  return { source: "pat" };
+}
+
+export async function saveGithubCredentials(token: string, auth: GithubAuth): Promise<void> {
   await store.set("githubToken", token.trim());
+  await store.set("githubAuth", auth);
   await store.save();
 }
 
-export async function clearGithubToken(): Promise<void> {
+export async function clearGithubCredentials(): Promise<void> {
   await store.delete("githubToken");
+  await store.delete("githubAuth");
   await store.save();
+}
+
+export async function setGithubToken(token: string): Promise<void> {
+  await saveGithubCredentials(token, { source: "pat" });
+}
+
+export async function clearGithubToken(): Promise<void> {
+  await clearGithubCredentials();
 }
 
 export async function importTokenFromGhCli(): Promise<string | null> {

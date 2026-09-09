@@ -48,7 +48,9 @@ make secrets
 
 The **public** key lives in `src-tauri/tauri.conf.json` and is committed — that is what each build trusts. **Back up `.updater/signing.key`.** Lose it and existing installs can never be updated again; they would need replacing by hand.
 
-Updates are served from this private repository, so the running app also needs a GitHub token with read access. Import it from the `gh` CLI in **Settings → Updates**, or paste a PAT.
+Updates are served from this private repository, so the running app needs GitHub credentials with read access. In **Settings → Updates**, use **Sign in with GitHub** (device flow). That asks for the `repo` scope. A PAT or **Import from gh** still works if you want a single-repo fine-grained token instead.
+
+The OAuth App is already registered. Enable **Device Authorization Grant** on it if that is still off. The public client ID lives in `src/lib/github-oauth.ts`; leave the client secret unused.
 
 ### Cutting a release
 
@@ -92,7 +94,8 @@ src/
   lib/
     usage/           Claude / Codex / Cursor fetchers + TTL cache
     accounts.ts      persisted accounts (credentials never rendered)
-    settings.ts      shortcuts, layout, theme, GitHub token
+    settings.ts      shortcuts, layout, theme, GitHub auth
+    github-oauth.ts  device-flow sign-in for private-repo updates
     updates.ts       Tauri updater, private-repo auth headers
   components/        cards, layouts, settings popover
 src-tauri/
