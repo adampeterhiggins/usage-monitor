@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fetchJson } from "../http";
-import { CLAUDE_CODE_KEYCHAIN_SERVICE, listKeychainAccounts, readKeychainPassword } from "../keychain";
+import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface UsageBucket {
@@ -149,65 +149,9 @@ function tokenFrom(raw: string, describe: string): ClaudeCodeToken {
   return { token: oauth.accessToken };
 }
 
-/** Read the token from one specific Keychain account the user picked. */
-async function readPinnedKeychainToken(account: string): Promise<ClaudeCodeToken> {
-  let raw: string;
-  try {
-    raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE, account);
-  } catch {
-    throw new Error(
-      `Keychain login "${account}" no longer exists. Edit this account and pick another Claude Code login.`,
-    );
-  }
-  const result = tokenFrom(raw, `Keychain login "${account}"`);
-  return { ...result, source: account };
-}
-
-/**
- * Pick a Keychain login automatically: try every entry under the Claude Code
- * service newest-first and use the first one that actually holds a live token.
- * `security` alone returns an arbitrary match, which breaks when a stray entry
- * without a token sits alongside the real login.
- */
-async function readAutoKeychainToken(): Promise<ClaudeCodeToken | null> {
-  let entries: Array<{ account: string }> = [];
-  try {
-    entries = await listKeychainAccounts(CLAUDE_CODE_KEYCHAIN_SERVICE);
-  } catch {
-    entries = [];
-  }
-
-  let firstError: Error | undefined;
-  for (const entry of entries) {
-    try {
-      const raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE, entry.account);
-      const result = tokenFrom(raw, `Keychain login "${entry.account}"`);
-      return { ...result, source: entries.length > 1 ? entry.account : undefined };
-    } catch (e) {
-      firstError ??= e instanceof Error ? e : new Error(String(e));
-    }
-  }
-  if (entries.length > 0 && firstError) {
-    throw new Error(
-      `${entries.length} Claude Code logins found in the Keychain but none holds a valid token. ${firstError.message}`,
-    );
-  }
-
-  // Listing failed or found nothing — fall back to whatever `security` returns.
-  try {
-    const raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE);
-    return tokenFrom(raw, "Claude Code Keychain login");
-  } catch (e) {
-    if (e instanceof Error && /missing an access token|has expired/.test(e.message)) throw e;
-    return null;
-  }
-}
-
 async function readClaudeCodeToken(keychainAccount?: string): Promise<ClaudeCodeToken> {
-  if (keychainAccount) return readPinnedKeychainToken(keychainAccount);
-
-  const fromKeychain = await readAutoKeychainToken();
-  if (fromKeychain) return fromKeychain;
+  const fromKeychain = await resolveKeychainCredential(KEYCHAIN_LOGINS.claude!, keychainAccount, tokenFrom);
+  if (fromKeychain) return { ...fromKeychain.value, source: fromKeychain.source };
 
   let raw: string | undefined;
   try {

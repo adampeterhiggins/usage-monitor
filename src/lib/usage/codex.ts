@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fetchJson } from "../http";
+import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface RateLimitWindow {
@@ -28,43 +29,70 @@ interface CodexCreds {
   accountId?: string;
 }
 
+const AUTH_FILE = ".codex/auth.json";
+
+async function readAuthFile(rel: string): Promise<CodexCreds | null> {
+  let raw: string;
+  try {
+    raw = await invoke<string>("read_home_file", { relPath: rel });
+  } catch {
+    return null;
+  }
+  return parseAuthJson(raw, `~/${rel}`);
+}
+
+/**
+ * Native mode: the Codex CLI keeps its login either in the macOS Keychain
+ * (`cli_auth_credentials_store = "keyring"`) or in ~/.codex/auth.json. Try the
+ * Keychain first, then the file. `keychainAccount` pins one Keychain entry.
+ */
+async function resolveNativeCreds(keychainAccount?: string): Promise<CodexCreds> {
+  const fromKeychain = await resolveKeychainCredential(KEYCHAIN_LOGINS.codex!, keychainAccount, parseAuthJson);
+  if (fromKeychain) return fromKeychain.value;
+
+  const fromFile = await readAuthFile(AUTH_FILE);
+  if (fromFile) return fromFile;
+
+  throw new Error(
+    "Codex login not found in the Keychain or ~/.codex/auth.json. Run `codex login`, or paste the auth.json contents.",
+  );
+}
+
 async function resolveCreds(account: Account): Promise<CodexCreds> {
   const cred = account.credential.trim();
 
-  if (cred.startsWith("{")) return parseAuthJson(cred);
+  if (cred.startsWith("{")) return parseAuthJson(cred, "Pasted credential");
 
-  if (cred === "" || cred.startsWith("/") || cred.startsWith("~")) {
-    const rel =
-      cred === "" || cred === "~/.codex/auth.json" || cred === "~/.codex"
-        ? ".codex/auth.json"
-        : cred.replace(/^~\//, "");
+  if (cred === "") return resolveNativeCreds(account.extra?.trim() || undefined);
+
+  if (cred.startsWith("/") || cred.startsWith("~")) {
+    const rel = cred === "~/.codex/auth.json" || cred === "~/.codex" ? AUTH_FILE : cred.replace(/^~\//, "");
     if (rel.startsWith("/")) {
-      throw new Error("Paste the auth.json contents, or leave blank to auto-read ~/.codex/auth.json.");
+      throw new Error("Paste the auth.json contents, or leave blank to use your Codex CLI login.");
     }
-    const raw = await invoke<string>("read_home_file", { relPath: rel }).catch(() => {
-      throw new Error(
-        `Could not read ~/${rel}. Log in with the Codex CLI first, or paste the auth.json contents.`,
-      );
-    });
-    return parseAuthJson(raw);
+    const creds = await readAuthFile(rel);
+    if (!creds) {
+      throw new Error(`Could not read ~/${rel}. Log in with the Codex CLI first, or paste the auth.json contents.`);
+    }
+    return creds;
   }
 
   return { accessToken: cred, accountId: account.extra };
 }
 
-function parseAuthJson(raw: string): CodexCreds {
+function parseAuthJson(raw: string, describe: string): CodexCreds {
   let json: { tokens?: { access_token?: string; account_id?: string }; OPENAI_API_KEY?: string };
   try {
     json = JSON.parse(raw);
   } catch {
-    throw new Error("Credential is not valid JSON (expected ~/.codex/auth.json contents).");
+    throw new Error(`${describe} is not valid JSON (expected auth.json contents).`);
   }
   const token = json.tokens?.access_token;
   if (!token) {
     throw new Error(
       json.OPENAI_API_KEY
-        ? "This auth.json uses an API key login — usage limits need a ChatGPT login (run `codex login`)."
-        : "auth.json has no tokens.access_token.",
+        ? `${describe} uses an API key login — usage limits need a ChatGPT login (run \`codex login\`).`
+        : `${describe} has no tokens.access_token.`,
     );
   }
   return { accessToken: token, accountId: json.tokens?.account_id };
