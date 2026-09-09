@@ -1,15 +1,15 @@
 {
-  "version": "0.1.10",
-  "notes": "## What's Changed\n* Add GitHub OAuth device-flow sign-in for updates by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/7\n* Pick the right Claude Code login when several Keychain entries exist by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/8\n* Read the Codex CLI login from the Keychain in native mode by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/9\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.9...v0.1.10",
-  "pub_date": "2026-09-09T11:41:01Z",
+  "version": "0.1.11",
+  "notes": "## What's Changed\n* Consolidate account settings into a Manage Accounts modal by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/10\n* Sync node_modules and run checks before bumping the release version by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/11\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.10...v0.1.11",
+  "pub_date": "2026-09-09T12:04:04Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUR0blQ0SlhBVEYxLzdCdzJDMzA5Tnp3TTZ0eVlQQ1Z2T1lyQk1xcmFHZzYvMEFrbUo5QzNqSGFoYVZaK21nWUs2VE1qcjlBWUpnNGpyV0VhVjJKVFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4OTU0MDAxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnYraVBhOElxYnpvRGE4eTMrK0pOakpLNWhQb3ZSUVQrRDRCYVJFL2djMEhhalRYQytYQWFYWEFFbURiVnB2S0tHMGxGUGpLN3JQd2crZW84ZGdnMEJ3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/552644602"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUlLSWdZZEFtclZMdkdxcXRaWDg3UkJsZ0JPWDZGNDBZTXFVVXlrRktXS1VvVURMdlhEZ2IwMlVwY2U2OWxXTHV1T0dMMndzNyt3ZElhbmNndVN0MHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4OTU1MzgwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClVqYXdIWFlGRUFnRHpJRTVSeEtUM0dNclBTbDhQZFRHdGE3ZHh0cVFESWNIQzVIUVNoUGZUNVdIUE4vSHZrZXltVmxXbTkzN1RERktnbTVONktHL0JnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/552678618"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUR0blQ0SlhBVEYxLzdCdzJDMzA5Tnp3TTZ0eVlQQ1Z2T1lyQk1xcmFHZzYvMEFrbUo5QzNqSGFoYVZaK21nWUs2VE1qcjlBWUpnNGpyV0VhVjJKVFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4OTU0MDAxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnYraVBhOElxYnpvRGE4eTMrK0pOakpLNWhQb3ZSUVQrRDRCYVJFL2djMEhhalRYQytYQWFYWEFFbURiVnB2S0tHMGxGUGpLN3JQd2crZW84ZGdnMEJ3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/552644602"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUlLSWdZZEFtclZMdkdxcXRaWDg3UkJsZ0JPWDZGNDBZTXFVVXlrRktXS1VvVURMdlhEZ2IwMlVwY2U2OWxXTHV1T0dMMndzNyt3ZElhbmNndVN0MHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4OTU1MzgwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClVqYXdIWFlGRUFnRHpJRTVSeEtUM0dNclBTbDhQZFRHdGE3ZHh0cVFESWNIQzVIUVNoUGZUNVdIUE4vSHZrZXltVmxXbTkzN1RERktnbTVONktHL0JnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/552678618"
     }
   }
 }
