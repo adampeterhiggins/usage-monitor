@@ -12,7 +12,7 @@ npm run tauri dev      # develop — the panel is hidden until you press ⌘⇧U
 make app               # build and install into /Applications
 ```
 
-On first launch the panel is empty. Add accounts from **Settings → Add Account** (or **⌘K**). Claude and Codex can use your existing local login with no paste; Cursor needs the `WorkosCursorSessionToken` cookie from cursor.com.
+On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Claude and Codex can use your existing local login with no paste; Cursor needs the `WorkosCursorSessionToken` cookie from cursor.com.
 
 ### Providers
 
@@ -28,7 +28,7 @@ Credentials stay in the app's data directory via `tauri-plugin-store`. They neve
 
 The app is an accessory — no Dock icon. Left-click the menu-bar icon or press the show/hide shortcut to open the panel. It hides when it loses focus, or when you press Escape.
 
-**⌘K** opens Settings. From there you can add/edit/hide accounts, switch layout (Wall, Grouped, Stacked, Ledger, Strip, Focus), change theme, and rebind the shortcuts.
+**⌘K** opens Settings. **Manage Accounts** lets you add, edit, hide, remove, and reorder accounts. You can also switch layout (Wall, Grouped, Stacked, Ledger, Strip, Focus), change theme, and rebind the shortcuts.
 
 ## Releasing and updating
 

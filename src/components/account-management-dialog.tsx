@@ -1,0 +1,269 @@
+import * as React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { removeAccount, reorderAccounts, setAccountHidden } from "../lib/accounts";
+import { toast } from "../lib/toast";
+import { PROVIDERS, type AccountPublic } from "../lib/usage-types";
+import { Badge, Button, cn, Text } from "./ui";
+
+interface AccountManagementDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accounts: AccountPublic[];
+  onAddAccount: () => void;
+  onEditAccount: (account: AccountPublic) => void;
+  onAccountsChanged: () => void;
+}
+
+export function AccountManagementDialog({
+  open,
+  onOpenChange,
+  accounts,
+  onAddAccount,
+  onEditAccount,
+  onAccountsChanged,
+}: AccountManagementDialogProps) {
+  const [ordered, setOrdered] = React.useState<AccountPublic[]>([]);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = React.useState<string | null>(null);
+  const [removeCandidate, setRemoveCandidate] = React.useState<AccountPublic | null>(null);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!open) {
+      setDraggingId(null);
+      setDropTargetId(null);
+      setRemoveCandidate(null);
+      setBusyId(null);
+      return;
+    }
+    setOrdered(accounts);
+  }, [open, accounts]);
+
+  async function persistOrder(next: AccountPublic[]) {
+    const previous = ordered;
+    setOrdered(next);
+    try {
+      await reorderAccounts(next.map((a) => a.id));
+      onAccountsChanged();
+    } catch (error) {
+      setOrdered(previous);
+      toast.error("Couldn’t reorder accounts", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  function moveAccount(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const fromIndex = ordered.findIndex((a) => a.id === fromId);
+    const toIndex = ordered.findIndex((a) => a.id === toId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const next = [...ordered];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    void persistOrder(next);
+  }
+
+  async function handleToggleHidden(account: AccountPublic) {
+    setBusyId(account.id);
+    try {
+      await setAccountHidden(account.id, !account.hidden);
+      onAccountsChanged();
+    } catch (error) {
+      toast.error("Couldn’t update account visibility", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleConfirmRemove() {
+    if (!removeCandidate) return;
+    const meta = PROVIDERS[removeCandidate.provider];
+    setBusyId(removeCandidate.id);
+    try {
+      await removeAccount(removeCandidate.id);
+      toast.success("Account removed", { description: `${meta.name} · ${removeCandidate.label}` });
+      onAccountsChanged();
+      setRemoveCandidate(null);
+    } catch (error) {
+      toast.error("Couldn’t remove account", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <>
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/25" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+            <div className="flex shrink-0 items-start justify-between gap-3">
+              <div>
+                <Dialog.Title className="text-[16px] font-semibold">Manage Accounts</Dialog.Title>
+                <Dialog.Description className="mt-1 text-[12px] text-secondary">
+                  Add, edit, hide, remove, or drag to reorder. Order applies to Wall and Ledger layouts.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <Button iconOnly variant="transparent" size="small" aria-label="Close">
+                  <X className="size-4" />
+                </Button>
+              </Dialog.Close>
+            </div>
+
+            <div className="mt-4 shrink-0">
+              <Button variant="accent" size="small" onClick={onAddAccount}>
+                <Plus className="size-3.5" />
+                Add Account
+              </Button>
+            </div>
+
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+              {ordered.length === 0 ? (
+                <div className="rounded-xl bg-control-subtle px-3 py-8 text-center">
+                  <Text color="secondary">No accounts yet. Add one to get started.</Text>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {ordered.map((account) => {
+                    const meta = PROVIDERS[account.provider];
+                    const isDragging = draggingId === account.id;
+                    const isDropTarget = dropTargetId === account.id && draggingId !== account.id;
+                    return (
+                      <li
+                        key={account.id}
+                        draggable
+                        onDragStart={(event) => {
+                          setDraggingId(account.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", account.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingId(null);
+                          setDropTargetId(null);
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          if (dropTargetId !== account.id) setDropTargetId(account.id);
+                        }}
+                        onDragLeave={() => {
+                          if (dropTargetId === account.id) setDropTargetId(null);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          const fromId = event.dataTransfer.getData("text/plain") || draggingId;
+                          setDropTargetId(null);
+                          setDraggingId(null);
+                          if (fromId) moveAccount(fromId, account.id);
+                        }}
+                        className={cn(
+                          "flex items-center gap-1 rounded-xl px-1.5 py-1.5 ring-1 ring-transparent",
+                          isDragging && "opacity-40",
+                          isDropTarget && "bg-control-subtle ring-separator",
+                          account.hidden && "opacity-70",
+                        )}
+                      >
+                        <span
+                          className="inline-flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-tertiary active:cursor-grabbing"
+                          aria-hidden
+                        >
+                          <GripVertical className="size-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge color={meta.accent} size="small">
+                              {meta.name}
+                            </Badge>
+                            <span
+                              className={cn(
+                                "truncate text-[13px]",
+                                account.hidden ? "text-tertiary" : "text-ink",
+                              )}
+                            >
+                              {account.label}
+                            </span>
+                          </div>
+                          {account.hidden ? (
+                            <div className="mt-0.5 text-[11px] text-quaternary">Hidden from layouts</div>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center">
+                          <Button
+                            iconOnly
+                            variant="transparent"
+                            size="small"
+                            aria-label={account.hidden ? "Show account" : "Hide account"}
+                            disabled={busyId === account.id}
+                            onClick={() => void handleToggleHidden(account)}
+                          >
+                            {account.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                          </Button>
+                          <Button
+                            iconOnly
+                            variant="transparent"
+                            size="small"
+                            aria-label="Edit account"
+                            onClick={() => onEditAccount(account)}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            iconOnly
+                            variant="transparent"
+                            size="small"
+                            aria-label="Remove account"
+                            className="text-support-red hover:text-support-red"
+                            onClick={() => setRemoveCandidate(account)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-4 flex shrink-0 justify-end">
+              <Dialog.Close asChild>
+                <Button variant="glass">Done</Button>
+              </Dialog.Close>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {removeCandidate ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 p-6">
+          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
+            <div className="text-[15px] font-semibold">Remove {removeCandidate.label}?</div>
+            <p className="mt-1 text-[12px] text-secondary">
+              {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed from this
+              monitor. Your provider login is unaffected.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="glass" onClick={() => setRemoveCandidate(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busyId === removeCandidate.id}
+                onClick={() => void handleConfirmRemove()}
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}

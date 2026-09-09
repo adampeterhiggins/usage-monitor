@@ -130,8 +130,8 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/25" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/25" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[70] w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
           <Dialog.Title className="text-[16px] font-semibold">
             {editing ? "Edit Account" : "Add Account"}
           </Dialog.Title>

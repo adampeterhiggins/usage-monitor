@@ -4,10 +4,7 @@ import { Command } from "cmdk";
 import { listen } from "@tauri-apps/api/event";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
   Contrast,
-  Eye,
-  EyeOff,
   Keyboard,
   LayoutGrid,
   LayoutList,
@@ -15,12 +12,10 @@ import {
   AlignJustify,
   Rows3,
   Columns2,
-  Pencil,
-  Plus,
   Power,
   RefreshCw,
   Settings,
-  Trash2,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -31,7 +26,6 @@ import {
   setToggleShortcut,
 } from "../lib/settings";
 import { openAppearanceWindow } from "../lib/appearance-window";
-import { setAccountHidden, removeAccount } from "../lib/accounts";
 import {
   acceleratorFromKeyDown,
   DEFAULT_REFRESH_SHORTCUT,
@@ -41,17 +35,17 @@ import {
 } from "../lib/shortcut";
 import { registerToggleShortcut } from "../lib/global-shortcut";
 import { toast } from "../lib/toast";
-import { PROVIDERS, type AccountPublic, type Layout } from "../lib/usage-types";
+import { type Layout } from "../lib/usage-types";
 import { exit } from "@tauri-apps/plugin-process";
 import { Tooltip } from "./tooltip";
 import { GithubAuthSettings } from "./github-auth-settings";
 import { UpdatePanel } from "./update-panel";
-import { Badge, Button, cn } from "./ui";
+import { Button, cn } from "./ui";
 
 const OPEN_SETTINGS_EVENT = "settings:openPopover";
 const WINDOW_SHOWN_EVENT = "window:shown";
 
-type Page = "root" | "layout" | "editAccount" | "removeAccount" | "selectAccounts" | "updates";
+type Page = "root" | "layout" | "updates";
 
 const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "wall", label: "Wall", icon: LayoutGrid },
@@ -89,11 +83,7 @@ function useShortcutRecorder(
 interface SettingsPopoverProps {
   layout: Layout;
   onLayoutChange: (layout: Layout) => void;
-  accounts: AccountPublic[];
-  onAddAccount: () => void;
-  onEditAccount: (account: AccountPublic) => void;
-  onAccountRemoved: (accountId: string) => void;
-  onAccountVisibilityChanged: () => void;
+  onManageAccounts: () => void;
   dialogOpen: boolean;
   onOpenChange?: (open: boolean) => void;
   githubToken: string | null;
@@ -103,11 +93,7 @@ interface SettingsPopoverProps {
 export function SettingsPopover({
   layout,
   onLayoutChange,
-  accounts,
-  onAddAccount,
-  onEditAccount,
-  onAccountRemoved,
-  onAccountVisibilityChanged,
+  onManageAccounts,
   dialogOpen,
   onOpenChange,
   githubToken,
@@ -122,7 +108,6 @@ export function SettingsPopover({
   const [shortcut, setShortcut] = React.useState(DEFAULT_TOGGLE_SHORTCUT);
   const [recordingShortcut, setRecordingShortcut] = React.useState(false);
   const [recordingRefreshShortcut, setRecordingRefreshShortcut] = React.useState(false);
-  const [removeCandidate, setRemoveCandidate] = React.useState<AccountPublic | null>(null);
 
   const refreshShortcutQuery = useQuery({ queryKey: REFRESH_SHORTCUT_QUERY_KEY, queryFn: getRefreshShortcut });
   const refreshShortcut = refreshShortcutQuery.data ?? DEFAULT_REFRESH_SHORTCUT;
@@ -140,7 +125,6 @@ export function SettingsPopover({
     let unlisten: (() => void) | undefined;
     void listen(WINDOW_SHOWN_EVENT, () => {
       setOpen(false);
-      setRemoveCandidate(null);
     }).then((fn) => {
       unlisten = fn;
     });
@@ -166,8 +150,8 @@ export function SettingsPopover({
   }, [open]);
 
   React.useEffect(() => {
-    onOpenChange?.(open || removeCandidate !== null);
-  }, [open, removeCandidate, onOpenChange]);
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -223,247 +207,134 @@ export function SettingsPopover({
     (accelerator) => void applyShortcut(accelerator),
   );
 
-  async function handleToggleHidden(account: AccountPublic) {
-    try {
-      await setAccountHidden(account.id, !account.hidden);
-      onAccountVisibilityChanged();
-    } catch (error) {
-      toast.error("Couldn’t update account visibility", {
-        description: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  async function handleConfirmRemove() {
-    if (!removeCandidate) return;
-    const meta = PROVIDERS[removeCandidate.provider];
-    try {
-      await removeAccount(removeCandidate.id);
-      toast.success("Account removed", { description: `${meta.name} · ${removeCandidate.label}` });
-      onAccountRemoved(removeCandidate.id);
-      setRemoveCandidate(null);
-    } catch (error) {
-      toast.error("Couldn’t remove account", {
-        description: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
   const currentLayoutLabel = LAYOUT_OPTIONS.find((o) => o.id === layout)?.label ?? "Wall";
 
   return (
-    <>
-      <Popover.Root
-        modal={false}
-        open={open}
-        onOpenChange={(next) => {
-          if (!next && recordingAny) return;
-          setOpen(next);
-        }}
-      >
-        <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
-          <span className="inline-flex">
-            <Popover.Trigger asChild>
-              <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
-                <Settings className="size-4" />
-              </Button>
-            </Popover.Trigger>
-          </span>
-        </Tooltip>
-        <Popover.Portal>
-          <Popover.Content
-            ref={contentRef}
-            align="end"
-            sideOffset={6}
-            className="z-50 w-80 overflow-hidden rounded-2xl bg-menu p-0 shadow-lg ring-1 ring-black/10"
-            onEscapeKeyDown={(event) => {
-              event.stopPropagation();
-              if (page !== "root") {
+    <Popover.Root
+      modal={false}
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && recordingAny) return;
+        setOpen(next);
+      }}
+    >
+      <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
+        <span className="inline-flex">
+          <Popover.Trigger asChild>
+            <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
+              <Settings className="size-4" />
+            </Button>
+          </Popover.Trigger>
+        </span>
+      </Tooltip>
+      <Popover.Portal>
+        <Popover.Content
+          ref={contentRef}
+          align="end"
+          sideOffset={6}
+          className="z-50 w-80 overflow-hidden rounded-2xl bg-menu p-0 shadow-lg ring-1 ring-black/10"
+          onEscapeKeyDown={(event) => {
+            event.stopPropagation();
+            if (page !== "root") {
+              event.preventDefault();
+              setPage("root");
+            }
+          }}
+        >
+          <Command
+            loop
+            className="flex flex-col"
+            onKeyDown={(event: React.KeyboardEvent) => {
+              if (event.key === "Backspace" && query === "" && page !== "root") {
                 event.preventDefault();
                 setPage("root");
               }
             }}
           >
-            <Command
-              loop
-              className="flex flex-col"
-              onKeyDown={(event: React.KeyboardEvent) => {
-                if (event.key === "Backspace" && query === "" && page !== "root") {
-                  event.preventDefault();
-                  setPage("root");
-                }
-              }}
-            >
-              {page !== "updates" ? (
-                <Command.Input
-                  placeholder="Search for actions…"
-                  value={query}
-                  onValueChange={setQuery}
-                  className="h-9 border-b border-separator bg-transparent px-3 text-[13px] outline-none placeholder:text-quaternary"
-                />
-              ) : null}
-              <Command.List className="h-auto max-h-[320px] overflow-y-auto p-1">
-                <Command.Empty className="px-3 py-6 text-center text-[12px] text-tertiary">
-                  No actions found.
-                </Command.Empty>
-                {page === "root" && (
-                  <Command.Group>
-                    <Item
-                      icon={Plus}
-                      label="Add Account"
-                      onSelect={() => {
-                        onAddAccount();
-                        setOpen(false);
-                      }}
-                    />
-                    <Item
-                      icon={Pencil}
-                      label="Edit Account…"
-                      disabled={accounts.length === 0}
-                      onSelect={() => setPage("editAccount")}
-                    />
-                    <Item
-                      icon={Trash2}
-                      label="Remove Account…"
-                      disabled={accounts.length === 0}
-                      onSelect={() => setPage("removeAccount")}
-                    />
-                    <Item
-                      icon={Eye}
-                      label="Select Accounts…"
-                      disabled={accounts.length === 0}
-                      onSelect={() => setPage("selectAccounts")}
-                    />
-                    <Item
-                      icon={LayoutGrid}
-                      label="Switch Layout…"
-                      accessory={currentLayoutLabel}
-                      onSelect={() => setPage("layout")}
-                    />
-                    <Item
-                      icon={Contrast}
-                      label="Appearance…"
-                      onSelect={() => {
-                        setOpen(false);
-                        void openAppearanceWindow();
-                      }}
-                    />
-                    <Item
-                      icon={RefreshCw}
-                      label="Refresh Command"
-                      accessory={
-                        recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
-                      }
-                      onSelect={() => setRecordingRefreshShortcut((prev) => !prev)}
-                    />
-                    <Item
-                      icon={Keyboard}
-                      label="Show/Hide Shortcut"
-                      accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
-                      onSelect={() => setRecordingShortcut((prev) => !prev)}
-                    />
-                    <Item icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
-                    <Item
-                      icon={Power}
-                      label="Quit"
-                      onSelect={() => {
-                        void exit(0);
-                      }}
-                    />
-                  </Command.Group>
-                )}
-                {page === "layout" &&
-                  LAYOUT_OPTIONS.map(({ id, label, icon }) => (
-                    <Item
-                      key={id}
-                      icon={icon}
-                      label={label}
-                      accessory={id === layout ? "✓" : undefined}
-                      onSelect={() => {
-                        onLayoutChange(id);
-                        setPage("root");
-                      }}
-                    />
-                  ))}
-                {page === "editAccount" &&
-                  accounts.map((account) => (
-                    <Command.Item
-                      key={account.id}
-                      onSelect={() => {
-                        onEditAccount(account);
-                        setOpen(false);
-                      }}
-                      className={itemClass}
-                    >
-                      <Badge color={PROVIDERS[account.provider].accent}>{PROVIDERS[account.provider].name}</Badge>
-                      {account.label}
-                    </Command.Item>
-                  ))}
-                {page === "removeAccount" &&
-                  accounts.map((account) => (
-                    <Command.Item
-                      key={account.id}
-                      onSelect={() => {
-                        setRemoveCandidate(account);
-                        setPage("root");
-                        setOpen(false);
-                      }}
-                      className={itemClass}
-                    >
-                      <Badge color={PROVIDERS[account.provider].accent}>{PROVIDERS[account.provider].name}</Badge>
-                      {account.label}
-                    </Command.Item>
-                  ))}
-                {page === "selectAccounts" &&
-                  accounts.map((account) => (
-                    <Command.Item
-                      key={account.id}
-                      onSelect={() => void handleToggleHidden(account)}
-                      className={itemClass}
-                    >
-                      <Badge color={PROVIDERS[account.provider].accent}>{PROVIDERS[account.provider].name}</Badge>
-                      <span className={account.hidden ? "text-tertiary" : undefined}>{account.label}</span>
-                      <span className="ml-auto">
-                        {account.hidden ? (
-                          <EyeOff className="size-4 text-tertiary" />
-                        ) : (
-                          <Check className="size-4" />
-                        )}
-                      </span>
-                    </Command.Item>
-                  ))}
-                {page === "updates" && (
-                  <div>
-                    <UpdatePanel hasToken={!!githubToken} />
-                    <GithubAuthSettings githubToken={githubToken} onGithubTokenChange={onGithubTokenChange} />
-                  </div>
-                )}
-              </Command.List>
-            </Command>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
-
-      {removeCandidate ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-6">
-          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
-            <div className="text-[15px] font-semibold">Remove {removeCandidate.label}?</div>
-            <p className="mt-1 text-[12px] text-secondary">
-              {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed from this
-              monitor.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="glass" onClick={() => setRemoveCandidate(null)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => void handleConfirmRemove()}>
-                Remove
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
+            {page !== "updates" ? (
+              <Command.Input
+                placeholder="Search for actions…"
+                value={query}
+                onValueChange={setQuery}
+                className="h-9 border-b border-separator bg-transparent px-3 text-[13px] outline-none placeholder:text-quaternary"
+              />
+            ) : null}
+            <Command.List className="h-auto max-h-[320px] overflow-y-auto p-1">
+              <Command.Empty className="px-3 py-6 text-center text-[12px] text-tertiary">
+                No actions found.
+              </Command.Empty>
+              {page === "root" && (
+                <Command.Group>
+                  <Item
+                    icon={Users}
+                    label="Manage Accounts…"
+                    onSelect={() => {
+                      onManageAccounts();
+                      setOpen(false);
+                    }}
+                  />
+                  <Item
+                    icon={LayoutGrid}
+                    label="Switch Layout…"
+                    accessory={currentLayoutLabel}
+                    onSelect={() => setPage("layout")}
+                  />
+                  <Item
+                    icon={Contrast}
+                    label="Appearance…"
+                    onSelect={() => {
+                      setOpen(false);
+                      void openAppearanceWindow();
+                    }}
+                  />
+                  <Item
+                    icon={RefreshCw}
+                    label="Refresh Command"
+                    accessory={
+                      recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
+                    }
+                    onSelect={() => setRecordingRefreshShortcut((prev) => !prev)}
+                  />
+                  <Item
+                    icon={Keyboard}
+                    label="Show/Hide Shortcut"
+                    accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
+                    onSelect={() => setRecordingShortcut((prev) => !prev)}
+                  />
+                  <Item icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+                  <Item
+                    icon={Power}
+                    label="Quit"
+                    onSelect={() => {
+                      void exit(0);
+                    }}
+                  />
+                </Command.Group>
+              )}
+              {page === "layout" &&
+                LAYOUT_OPTIONS.map(({ id, label, icon }) => (
+                  <Item
+                    key={id}
+                    icon={icon}
+                    label={label}
+                    accessory={id === layout ? "✓" : undefined}
+                    onSelect={() => {
+                      onLayoutChange(id);
+                      setPage("root");
+                    }}
+                  />
+                ))}
+              {page === "updates" && (
+                <div>
+                  <UpdatePanel hasToken={!!githubToken} />
+                  <GithubAuthSettings githubToken={githubToken} onGithubTokenChange={onGithubTokenChange} />
+                </div>
+              )}
+            </Command.List>
+          </Command>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
