@@ -201,91 +201,107 @@ export function AccountManagementDialog({
   const orderedIds = ordered.map((a) => a.id);
 
   return (
-    <>
-      <Dialog.Root open={open} onOpenChange={onOpenChange}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/25" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
-            <div className="flex shrink-0 items-start justify-between gap-3">
-              <div>
-                <Dialog.Title className="text-[16px] font-semibold">Manage Accounts</Dialog.Title>
-                <Dialog.Description className="mt-1 text-[12px] text-secondary">
-                  Add, edit, hide, remove, or drag to reorder. Order applies to Wall and Ledger layouts.
-                </Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <Button iconOnly variant="transparent" size="small" aria-label="Close">
-                  <X className="size-4" />
-                </Button>
-              </Dialog.Close>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && removeCandidate) return;
+        onOpenChange(nextOpen);
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/25" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+          <div className="flex shrink-0 items-start justify-between gap-3">
+            <div>
+              <Dialog.Title className="text-[16px] font-semibold">Manage Accounts</Dialog.Title>
+              <Dialog.Description className="mt-1 text-[12px] text-secondary">
+                Add, edit, hide, remove, or drag to reorder. Order applies to Wall and Ledger layouts.
+              </Dialog.Description>
             </div>
-
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
-              {ordered.length === 0 ? (
-                <div className="rounded-xl bg-control-subtle px-3 py-8 text-center">
-                  <Text color="secondary">No accounts yet. Add one to get started.</Text>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  modifiers={[restrictToVerticalAxis]}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                    <ul className="flex flex-col gap-1.5">
-                      {ordered.map((account) => (
-                        <SortableAccountRow
-                          key={account.id}
-                          account={account}
-                          busy={busyId === account.id}
-                          onToggleHidden={(a) => void handleToggleHidden(a)}
-                          onEdit={onEditAccount}
-                          onRemove={setRemoveCandidate}
-                        />
-                      ))}
-                    </ul>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-
-            <div className="mt-4 flex shrink-0 items-center justify-between gap-2">
-              <Button variant="accent" size="small" onClick={onAddAccount}>
-                <Plus className="size-3.5" />
-                Add Account
+            <Dialog.Close asChild>
+              <Button iconOnly variant="transparent" size="small" aria-label="Close">
+                <X className="size-4" />
               </Button>
-              <Dialog.Close asChild>
-                <Button variant="glass">Done</Button>
-              </Dialog.Close>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      {removeCandidate ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 p-6">
-          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
-            <div className="text-[15px] font-semibold">Remove {removeCandidate.label}?</div>
-            <p className="mt-1 text-[12px] text-secondary">
-              {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed from this
-              monitor. Your provider login is unaffected.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="glass" onClick={() => setRemoveCandidate(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={busyId === removeCandidate.id}
-                onClick={() => void handleConfirmRemove()}
-              >
-                Remove
-              </Button>
-            </div>
+            </Dialog.Close>
           </div>
-        </div>
-      ) : null}
-    </>
+
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+            {ordered.length === 0 ? (
+              <div className="rounded-xl bg-control-subtle px-3 py-8 text-center">
+                <Text color="secondary">No accounts yet. Add one to get started.</Text>
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis]}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                  <ul className="flex flex-col gap-1.5">
+                    {ordered.map((account) => (
+                      <SortableAccountRow
+                        key={account.id}
+                        account={account}
+                        busy={busyId === account.id}
+                        onToggleHidden={(a) => void handleToggleHidden(a)}
+                        onEdit={onEditAccount}
+                        onRemove={setRemoveCandidate}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
+
+          <div className="mt-4 flex shrink-0 items-center justify-between gap-2">
+            <Button variant="accent" size="small" onClick={onAddAccount}>
+              <Plus className="size-3.5" />
+              Add Account
+            </Button>
+            <Dialog.Close asChild>
+              <Button variant="glass">Done</Button>
+            </Dialog.Close>
+          </div>
+
+          <Dialog.Root
+            open={removeCandidate !== null}
+            onOpenChange={(nextOpen) => {
+              if (!nextOpen) setRemoveCandidate(null);
+            }}
+          >
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/20" />
+              <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] w-[min(384px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
+                {removeCandidate ? (
+                  <>
+                    <Dialog.Title className="text-[15px] font-semibold">
+                      Remove {removeCandidate.label}?
+                    </Dialog.Title>
+                    <Dialog.Description className="mt-1 text-[12px] text-secondary">
+                      {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed
+                      from this monitor. Your provider login is unaffected.
+                    </Dialog.Description>
+                    <div className="mt-4 flex justify-end gap-2">
+                      <Button variant="glass" onClick={() => setRemoveCandidate(null)}>
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        disabled={busyId === removeCandidate.id}
+                        onClick={() => void handleConfirmRemove()}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
