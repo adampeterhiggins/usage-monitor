@@ -279,7 +279,7 @@ export function SettingsPopover({
             ref={contentRef}
             align="end"
             sideOffset={6}
-            className="z-50 w-80 overflow-hidden rounded-2xl bg-surface p-0 shadow-lg ring-1 ring-black/10"
+            className="z-50 w-80 overflow-hidden rounded-2xl bg-menu p-0 shadow-lg ring-1 ring-black/10"
             onEscapeKeyDown={(event) => {
               event.stopPropagation();
               if (page !== "root") {
@@ -497,7 +497,7 @@ export function SettingsPopover({
 
       {removeCandidate ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-6">
-          <div className="w-full max-w-sm rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
+          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
             <div className="text-[15px] font-semibold">Remove {removeCandidate.label}?</div>
             <p className="mt-1 text-[12px] text-secondary">
               {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed from this

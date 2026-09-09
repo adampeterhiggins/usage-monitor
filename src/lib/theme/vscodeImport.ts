@@ -266,6 +266,9 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
       "disabledForeground",
     ),
     surface: solidOver(canvas, "editorWidget.background") ?? derived.surface,
+    menu:
+      solidOver(canvas, "menu.background", "quickInput.background", "dropdown.background") ??
+      derived.menu,
     surfaceRaised:
       solidOver(canvas, "editorWidget.background", "dropdown.background") ?? derived.surfaceRaised,
     surfaceOverlay:
