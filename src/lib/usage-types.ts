@@ -16,6 +16,11 @@ export interface Account {
   provider: ProviderId;
   label: string;
   credential: string;
+  /**
+   * Provider-specific secondary setting. Codex: account id. Claude: the
+   * macOS Keychain account to read the Claude Code login from when several
+   * exist (blank = pick automatically).
+   */
   extra?: string;
   hidden: boolean;
 }
