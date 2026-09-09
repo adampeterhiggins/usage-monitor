@@ -110,6 +110,27 @@ export async function removeAccount(id: string): Promise<void> {
   invalidate(id);
 }
 
+/** Persist a new account order. `orderedIds` must contain every existing account id exactly once. */
+export async function reorderAccounts(orderedIds: string[]): Promise<AccountPublic[]> {
+  const accounts = await load();
+  if (orderedIds.length !== accounts.length) {
+    throw new Error("Account order is out of date. Close and reopen Manage Accounts.");
+  }
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const next: Account[] = [];
+  for (const id of orderedIds) {
+    const account = byId.get(id);
+    if (!account) throw new Error("Account order is out of date. Close and reopen Manage Accounts.");
+    next.push(account);
+    byId.delete(id);
+  }
+  if (byId.size > 0) {
+    throw new Error("Account order is out of date. Close and reopen Manage Accounts.");
+  }
+  await persist(next);
+  return next.map(toPublic);
+}
+
 export async function fetchAccountUsage(id: string, force = false) {
   const { fetchUsage } = await import("./usage/cache");
   const account = await getAccount(id);

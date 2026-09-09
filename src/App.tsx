@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tan
 import { Plus, RefreshCw } from "lucide-react";
 import { AccountCard, type AccountFetchState } from "./components/account-card";
 import { AccountDialog } from "./components/account-dialog";
+import { AccountManagementDialog } from "./components/account-management-dialog";
 import { FitCorner } from "./components/fit-corner";
 import { FocusView } from "./components/focus-view";
 import { LedgerView } from "./components/ledger-view";
@@ -77,8 +78,10 @@ function Shell() {
   const [layout, setLayout] = React.useState<Layout>("wall");
   const [focusSelectedId, setFocusSelectedId] = React.useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [manageOpen, setManageOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AccountPublic | null>(null);
+  const blockingOverlay = dialogOpen || manageOpen || settingsOpen;
   const [fetchStates, setFetchStates] = React.useState<Record<string, AccountFetchState>>({});
   const [refreshingAll, setRefreshingAll] = React.useState(false);
   const [githubToken, setGithubTokenState] = React.useState<string | null>(null);
@@ -165,6 +168,12 @@ function Shell() {
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
 
   React.useEffect(() => {
+    if (focusSelectedId && !visibleAccounts.some((a) => a.id === focusSelectedId)) {
+      setFocusSelectedId(null);
+    }
+  }, [visibleAccounts, focusSelectedId]);
+
+  React.useEffect(() => {
     for (const account of visibleAccounts) {
       if (!fetchStates[account.id]) void loadOne(account, false);
     }
@@ -186,32 +195,32 @@ function Shell() {
   React.useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        if (dialogOpen || settingsOpen) return;
+        if (blockingOverlay) return;
         void invoke("hide_window");
         return;
       }
       const accelerator = acceleratorFromKeyDown(e, { allowBareKey: true });
       if (!accelerator || accelerator !== refreshShortcut) return;
-      if (dialogOpen || settingsOpen || visibleAccounts.length === 0 || refreshingAll) return;
+      if (blockingOverlay || visibleAccounts.length === 0 || refreshingAll) return;
       e.preventDefault();
       void refreshAll(true);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [refreshAll, dialogOpen, settingsOpen, visibleAccounts.length, refreshingAll, refreshShortcut]);
+  }, [refreshAll, blockingOverlay, visibleAccounts.length, refreshingAll, refreshShortcut]);
 
   React.useEffect(() => {
     let unlisten: (() => void) | undefined;
     void listen("window:shown", () => {
       // Make sure the document owns keyboard focus so Escape works without a click first.
       window.focus();
-      if (dialogOpen || visibleAccounts.length === 0 || refreshingAll) return;
+      if (dialogOpen || manageOpen || visibleAccounts.length === 0 || refreshingAll) return;
       void refreshAll(true);
     }).then((fn) => {
       unlisten = fn;
     });
     return () => unlisten?.();
-  }, [refreshAll, dialogOpen, visibleAccounts.length, refreshingAll]);
+  }, [refreshAll, dialogOpen, manageOpen, visibleAccounts.length, refreshingAll]);
 
   function handleSaved() {
     void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
@@ -249,7 +258,8 @@ function Shell() {
     return PROVIDER_ORDER.map((id) => ({ id, accounts: map.get(id) ?? [] })).filter((g) => g.accounts.length > 0);
   }, [visibleAccounts]);
 
-  const orderedAccounts = React.useMemo(() => grouped.flatMap((g) => g.accounts), [grouped]);
+  // Wall / Ledger follow persisted account order; provider-grouped layouts keep storage order within each provider.
+  const orderedAccounts = visibleAccounts;
   const isEmpty = !accountsQuery.isLoading && accounts.length === 0;
   const allHidden = !isEmpty && !accountsQuery.isLoading && visibleAccounts.length === 0;
 
@@ -281,7 +291,12 @@ function Shell() {
       return (
         <EmptyState
           title="All accounts hidden"
-          description="Every account is hidden from view. Open Settings → Select Accounts to show one again."
+          description="Every account is hidden from view. Open Settings → Manage Accounts to show one again."
+          actions={
+            <Button variant="accent" onClick={() => setManageOpen(true)}>
+              Manage Accounts
+            </Button>
+          }
         />
       );
     }
@@ -414,12 +429,8 @@ function Shell() {
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}
-            accounts={accounts}
-            onAddAccount={openAdd}
-            onEditAccount={openEdit}
-            onAccountRemoved={handleRemoved}
-            onAccountVisibilityChanged={() => void client.invalidateQueries({ queryKey: ACCOUNTS_KEY })}
-            dialogOpen={dialogOpen}
+            onManageAccounts={() => setManageOpen(true)}
+            dialogOpen={blockingOverlay}
             onOpenChange={setSettingsOpen}
             githubToken={githubToken}
             onGithubTokenChange={setGithubTokenState}
@@ -428,6 +439,16 @@ function Shell() {
       </header>
       <div className="@container min-h-0 flex-1">{scrolledBody}</div>
       <FitCorner contentRef={contentRef} headerRef={headerRef} />
+      <AccountManagementDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        accounts={accounts}
+        onAddAccount={openAdd}
+        onEditAccount={openEdit}
+        onAccountsChanged={() => {
+          void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
+        }}
+      />
       <AccountDialog open={dialogOpen} onOpenChange={setDialogOpen} account={editing} onSaved={handleSaved} />
     </div>
   );
