@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fetchJson } from "../http";
+import { CLAUDE_CODE_KEYCHAIN_SERVICE, listKeychainAccounts, readKeychainPassword } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface UsageBucket {
@@ -121,33 +122,109 @@ async function fetchViaSessionKey(sessionKey: string): Promise<UsageSnapshot> {
   return { planLabel: org.name, windows, fetchedAt: Date.now() };
 }
 
-async function readClaudeCodeToken(): Promise<string> {
+interface ClaudeCodeCredentials {
+  claudeAiOauth?: { accessToken?: string; expiresAt?: number };
+}
+
+interface ClaudeCodeToken {
+  token: string;
+  /** Keychain account the token came from, when it came from the Keychain. */
+  source?: string;
+}
+
+function parseCredentials(raw: string): ClaudeCodeCredentials | null {
+  try {
+    return JSON.parse(raw) as ClaudeCodeCredentials;
+  } catch {
+    return null;
+  }
+}
+
+function tokenFrom(raw: string, describe: string): ClaudeCodeToken {
+  const oauth = parseCredentials(raw)?.claudeAiOauth;
+  if (!oauth?.accessToken) throw new Error(`${describe} is missing an access token.`);
+  if (oauth.expiresAt && oauth.expiresAt < Date.now()) {
+    throw new Error(`${describe} has expired. Run \`claude\` once to refresh it, then retry.`);
+  }
+  return { token: oauth.accessToken };
+}
+
+/** Read the token from one specific Keychain account the user picked. */
+async function readPinnedKeychainToken(account: string): Promise<ClaudeCodeToken> {
+  let raw: string;
+  try {
+    raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE, account);
+  } catch {
+    throw new Error(
+      `Keychain login "${account}" no longer exists. Edit this account and pick another Claude Code login.`,
+    );
+  }
+  const result = tokenFrom(raw, `Keychain login "${account}"`);
+  return { ...result, source: account };
+}
+
+/**
+ * Pick a Keychain login automatically: try every entry under the Claude Code
+ * service newest-first and use the first one that actually holds a live token.
+ * `security` alone returns an arbitrary match, which breaks when a stray entry
+ * without a token sits alongside the real login.
+ */
+async function readAutoKeychainToken(): Promise<ClaudeCodeToken | null> {
+  let entries: Array<{ account: string }> = [];
+  try {
+    entries = await listKeychainAccounts(CLAUDE_CODE_KEYCHAIN_SERVICE);
+  } catch {
+    entries = [];
+  }
+
+  let firstError: Error | undefined;
+  for (const entry of entries) {
+    try {
+      const raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE, entry.account);
+      const result = tokenFrom(raw, `Keychain login "${entry.account}"`);
+      return { ...result, source: entries.length > 1 ? entry.account : undefined };
+    } catch (e) {
+      firstError ??= e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  if (entries.length > 0 && firstError) {
+    throw new Error(
+      `${entries.length} Claude Code logins found in the Keychain but none holds a valid token. ${firstError.message}`,
+    );
+  }
+
+  // Listing failed or found nothing — fall back to whatever `security` returns.
+  try {
+    const raw = await readKeychainPassword(CLAUDE_CODE_KEYCHAIN_SERVICE);
+    return tokenFrom(raw, "Claude Code Keychain login");
+  } catch (e) {
+    if (e instanceof Error && /missing an access token|has expired/.test(e.message)) throw e;
+    return null;
+  }
+}
+
+async function readClaudeCodeToken(keychainAccount?: string): Promise<ClaudeCodeToken> {
+  if (keychainAccount) return readPinnedKeychainToken(keychainAccount);
+
+  const fromKeychain = await readAutoKeychainToken();
+  if (fromKeychain) return fromKeychain;
+
   let raw: string | undefined;
   try {
-    raw = await invoke<string>("read_keychain_password", { service: "Claude Code-credentials" });
+    raw = await invoke<string>("read_home_file", { relPath: ".claude/.credentials.json" });
   } catch {
-    try {
-      raw = await invoke<string>("read_home_file", { relPath: ".claude/.credentials.json" });
-    } catch {
-      raw = undefined;
-    }
+    raw = undefined;
   }
   if (!raw) {
     throw new Error(
       "Claude Code credentials not found. Log in with `claude`, or paste a claude.ai sessionKey instead.",
     );
   }
-  const json = JSON.parse(raw) as { claudeAiOauth?: { accessToken?: string; expiresAt?: number } };
-  const oauth = json.claudeAiOauth;
-  if (!oauth?.accessToken) throw new Error("Claude Code credentials are missing an access token.");
-  if (oauth.expiresAt && oauth.expiresAt < Date.now()) {
-    throw new Error("Claude Code token has expired. Run `claude` once to refresh it, then retry.");
-  }
-  return oauth.accessToken;
+  return tokenFrom(raw, "~/.claude/.credentials.json");
 }
 
-async function fetchViaClaudeCode(): Promise<UsageSnapshot> {
-  const token = await readClaudeCodeToken();
+async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapshot> {
+  const { token, source } = await readClaudeCodeToken(keychainAccount);
   const data = await fetchJson<ClaudeUsageResponse>("https://api.anthropic.com/api/oauth/usage", {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -158,12 +235,13 @@ async function fetchViaClaudeCode(): Promise<UsageSnapshot> {
   });
   const windows = parseUsage(data);
   if (windows.length === 0) windows.push({ label: "Usage", detail: "No usage windows reported" });
-  return { planLabel: "via Claude Code", windows, fetchedAt: Date.now() };
+  const planLabel = source ? `via Claude Code · ${source}` : "via Claude Code";
+  return { planLabel, windows, fetchedAt: Date.now() };
 }
 
 export async function fetchClaudeUsage(account: Account): Promise<UsageSnapshot> {
   const cred = account.credential.trim();
-  if (cred === "") return fetchViaClaudeCode();
+  if (cred === "") return fetchViaClaudeCode(account.extra?.trim() || undefined);
   if (/^sk-ant-oat/.test(cred)) {
     throw new Error(
       "That looks like an OAuth token — paste the claude.ai `sessionKey` cookie (sk-ant-sid01-…) instead.",
