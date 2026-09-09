@@ -1,4 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import {
+  isClaudeOauthJson,
+  parseClaudeOauthCredentials,
+  resolveClaudeOauthTokens,
+  serializeClaudeOauthCredentials,
+  type ClaudeOauthTokens,
+} from "../claude-oauth";
 import { fetchJson } from "../http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
@@ -123,7 +130,7 @@ async function fetchViaSessionKey(sessionKey: string): Promise<UsageSnapshot> {
 }
 
 interface ClaudeCodeCredentials {
-  claudeAiOauth?: { accessToken?: string; expiresAt?: number };
+  claudeAiOauth?: { accessToken?: string; refreshToken?: string; expiresAt?: number };
 }
 
 interface ClaudeCodeToken {
@@ -143,8 +150,8 @@ function parseCredentials(raw: string): ClaudeCodeCredentials | null {
 function tokenFrom(raw: string, describe: string): ClaudeCodeToken {
   const oauth = parseCredentials(raw)?.claudeAiOauth;
   if (!oauth?.accessToken) throw new Error(`${describe} is missing an access token.`);
-  if (oauth.expiresAt && oauth.expiresAt < Date.now()) {
-    throw new Error(`${describe} has expired. Run \`claude\` once to refresh it, then retry.`);
+  if (oauth.expiresAt && oauth.expiresAt < Date.now() && !oauth.refreshToken) {
+    throw new Error(`${describe} has expired. Sign in again on this account, or run \`claude\` once to refresh it.`);
   }
   return { token: oauth.accessToken };
 }
@@ -167,8 +174,7 @@ async function readClaudeCodeToken(keychainAccount?: string): Promise<ClaudeCode
   return tokenFrom(raw, "~/.claude/.credentials.json");
 }
 
-async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapshot> {
-  const { token, source } = await readClaudeCodeToken(keychainAccount);
+async function fetchViaAccessToken(token: string, planLabel: string): Promise<UsageSnapshot> {
   const data = await fetchJson<ClaudeUsageResponse>("https://api.anthropic.com/api/oauth/usage", {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -179,24 +185,53 @@ async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapsh
   });
   const windows = parseUsage(data);
   if (windows.length === 0) windows.push({ label: "Usage", detail: "No usage windows reported" });
-  const planLabel = source ? `via Claude Code · ${source}` : "via Claude Code";
   return { planLabel, windows, fetchedAt: Date.now() };
+}
+
+async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapshot> {
+  const { token, source } = await readClaudeCodeToken(keychainAccount);
+  const planLabel = source ? `via Claude Code · ${source}` : "via Claude Code";
+  return fetchViaAccessToken(token, planLabel);
+}
+
+async function persistRefreshed(account: Account, tokens: ClaudeOauthTokens): Promise<void> {
+  try {
+    const { replaceAccountCredential } = await import("../accounts");
+    await replaceAccountCredential(account.id, serializeClaudeOauthCredentials(tokens));
+  } catch {
+    // Usage still works this session even if the store write fails.
+  }
+}
+
+async function fetchViaStoredOauth(account: Account, cred: string): Promise<UsageSnapshot> {
+  if (cred.startsWith("sk-ant-oat")) {
+    return fetchViaAccessToken(cred, "Signed in");
+  }
+  const stored = parseClaudeOauthCredentials(cred, "Saved Claude login");
+  const { tokens, refreshed } = await resolveClaudeOauthTokens(stored.claudeAiOauth);
+  if (refreshed) await persistRefreshed(account, tokens);
+  return fetchViaAccessToken(tokens.accessToken, "Signed in");
 }
 
 export async function fetchClaudeUsage(account: Account): Promise<UsageSnapshot> {
   const cred = account.credential.trim();
   if (cred === "") return fetchViaClaudeCode(account.extra?.trim() || undefined);
-  if (/^sk-ant-oat/.test(cred)) {
-    throw new Error(
-      "That looks like an OAuth token — paste the claude.ai `sessionKey` cookie (sk-ant-sid01-…) instead.",
-    );
+  if (isClaudeOauthJson(cred) || /^sk-ant-oat/.test(cred)) {
+    try {
+      return await fetchViaStoredOauth(account, cred);
+    } catch (e) {
+      if (e instanceof Error && /HTTP 40[13]/.test(e.message)) {
+        throw new Error("Claude session expired — sign in again on this account.");
+      }
+      throw e;
+    }
   }
   try {
     return await fetchViaSessionKey(cred);
   } catch (e) {
     if (e instanceof Error && /HTTP 40[13]/.test(e.message)) {
       throw new Error(
-        "claude.ai session expired — copy a fresh `sessionKey` cookie from your browser and edit this account.",
+        "claude.ai session expired — sign in again, or copy a fresh `sessionKey` cookie from your browser.",
       );
     }
     throw e;

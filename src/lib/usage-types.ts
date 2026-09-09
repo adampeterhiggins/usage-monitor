@@ -18,7 +18,7 @@ export interface Account {
   credential: string;
   /**
    * Provider-specific secondary setting.
-   * - Native mode (blank credential) for Claude and Codex: the macOS Keychain
+   * - Native mode (blank credential) for Claude, Codex, and Cursor: the macOS Keychain
    *   account to read the CLI login from when several exist (blank = automatic).
    * - Native mode for Cursor: `ide` pins the Cursor app login; a Keychain
    *   account name pins cursor-agent (blank = automatic, IDE first).
@@ -73,7 +73,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     accent: "orange",
     credentialTitle: "Session Key",
     credentialHelp:
-      "Value of the sessionKey cookie on claude.ai (starts with sk-ant-sid01-). Leave blank to use your Claude Code login from the macOS Keychain.",
+      "Sign in to give this account its own Claude session, or paste a claude.ai sessionKey (sk-ant-sid01-…). Leave blank to use your Claude Code login from the macOS Keychain.",
     credentialOptional: true,
     credentialPlaceholder: "Optional — uses Claude Code login",
   },
@@ -83,7 +83,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     accent: "green",
     credentialTitle: "Auth JSON / Access Token",
     credentialHelp:
-      "Paste the contents of ~/.codex/auth.json for this account (or just its access token). Leave blank to use your Codex CLI login from the macOS Keychain or ~/.codex/auth.json.",
+      "Sign in to give this account its own Codex session, or paste ~/.codex/auth.json (or its access token). Leave blank to use your Codex CLI login from the macOS Keychain or ~/.codex/auth.json.",
     credentialOptional: true,
     credentialPlaceholder: "Optional — uses Codex CLI login",
   },
@@ -93,7 +93,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     accent: "blue",
     credentialTitle: "Session Cookie",
     credentialHelp:
-      "Value of the WorkosCursorSessionToken cookie on cursor.com. Leave blank to use your Cursor app or cursor-agent login.",
+      "Sign in to give this account its own Cursor session, or paste the WorkosCursorSessionToken cookie. Leave blank to use your Cursor app or cursor-agent login.",
     credentialOptional: true,
     credentialPlaceholder: "Optional — uses Cursor / cursor-agent login",
   },

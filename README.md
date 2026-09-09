@@ -12,15 +12,15 @@ npm run tauri dev      # develop — the panel is hidden until you press ⌘⇧U
 make app               # build and install into /Applications
 ```
 
-On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Claude, Codex, and Cursor can use your existing local login with no paste.
+On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Each provider can **Sign in** to create a login session just for that account — the same idea as **Sign in with GitHub** for updates, and independent of your CLI logins. Leaving the credential blank still uses the local Claude Code / Codex / Cursor login when one exists.
 
 ### Providers
 
 | Provider | Credential | Zero-setup |
 |---|---|---|
-| Claude | `sessionKey` cookie, or blank | Reads Claude Code from the macOS Keychain / `~/.claude/.credentials.json` |
-| Codex | `~/.codex/auth.json` contents, or blank | Auto-reads the Keychain / `~/.codex/auth.json` |
-| Cursor | `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
+| Claude | Sign in, `sessionKey` cookie, or blank | Reads Claude Code from the macOS Keychain / `~/.claude/.credentials.json` |
+| Codex | Sign in, `~/.codex/auth.json` contents, or blank | Auto-reads the Keychain / `~/.codex/auth.json` |
+| Cursor | Sign in, `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
 
 Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API.
 
@@ -96,6 +96,9 @@ src/
     accounts.ts      persisted accounts (credentials never rendered)
     settings.ts      shortcuts, layout, theme, GitHub auth
     github-oauth.ts  device-flow sign-in for private-repo updates
+    claude-oauth.ts  Claude Code PKCE sign-in (per-account session)
+    codex-oauth.ts   Codex device-flow sign-in (per-account session)
+    cursor-login.ts  Cursor webview sign-in + local CLI fallback
     updates.ts       Tauri updater, private-repo auth headers
   components/        cards, layouts, settings popover
 src-tauri/

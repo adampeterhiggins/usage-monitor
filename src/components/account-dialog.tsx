@@ -12,6 +12,7 @@ import {
 } from "../lib/keychain";
 import { toast } from "../lib/toast";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
+import { ProviderLoginButton } from "./provider-login-button";
 import { Button, Input } from "./ui";
 
 interface AccountDialogProps {
@@ -181,6 +182,9 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
                 disabled={editing}
                 onChange={(e) => {
                   setProvider(e.target.value as ProviderId);
+                  if (editing) return;
+                  setCredential("");
+                  setSavedExtra(undefined);
                   setKeychainAccount("");
                 }}
                 className="h-8 rounded-lg border border-separator bg-surface px-2 text-[13px]"
@@ -203,6 +207,21 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
               />
               <span className="text-[11px] text-quaternary">e.g. “Personal” or “Work”</span>
             </label>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[12px] font-medium text-secondary">Login</span>
+              <ProviderLoginButton
+                provider={provider}
+                credential={credential}
+                disabled={loadingSecret}
+                onSignedIn={(result) => {
+                  setCredential(result.credential);
+                  setKeychainAccount("");
+                  if (result.extra) setSavedExtra(result.extra);
+                  if (!label.trim() && result.suggestedLabel) setLabel(result.suggestedLabel);
+                }}
+              />
+            </div>
 
             <label className="flex flex-col gap-1">
               <span className="text-[12px] font-medium text-secondary">{meta.credentialTitle}</span>

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../codex-oauth";
 import { fetchJson } from "../http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
 import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
@@ -91,11 +92,11 @@ function parseAuthJson(raw: string, describe: string): CodexCreds {
   if (!token) {
     throw new Error(
       json.OPENAI_API_KEY
-        ? `${describe} uses an API key login — usage limits need a ChatGPT login (run \`codex login\`).`
+        ? `${describe} uses an API key login — usage limits need a ChatGPT login (sign in below, or run \`codex login\`).`
         : `${describe} has no tokens.access_token.`,
     );
   }
-  return { accessToken: token, accountId: json.tokens?.account_id };
+  return { accessToken: token, accountId: json.tokens?.account_id || accountIdFromAccessToken(token) };
 }
 
 function windowLabel(w: RateLimitWindow, fallback: string): string {
@@ -121,19 +122,48 @@ function toWindow(
   };
 }
 
-export async function fetchCodexUsage(account: Account): Promise<UsageSnapshot> {
-  const creds = await resolveCreds(account);
+async function fetchWham(creds: CodexCreds): Promise<WhamUsage> {
   const headers: Record<string, string> = { Authorization: `Bearer ${creds.accessToken}` };
   if (creds.accountId) headers["ChatGPT-Account-Id"] = creds.accountId;
+  return fetchJson<WhamUsage>("https://chatgpt.com/backend-api/wham/usage", { headers });
+}
+
+async function refreshStoredCodex(account: Account, cred: string): Promise<CodexCreds | null> {
+  if (!cred.startsWith("{")) return null;
+  let tokens;
+  try {
+    tokens = parseCodexAuthJson(cred, "Saved Codex login");
+  } catch {
+    return null;
+  }
+  if (!tokens.refreshToken) return null;
+  const next = await refreshCodexOauth(tokens);
+  try {
+    const { replaceAccountCredential } = await import("../accounts");
+    await replaceAccountCredential(account.id, serializeCodexAuthJson(next));
+  } catch {
+    // Usage still works this session even if the store write fails.
+  }
+  return { accessToken: next.accessToken, accountId: next.accountId };
+}
+
+export async function fetchCodexUsage(account: Account): Promise<UsageSnapshot> {
+  const creds = await resolveCreds(account);
 
   let data: WhamUsage;
   try {
-    data = await fetchJson<WhamUsage>("https://chatgpt.com/backend-api/wham/usage", { headers });
+    data = await fetchWham(creds);
   } catch (e) {
     if (e instanceof Error && /HTTP 401/.test(e.message)) {
-      throw new Error("Codex token expired. Run any `codex` command (or `codex login`) to refresh it, then retry.");
+      const refreshed = await refreshStoredCodex(account, account.credential.trim()).catch(() => null);
+      if (refreshed) {
+        data = await fetchWham(refreshed);
+      } else {
+        throw new Error("Codex token expired. Sign in again on this account, or run `codex login` and retry.");
+      }
+    } else {
+      throw e;
     }
-    throw e;
   }
 
   const windows: UsageWindow[] = [];

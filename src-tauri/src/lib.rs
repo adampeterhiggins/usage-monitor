@@ -292,10 +292,10 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     });
 }
 
-fn appearance_window_visible(app: &AppHandle) -> bool {
-    app.get_webview_window("appearance")
-        .and_then(|win| win.is_visible().ok())
-        .unwrap_or(false)
+fn aux_window_visible(app: &AppHandle) -> bool {
+    app.webview_windows().iter().any(|(label, win)| {
+        (label == "appearance" || label.starts_with("login-")) && win.is_visible().unwrap_or(false)
+    })
 }
 
 fn hide_panel(app: &AppHandle) {
@@ -315,7 +315,7 @@ fn hide_panel(app: &AppHandle) {
             .state::<PanelState>()
             .keep_app_active
             .load(Ordering::SeqCst)
-            || appearance_window_visible(app);
+            || aux_window_visible(app);
         if !keep_active {
             resign_app_activation();
         }
@@ -364,8 +364,8 @@ fn open_settings_popover(app: AppHandle) {
     open_settings(&app);
 }
 
-/// Call before creating/focusing the Appearance window so the tray panel's
-/// blur-to-hide path does not NSApp.hide() the new window away.
+/// Call before creating/focusing an auxiliary window (Appearance, provider
+/// login) so the tray panel's blur-to-hide path does not NSApp.hide() it away.
 #[tauri::command]
 fn prepare_open_appearance(app: AppHandle) {
     let state = app.state::<PanelState>();
@@ -375,9 +375,43 @@ fn prepare_open_appearance(app: AppHandle) {
 
 #[tauri::command]
 fn appearance_window_closed(app: AppHandle) {
+    let keep = aux_window_visible(&app);
     let state = app.state::<PanelState>();
-    state.keep_app_active.store(false, Ordering::SeqCst);
-    state.ignore_next_blur.store(false, Ordering::SeqCst);
+    state.keep_app_active.store(keep, Ordering::SeqCst);
+    if !keep {
+        state.ignore_next_blur.store(false, Ordering::SeqCst);
+    }
+}
+
+/// Read a named cookie from a webview (used by Cursor sign-in).
+#[tauri::command]
+async fn read_window_cookie(
+    app: AppHandle,
+    label: String,
+    name: String,
+    urls: Option<Vec<String>>,
+) -> Result<Option<String>, String> {
+    let win = app
+        .get_webview_window(&label)
+        .ok_or_else(|| "Login window not found.".to_string())?;
+    let mut cookies = Vec::new();
+    if let Some(urls) = urls {
+        for raw in urls {
+            let url = raw
+                .parse::<tauri::Url>()
+                .map_err(|e| format!("Invalid cookie URL {raw}: {e}"))?;
+            if let Ok(found) = win.cookies_for_url(url) {
+                cookies.extend(found);
+            }
+        }
+    }
+    if cookies.is_empty() {
+        cookies = win.cookies().map_err(|e| format!("Could not read cookies: {e}"))?;
+    }
+    Ok(cookies
+        .into_iter()
+        .find(|cookie| cookie.name() == name && !cookie.value().is_empty())
+        .map(|cookie| cookie.value().to_string()))
 }
 
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).
@@ -773,6 +807,7 @@ pub fn run() {
             list_keychain_accounts,
             cursor_ide_login_meta,
             read_cursor_ide_access_token,
+            read_window_cookie,
             http_request
         ])
         .setup(|app| {
