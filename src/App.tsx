@@ -10,6 +10,7 @@ import { AccountManagementDialog } from "./components/account-management-dialog"
 import { FitCorner } from "./components/fit-corner";
 import { FocusView } from "./components/focus-view";
 import { LedgerView } from "./components/ledger-view";
+import { DeploymentInfoButton } from "./components/deployment-info";
 import { SettingsPopover } from "./components/settings-popover";
 import { StripView } from "./components/strip-view";
 import { ToastHost } from "./components/toast-host";
@@ -426,6 +427,7 @@ function Shell() {
               </Button>
             </span>
           </Tooltip>
+          <DeploymentInfoButton />
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}

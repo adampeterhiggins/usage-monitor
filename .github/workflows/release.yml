@@ -113,6 +113,8 @@ jobs:
           # Without these the bundle has no .sig and the app will refuse it.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_APP_VERSION: ${{ needs.preflight.outputs.version }}
+          VITE_GIT_COMMIT: ${{ needs.preflight.outputs.ref }}
         run: |
           set -euo pipefail
           if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
