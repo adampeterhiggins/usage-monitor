@@ -1,5 +1,23 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { removeAccount, reorderAccounts, setAccountHidden } from "../lib/accounts";
 import { toast } from "../lib/toast";
@@ -15,6 +33,90 @@ interface AccountManagementDialogProps {
   onAccountsChanged: () => void;
 }
 
+function SortableAccountRow({
+  account,
+  busy,
+  onToggleHidden,
+  onEdit,
+  onRemove,
+}: {
+  account: AccountPublic;
+  busy: boolean;
+  onToggleHidden: (account: AccountPublic) => void;
+  onEdit: (account: AccountPublic) => void;
+  onRemove: (account: AccountPublic) => void;
+}) {
+  const meta = PROVIDERS[account.provider];
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: account.id,
+  });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        "flex touch-none items-center gap-1 rounded-xl border border-separator/70 bg-surface px-1.5 py-1.5",
+        isDragging ? "z-10 cursor-grabbing shadow-md" : "cursor-grab",
+        account.hidden && !isDragging && "opacity-70",
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-tertiary" aria-hidden>
+        <GripVertical className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <Badge color={meta.accent} size="small">
+            {meta.name}
+          </Badge>
+          <span className={cn("truncate text-[13px]", account.hidden ? "text-tertiary" : "text-ink")}>
+            {account.label}
+          </span>
+        </div>
+        {account.hidden ? (
+          <div className="mt-0.5 text-[11px] text-quaternary">Hidden from layouts</div>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center" onPointerDown={(event) => event.stopPropagation()}>
+        <Button
+          iconOnly
+          variant="transparent"
+          size="small"
+          aria-label={account.hidden ? "Show account" : "Hide account"}
+          disabled={busy}
+          onClick={() => onToggleHidden(account)}
+        >
+          {account.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+        </Button>
+        <Button
+          iconOnly
+          variant="transparent"
+          size="small"
+          aria-label="Edit account"
+          onClick={() => onEdit(account)}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button
+          iconOnly
+          variant="transparent"
+          size="small"
+          aria-label="Remove account"
+          className="text-support-red hover:text-support-red"
+          onClick={() => onRemove(account)}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </li>
+  );
+}
+
 export function AccountManagementDialog({
   open,
   onOpenChange,
@@ -24,15 +126,16 @@ export function AccountManagementDialog({
   onAccountsChanged,
 }: AccountManagementDialogProps) {
   const [ordered, setOrdered] = React.useState<AccountPublic[]>([]);
-  const [draggingId, setDraggingId] = React.useState<string | null>(null);
-  const [dropTargetId, setDropTargetId] = React.useState<string | null>(null);
   const [removeCandidate, setRemoveCandidate] = React.useState<AccountPublic | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   React.useEffect(() => {
     if (!open) {
-      setDraggingId(null);
-      setDropTargetId(null);
       setRemoveCandidate(null);
       setBusyId(null);
       return;
@@ -54,15 +157,13 @@ export function AccountManagementDialog({
     }
   }
 
-  function moveAccount(fromId: string, toId: string) {
-    if (fromId === toId) return;
-    const fromIndex = ordered.findIndex((a) => a.id === fromId);
-    const toIndex = ordered.findIndex((a) => a.id === toId);
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIndex = ordered.findIndex((a) => a.id === active.id);
+    const toIndex = ordered.findIndex((a) => a.id === over.id);
     if (fromIndex < 0 || toIndex < 0) return;
-    const next = [...ordered];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    void persistOrder(next);
+    void persistOrder(arrayMove(ordered, fromIndex, toIndex));
   }
 
   async function handleToggleHidden(account: AccountPublic) {
@@ -97,6 +198,8 @@ export function AccountManagementDialog({
     }
   }
 
+  const orderedIds = ordered.map((a) => a.id);
+
   return (
     <>
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -130,105 +233,27 @@ export function AccountManagementDialog({
                   <Text color="secondary">No accounts yet. Add one to get started.</Text>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-1">
-                  {ordered.map((account) => {
-                    const meta = PROVIDERS[account.provider];
-                    const isDragging = draggingId === account.id;
-                    const isDropTarget = dropTargetId === account.id && draggingId !== account.id;
-                    return (
-                      <li
-                        key={account.id}
-                        draggable
-                        onDragStart={(event) => {
-                          setDraggingId(account.id);
-                          event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData("text/plain", account.id);
-                        }}
-                        onDragEnd={() => {
-                          setDraggingId(null);
-                          setDropTargetId(null);
-                        }}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          event.dataTransfer.dropEffect = "move";
-                          if (dropTargetId !== account.id) setDropTargetId(account.id);
-                        }}
-                        onDragLeave={() => {
-                          if (dropTargetId === account.id) setDropTargetId(null);
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          const fromId = event.dataTransfer.getData("text/plain") || draggingId;
-                          setDropTargetId(null);
-                          setDraggingId(null);
-                          if (fromId) moveAccount(fromId, account.id);
-                        }}
-                        className={cn(
-                          "flex items-center gap-1 rounded-xl px-1.5 py-1.5 ring-1 ring-transparent",
-                          isDragging && "opacity-40",
-                          isDropTarget && "bg-control-subtle ring-separator",
-                          account.hidden && "opacity-70",
-                        )}
-                      >
-                        <span
-                          className="inline-flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-tertiary active:cursor-grabbing"
-                          aria-hidden
-                        >
-                          <GripVertical className="size-4" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge color={meta.accent} size="small">
-                              {meta.name}
-                            </Badge>
-                            <span
-                              className={cn(
-                                "truncate text-[13px]",
-                                account.hidden ? "text-tertiary" : "text-ink",
-                              )}
-                            >
-                              {account.label}
-                            </span>
-                          </div>
-                          {account.hidden ? (
-                            <div className="mt-0.5 text-[11px] text-quaternary">Hidden from layouts</div>
-                          ) : null}
-                        </div>
-                        <div className="flex shrink-0 items-center">
-                          <Button
-                            iconOnly
-                            variant="transparent"
-                            size="small"
-                            aria-label={account.hidden ? "Show account" : "Hide account"}
-                            disabled={busyId === account.id}
-                            onClick={() => void handleToggleHidden(account)}
-                          >
-                            {account.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                          </Button>
-                          <Button
-                            iconOnly
-                            variant="transparent"
-                            size="small"
-                            aria-label="Edit account"
-                            onClick={() => onEditAccount(account)}
-                          >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button
-                            iconOnly
-                            variant="transparent"
-                            size="small"
-                            aria-label="Remove account"
-                            className="text-support-red hover:text-support-red"
-                            onClick={() => setRemoveCandidate(account)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  modifiers={[restrictToVerticalAxis]}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                    <ul className="flex flex-col gap-1.5">
+                      {ordered.map((account) => (
+                        <SortableAccountRow
+                          key={account.id}
+                          account={account}
+                          busy={busyId === account.id}
+                          onToggleHidden={(a) => void handleToggleHidden(a)}
+                          onEdit={onEditAccount}
+                          onRemove={setRemoveCandidate}
+                        />
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
 
