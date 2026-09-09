@@ -220,14 +220,7 @@ export function AccountManagementDialog({
               </Dialog.Close>
             </div>
 
-            <div className="mt-4 shrink-0">
-              <Button variant="accent" size="small" onClick={onAddAccount}>
-                <Plus className="size-3.5" />
-                Add Account
-              </Button>
-            </div>
-
-            <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
               {ordered.length === 0 ? (
                 <div className="rounded-xl bg-control-subtle px-3 py-8 text-center">
                   <Text color="secondary">No accounts yet. Add one to get started.</Text>
@@ -257,7 +250,11 @@ export function AccountManagementDialog({
               )}
             </div>
 
-            <div className="mt-4 flex shrink-0 justify-end">
+            <div className="mt-4 flex shrink-0 items-center justify-between gap-2">
+              <Button variant="accent" size="small" onClick={onAddAccount}>
+                <Plus className="size-3.5" />
+                Add Account
+              </Button>
               <Dialog.Close asChild>
                 <Button variant="glass">Done</Button>
               </Dialog.Close>
