@@ -3,10 +3,9 @@ import { fetchJson, fetchText } from "./http";
 
 /**
  * Public OAuth App client ID. Device flow does not use the client secret.
- * Create the app at https://github.com/settings/applications/new, enable
- * Device Authorization Grant, then paste the client ID here.
+ * Enable Device Authorization Grant on the app before signing in.
  */
-export const GITHUB_OAUTH_CLIENT_ID = "";
+export const GITHUB_OAUTH_CLIENT_ID = "Ov23liNYGzJS8vLVrBgW";
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";

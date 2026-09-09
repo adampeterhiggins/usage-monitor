@@ -50,11 +50,7 @@ The **public** key lives in `src-tauri/tauri.conf.json` and is committed — tha
 
 Updates are served from this private repository, so the running app needs GitHub credentials with read access. In **Settings → Updates**, use **Sign in with GitHub** (device flow). That asks for the `repo` scope. A PAT or **Import from gh** still works if you want a single-repo fine-grained token instead.
 
-Register the OAuth App once under the repo owner:
-
-1. [Create an OAuth App](https://github.com/settings/applications/new) — homepage and callback can both be this repository's URL.
-2. Enable **Device Authorization Grant** (off by default).
-3. Put the public client ID in `src/lib/github-oauth.ts`, or paste it in **Settings → Updates** until that constant is filled in. Leave the client secret unused.
+The OAuth App is already registered. Enable **Device Authorization Grant** on it if that is still off. The public client ID lives in `src/lib/github-oauth.ts`; leave the client secret unused.
 
 ### Cutting a release
 
