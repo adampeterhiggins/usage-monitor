@@ -12,15 +12,15 @@ npm run tauri dev      # develop — the panel is hidden until you press ⌘⇧U
 make app               # build and install into /Applications
 ```
 
-On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Claude and Codex can use your existing local login with no paste; Cursor needs the `WorkosCursorSessionToken` cookie from cursor.com.
+On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Claude, Codex, and Cursor can use your existing local login with no paste.
 
 ### Providers
 
 | Provider | Credential | Zero-setup |
 |---|---|---|
 | Claude | `sessionKey` cookie, or blank | Reads Claude Code from the macOS Keychain / `~/.claude/.credentials.json` |
-| Codex | `~/.codex/auth.json` contents, or blank | Auto-reads `~/.codex/auth.json` |
-| Cursor | `WorkosCursorSessionToken` cookie | — |
+| Codex | `~/.codex/auth.json` contents, or blank | Auto-reads the Keychain / `~/.codex/auth.json` |
+| Cursor | `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
 
 Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API.
 
@@ -99,5 +99,5 @@ src/
     updates.ts       Tauri updater, private-repo auth headers
   components/        cards, layouts, settings popover
 src-tauri/
-  src/lib.rs         tray, accessory policy, show/hide, keychain/home-file reads
+  src/lib.rs         tray, accessory policy, show/hide, keychain/home-file/Cursor IDE reads
 ```

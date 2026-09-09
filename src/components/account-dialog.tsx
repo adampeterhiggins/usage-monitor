@@ -1,7 +1,15 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { addAccount, getAccountSecret, updateAccount } from "../lib/accounts";
-import { describeKeychainEntry, KEYCHAIN_LOGINS, listKeychainAccounts, type KeychainEntry } from "../lib/keychain";
+import {
+  CURSOR_IDE_PIN,
+  cursorIdeLoginMeta,
+  describeKeychainEntry,
+  KEYCHAIN_LOGINS,
+  listKeychainAccounts,
+  type CursorIdeLogin,
+  type KeychainEntry,
+} from "../lib/keychain";
 import { toast } from "../lib/toast";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
 import { Button, Input } from "./ui";
@@ -20,9 +28,10 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
   const [credential, setCredential] = React.useState("");
   /** Provider-specific secondary value carried through untouched (e.g. Codex account id). */
   const [savedExtra, setSavedExtra] = React.useState<string | undefined>(undefined);
-  /** Native mode: which Keychain login to read ("" = automatic). */
+  /** Native mode: which local login to read ("" = automatic). */
   const [keychainAccount, setKeychainAccount] = React.useState("");
   const [keychainEntries, setKeychainEntries] = React.useState<KeychainEntry[]>([]);
+  const [cursorIde, setCursorIde] = React.useState<CursorIdeLogin | null>(null);
   const [loadingSecret, setLoadingSecret] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -42,8 +51,8 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
       void getAccountSecret(account.id)
         .then((secret) => {
           setCredential(secret.credential);
-          // In native mode `extra` is the pinned Keychain login; otherwise it is
-          // provider data (e.g. a Codex account id) to carry through untouched.
+          // In native mode `extra` is the pinned local login (Keychain account
+          // or Cursor `ide`); otherwise it is provider data to carry through.
           if (KEYCHAIN_LOGINS[account.provider] && secret.credential.trim() === "") {
             setKeychainAccount(secret.extra ?? "");
             setSavedExtra(undefined);
@@ -63,11 +72,12 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
     }
   }, [open, account]);
 
-  // With no credential, Claude and Codex read the CLI login from the Keychain.
-  // List the entries so the user can pin one when several share the service.
+  // Native mode reads a local login. List Keychain entries (and the Cursor IDE
+  // session) so the user can pin one when several exist.
   React.useEffect(() => {
     if (!open || !keychainLogin) {
       setKeychainEntries([]);
+      setCursorIde(null);
       return;
     }
     let cancelled = false;
@@ -78,15 +88,39 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
       .catch(() => {
         if (!cancelled) setKeychainEntries([]);
       });
+    if (provider === "cursor") {
+      void cursorIdeLoginMeta()
+        .then((meta) => {
+          if (!cancelled) setCursorIde(meta);
+        })
+        .catch(() => {
+          if (!cancelled) setCursorIde(null);
+        });
+    } else {
+      setCursorIde(null);
+    }
     return () => {
       cancelled = true;
     };
-  }, [open, keychainLogin]);
+  }, [open, keychainLogin, provider]);
+
+  const nativeOptions: Array<{ id: string; label: string }> = [];
+  if (provider === "cursor" && cursorIde) {
+    nativeOptions.push({
+      id: CURSOR_IDE_PIN,
+      label: cursorIde.email ? `Cursor IDE · ${cursorIde.email}` : "Cursor IDE login",
+    });
+  }
+  for (const entry of keychainEntries) {
+    nativeOptions.push({
+      id: entry.account,
+      label: provider === "cursor" ? `cursor-agent · ${describeKeychainEntry(entry)}` : describeKeychainEntry(entry),
+    });
+  }
 
   const usesKeychain = !!keychainLogin && credential.trim() === "";
-  const pinnedMissing =
-    keychainAccount !== "" && !keychainEntries.some((e) => e.account === keychainAccount);
-  const showKeychainPicker = usesKeychain && (keychainEntries.length > 1 || keychainAccount !== "");
+  const pinnedMissing = keychainAccount !== "" && !nativeOptions.some((o) => o.id === keychainAccount);
+  const showKeychainPicker = usesKeychain && (nativeOptions.length > 1 || keychainAccount !== "");
 
   /** What to persist in `extra`: the Keychain pin in native mode, else the carried-through value. */
   function nextExtra(): string | undefined {
@@ -145,7 +179,10 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
               <select
                 value={provider}
                 disabled={editing}
-                onChange={(e) => setProvider(e.target.value as ProviderId)}
+                onChange={(e) => {
+                  setProvider(e.target.value as ProviderId);
+                  setKeychainAccount("");
+                }}
                 className="h-8 rounded-lg border border-separator bg-surface px-2 text-[13px]"
               >
                 {PROVIDER_ORDER.map((id) => (
@@ -184,28 +221,42 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
 
             {showKeychainPicker && keychainLogin ? (
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-secondary">{keychainLogin.noun}</span>
+                <span className="text-[12px] font-medium text-secondary">
+                  {provider === "cursor" ? "Local login" : keychainLogin.noun}
+                </span>
                 <select
                   value={keychainAccount}
                   onChange={(e) => setKeychainAccount(e.target.value)}
                   className="h-8 rounded-lg border border-separator bg-surface px-2 text-[13px]"
                 >
-                  <option value="">Automatic — newest login with a valid token</option>
-                  {keychainEntries.map((entry) => (
-                    <option key={entry.account} value={entry.account}>
-                      {describeKeychainEntry(entry)}
+                  <option value="">
+                    {provider === "cursor"
+                      ? "Automatic — Cursor IDE if signed in, else cursor-agent"
+                      : "Automatic — newest login with a valid token"}
+                  </option>
+                  {nativeOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
                     </option>
                   ))}
                   {pinnedMissing ? (
-                    <option value={keychainAccount}>{keychainAccount} (no longer in Keychain)</option>
+                    <option value={keychainAccount}>
+                      {keychainAccount === CURSOR_IDE_PIN
+                        ? "Cursor IDE (no longer signed in)"
+                        : `${keychainAccount} (no longer in Keychain)`}
+                    </option>
                   ) : null}
                 </select>
                 <span className="text-[11px] text-quaternary">
-                  {keychainEntries.length === 1
-                    ? "One entry uses"
-                    : `${keychainEntries.length} entries share`}{" "}
-                  the “{keychainLogin.service}” Keychain service. Pin one if Automatic picks the wrong
-                  login.
+                  {provider === "cursor"
+                    ? nativeOptions.length <= 1
+                      ? "Uses the Cursor app login, or cursor-agent if the app is not signed in."
+                      : `${nativeOptions.length} local Cursor logins found. Pin one if Automatic picks the wrong account.`
+                    : `${
+                        keychainEntries.length === 1
+                          ? "One entry uses"
+                          : `${keychainEntries.length} entries share`
+                      } the “${keychainLogin.service}” Keychain service. Pin one if Automatic picks the wrong login.`}
                 </span>
               </label>
             ) : null}
