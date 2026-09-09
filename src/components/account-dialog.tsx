@@ -1,12 +1,7 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { addAccount, getAccountSecret, updateAccount } from "../lib/accounts";
-import {
-  CLAUDE_CODE_KEYCHAIN_SERVICE,
-  describeKeychainEntry,
-  listKeychainAccounts,
-  type KeychainEntry,
-} from "../lib/keychain";
+import { describeKeychainEntry, KEYCHAIN_LOGINS, listKeychainAccounts, type KeychainEntry } from "../lib/keychain";
 import { toast } from "../lib/toast";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
 import { Button, Input } from "./ui";
@@ -25,13 +20,14 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
   const [credential, setCredential] = React.useState("");
   /** Provider-specific secondary value carried through untouched (e.g. Codex account id). */
   const [savedExtra, setSavedExtra] = React.useState<string | undefined>(undefined);
-  /** Claude only: which Keychain login to read ("" = automatic). */
+  /** Native mode: which Keychain login to read ("" = automatic). */
   const [keychainAccount, setKeychainAccount] = React.useState("");
   const [keychainEntries, setKeychainEntries] = React.useState<KeychainEntry[]>([]);
   const [loadingSecret, setLoadingSecret] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const meta = PROVIDERS[provider];
+  const keychainLogin = KEYCHAIN_LOGINS[provider];
 
   React.useEffect(() => {
     if (!open) return;
@@ -46,8 +42,14 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
       void getAccountSecret(account.id)
         .then((secret) => {
           setCredential(secret.credential);
-          setSavedExtra(secret.extra);
-          if (account.provider === "claude") setKeychainAccount(secret.extra ?? "");
+          // In native mode `extra` is the pinned Keychain login; otherwise it is
+          // provider data (e.g. a Codex account id) to carry through untouched.
+          if (KEYCHAIN_LOGINS[account.provider] && secret.credential.trim() === "") {
+            setKeychainAccount(secret.extra ?? "");
+            setSavedExtra(undefined);
+          } else {
+            setSavedExtra(secret.extra);
+          }
         })
         .catch((e) => setError(e instanceof Error ? e.message : String(e)))
         .finally(() => setLoadingSecret(false));
@@ -61,15 +63,15 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
     }
   }, [open, account]);
 
-  // Claude with no session key reads the Claude Code login from the Keychain.
+  // With no credential, Claude and Codex read the CLI login from the Keychain.
   // List the entries so the user can pin one when several share the service.
   React.useEffect(() => {
-    if (!open || provider !== "claude") {
+    if (!open || !keychainLogin) {
       setKeychainEntries([]);
       return;
     }
     let cancelled = false;
-    void listKeychainAccounts(CLAUDE_CODE_KEYCHAIN_SERVICE)
+    void listKeychainAccounts(keychainLogin.service)
       .then((entries) => {
         if (!cancelled) setKeychainEntries(entries);
       })
@@ -79,17 +81,17 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
     return () => {
       cancelled = true;
     };
-  }, [open, provider]);
+  }, [open, keychainLogin]);
 
-  const usesKeychain = provider === "claude" && credential.trim() === "";
+  const usesKeychain = !!keychainLogin && credential.trim() === "";
   const pinnedMissing =
     keychainAccount !== "" && !keychainEntries.some((e) => e.account === keychainAccount);
   const showKeychainPicker = usesKeychain && (keychainEntries.length > 1 || keychainAccount !== "");
 
-  /** What to persist in `extra` for this provider. */
+  /** What to persist in `extra`: the Keychain pin in native mode, else the carried-through value. */
   function nextExtra(): string | undefined {
-    if (provider !== "claude") return savedExtra;
-    return usesKeychain && keychainAccount ? keychainAccount : undefined;
+    if (usesKeychain) return keychainAccount || undefined;
+    return savedExtra;
   }
 
   const canSubmit =
@@ -180,9 +182,9 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
               {error ? <span className="text-[11px] text-support-red">{error}</span> : null}
             </label>
 
-            {showKeychainPicker ? (
+            {showKeychainPicker && keychainLogin ? (
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-secondary">Claude Code login</span>
+                <span className="text-[12px] font-medium text-secondary">{keychainLogin.noun}</span>
                 <select
                   value={keychainAccount}
                   onChange={(e) => setKeychainAccount(e.target.value)}
@@ -202,8 +204,8 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
                   {keychainEntries.length === 1
                     ? "One entry uses"
                     : `${keychainEntries.length} entries share`}{" "}
-                  the “{CLAUDE_CODE_KEYCHAIN_SERVICE}” Keychain service. Pin one if Automatic picks the
-                  wrong login.
+                  the “{keychainLogin.service}” Keychain service. Pin one if Automatic picks the wrong
+                  login.
                 </span>
               </label>
             ) : null}

@@ -17,9 +17,10 @@ export interface Account {
   label: string;
   credential: string;
   /**
-   * Provider-specific secondary setting. Codex: account id. Claude: the
-   * macOS Keychain account to read the Claude Code login from when several
-   * exist (blank = pick automatically).
+   * Provider-specific secondary setting.
+   * - Native mode (blank credential) for Claude and Codex: the macOS Keychain
+   *   account to read the CLI login from when several exist (blank = automatic).
+   * - Codex with a pasted raw access token: the ChatGPT account id.
    */
   extra?: string;
   hidden: boolean;
@@ -80,9 +81,9 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     accent: "green",
     credentialTitle: "Auth JSON / Access Token",
     credentialHelp:
-      "Paste the contents of ~/.codex/auth.json for this account (or just its access token). Leave blank to auto-read ~/.codex/auth.json.",
+      "Paste the contents of ~/.codex/auth.json for this account (or just its access token). Leave blank to use your Codex CLI login from the macOS Keychain or ~/.codex/auth.json.",
     credentialOptional: true,
-    credentialPlaceholder: "Optional — auto-reads ~/.codex/auth.json",
+    credentialPlaceholder: "Optional — uses Codex CLI login",
   },
   cursor: {
     id: "cursor",
