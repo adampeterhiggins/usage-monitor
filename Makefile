@@ -25,7 +25,7 @@ WATCH ?= 1
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev check build app clean version keygen secrets \
+.PHONY: help install deps dev check build app clean version keygen secrets \
         check-version ensure-version set-version prepare-release tag-version \
         release release-local verify-release watch runs doctor
 
@@ -42,7 +42,7 @@ help: ## Show the available targets
 	@printf "  \033[36mPUSH=0\033[0m                 stop after tagging, push nothing\n"
 	@printf "  \033[36mWATCH=0\033[0m                do not follow the CI run\n"
 	@printf "\n\033[1mExamples\033[0m\n"
-	@printf "  make release                 gate, bump if needed, commit, tag, push, watch\n"
+	@printf "  make release                 check, gate, bump if needed, commit, tag, push, watch\n"
 	@printf "  make release-0.3.0           release exactly 0.3.0\n"
 	@printf "  make release YES=1           same, no prompts\n"
 	@printf "  make release PUSH=0          rehearse locally, push nothing\n"
@@ -51,10 +51,22 @@ help: ## Show the available targets
 install: ## Install npm dependencies
 	npm install
 
+deps: ## Make node_modules match package-lock.json (runs npm ci only when it is stale)
+	@# A stale install fails typecheck with "Cannot find module" for anything a
+	@# merged PR added to package.json since your last npm install. Cheap to
+	@# check, so every check and release path goes through here first.
+	@if node scripts/check-deps.mjs --quiet; then \
+		echo "node_modules matches package-lock.json"; \
+	else \
+		node scripts/check-deps.mjs || true; \
+		echo "--> Running npm ci"; \
+		npm ci; \
+	fi
+
 dev: ## Run the app in development mode
 	npm run tauri dev
 
-check: ## Typecheck, run query tests and lint the workflows
+check: deps ## Typecheck, run query tests and lint the workflows
 	npm run check
 
 doctor: ## Check the release prerequisites are in place
@@ -69,6 +81,12 @@ doctor: ## Check the release prerequisites are in place
 		printf "  ok    x86_64-apple-darwin target (needed for a universal build)\n"; \
 	else \
 		printf "  MISS  x86_64-apple-darwin target — run: rustup target add x86_64-apple-darwin\n"; \
+	fi
+	@printf "\n\033[1mDependencies\033[0m\n"
+	@if node scripts/check-deps.mjs --quiet; then \
+		printf "  ok    node_modules matches package-lock.json\n"; \
+	else \
+		printf "  MISS  node_modules is stale — run: make deps\n"; \
 	fi
 	@printf "\n\033[1mSigning\033[0m\n"
 	@if [ -f "$(KEY_FILE)" ]; then printf "  ok    local key at $(KEY_FILE)\n"; \
@@ -244,21 +262,32 @@ prepare-release-%: check-version-%
 	git tag -f "v$*" HEAD; \
 	echo "Tagged HEAD as v$*"
 
-release: ## Full release: gate, bump, check, commit, tag, push, watch CI
+# Checks run *before* the version is touched. They used to run after the bump,
+# so a failing typecheck (a stale node_modules, say) aborted the release and left
+# a half-done bump dirtying three files. CHECKED=1 is internal: `release` has
+# already run the checks by the time it dispatches to release-%.
+CHECKED ?= 0
+
+release: ## Full release: check, gate, bump, commit, tag, push, watch CI
+	@$(MAKE) --no-print-directory deps
+	@echo "--> Running checks"
+	@npm run check
 	@$(MAKE) --no-print-directory ensure-version FORCE=$(FORCE) YES=$(YES)
 	@VER="$$(node -p 'require("./package.json").version')"; \
-	$(MAKE) --no-print-directory release-$$VER FORCE=$(FORCE) YES=$(YES) PUSH=$(PUSH) WATCH=$(WATCH)
+	$(MAKE) --no-print-directory release-$$VER CHECKED=1 FORCE=$(FORCE) YES=$(YES) PUSH=$(PUSH) WATCH=$(WATCH)
 
 release-%: ## Release an exact version end to end
-	@set -e; \
-	echo "==> Releasing v$* to $(REPO)"; \
-	CONF="$$(node -p 'require("./src-tauri/tauri.conf.json").version')"; \
+	@echo "==> Releasing v$* to $(REPO)"
+	@if [ "$(CHECKED)" != "1" ]; then \
+		$(MAKE) --no-print-directory deps; \
+		echo "--> Running checks"; \
+		npm run check; \
+	fi
+	@CONF="$$(node -p 'require("./src-tauri/tauri.conf.json").version')"; \
 	if [ "$$CONF" != "$*" ]; then \
 		echo "--> Setting version to $* everywhere"; \
 		node scripts/set-version.mjs "$*"; \
 	fi
-	@echo "--> Running checks"
-	@npm run check
 	@echo "--> Committing and tagging"
 	@$(MAKE) --no-print-directory prepare-release-$* FORCE=$(FORCE) YES=$(YES)
 	@# Each recipe line gets its own shell, so `exit 0` here would only end this
@@ -328,6 +357,7 @@ release-local: ## Build, publish and update the manifest from this machine (bypa
 	@echo "==> Local release of v$(VERSION) — normally CI does this"
 	@$(MAKE) --no-print-directory version
 	@$(MAKE) --no-print-directory check-version-$(VERSION) FORCE=$(FORCE)
+	@$(MAKE) --no-print-directory deps
 	@npm run check
 	@$(MAKE) --no-print-directory build
 	@set -e; \

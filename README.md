@@ -55,13 +55,13 @@ The OAuth App is already registered. Enable **Device Authorization Grant** on it
 ### Cutting a release
 
 ```bash
-make release          # gate, bump if needed, check, commit, tag, push, watch CI, verify
+make release          # check, gate, bump if needed, commit, tag, push, watch CI, verify
 make release-0.3.0    # release exactly 0.3.0
 make release YES=1    # no prompts
 make release PUSH=0   # rehearse: stops after tagging, pushes nothing
 ```
 
-`make` on its own lists everything. `make doctor` checks the prerequisites (tooling, the universal-build target, the signing key, the repo secret, git state) before you find out the hard way.
+`make` on its own lists everything. `make doctor` checks the prerequisites (tooling, a `node_modules` that matches the lockfile, the universal-build target, the signing key, the repo secret, git state) before you find out the hard way. Every check and release path first runs `make deps`, which runs `npm ci` only when `node_modules` has drifted from `package-lock.json`, so a PR that added a dependency cannot fail typecheck on your machine after the version has been bumped.
 
 The chain is: version gate → bump → `npm run check` → commit → tag → push → follow the CI run → **verify the published manifest is actually installable**.
 
