@@ -32,6 +32,7 @@ const COLOR_GROUPS: ReadonlyArray<{
     fields: [
       { role: "canvas", label: "Canvas" },
       { role: "surface", label: "Cards" },
+      { role: "menu", label: "Menus" },
       { role: "surfaceRaised", label: "Raised" },
       { role: "surfaceOverlay", label: "Overlay" },
     ],
@@ -295,7 +296,7 @@ export function ThemeEditorHost() {
     >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] flex max-h-[calc(100vh-24px)] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] flex max-h-[calc(100vh-24px)] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <Dialog.Title className="text-[14px] font-medium">
               {editingTheme ? "Edit theme" : "Create theme"}

@@ -30,7 +30,7 @@ export function Tooltip({
           side={side}
           sideOffset={6}
           collisionPadding={8}
-          className="z-[100] flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[12px] leading-[16px] text-ink shadow-[0_4px_16px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+          className="z-[100] flex items-center gap-1.5 rounded-full bg-menu px-2.5 py-1 text-[12px] leading-[16px] text-ink shadow-[0_4px_16px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
         >
           {label}
           {shortcut && shortcut.length > 0 ? (

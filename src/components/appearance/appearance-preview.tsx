@@ -118,7 +118,7 @@ export function UsageMonitorPreview({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-2 pb-2.5">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-2 pb-2.5">
         {MOCK_CARDS.map((card) => (
           <div
             key={`${card.provider}-${card.label}`}
@@ -172,6 +172,13 @@ export function UsageMonitorPreview({
             </span>
           </div>
         ))}
+        {colors ? (
+          <div className="absolute right-2 top-0 w-[92px] rounded-[8px] bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8">
+            <div className="rounded-md px-1.5 py-1 text-[8px] leading-none">Appearance</div>
+            <div className="rounded-md bg-control px-1.5 py-1 text-[8px] leading-none">Layout</div>
+            <div className="rounded-md px-1.5 py-1 text-[8px] leading-none text-secondary">Quit</div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

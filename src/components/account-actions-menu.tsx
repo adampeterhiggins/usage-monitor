@@ -66,7 +66,7 @@ export function AccountActionsMenu({
             sideOffset={4}
             collisionPadding={8}
             onOpenAutoFocus={(event) => event.preventDefault()}
-            className="z-[80] min-w-[176px] rounded-[12px] bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+            className="z-[80] min-w-[176px] rounded-[12px] bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
           >
             <MenuItem
               icon={RefreshCw}
@@ -116,7 +116,7 @@ export function AccountActionsMenu({
 
       {confirmRemove ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/20 p-6">
-          <div className="w-full max-w-sm rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10">
+          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
             <div className="text-[15px] font-semibold">Remove {account.label}?</div>
             <p className="mt-1 text-[12px] text-secondary">
               {meta.name} · {account.label} will be removed from this monitor. Your provider login is

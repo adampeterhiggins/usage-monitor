@@ -484,7 +484,7 @@ export function AppearancePanel() {
       : listedOpenVsxThemes;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface text-ink">
+    <div className="flex h-full min-h-0 flex-col bg-menu text-ink">
       <div className="flex gap-1 border-b border-separator px-3 py-2">
         {(
           [

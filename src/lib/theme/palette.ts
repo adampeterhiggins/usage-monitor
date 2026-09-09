@@ -107,6 +107,14 @@ function isThemeAppearance(value: unknown): value is ThemeAppearance {
   return value === "light" || value === "dark";
 }
 
+/** Older theme files painted cards and settings chrome with `surface`. */
+function inheritUnspecifiedMenu(
+  colors: ThemeColors,
+  specified: ThemeColorOverrides,
+): ThemeColors {
+  return specified.menu === undefined ? { ...colors, menu: colors.surface } : colors;
+}
+
 export function isThemeColor(value: unknown): value is string {
   return typeof value === "string" && toCanonicalThemeColor(value) !== null;
 }
@@ -141,6 +149,11 @@ function parseStoredThemeColors(value: unknown, appearance: ThemeAppearance): Th
     if (THEME_COLOR_ROLE_SET.has(role) && normalized) {
       colors[role as ThemeColorRole] = normalized;
     }
+  }
+  // Themes saved before `menu` existed used `surface` for both cards and
+  // settings chrome. Keep that pairing unless the file set menu itself.
+  if (!isThemeColor(value.menu) && colors.surface) {
+    colors.menu = colors.surface;
   }
   return colors as ThemeColors;
 }
@@ -319,6 +332,7 @@ const T3_CODE_LIGHT_THEME_COLORS: ThemeColors = {
   toolbarControlForeground: "#27272a",
   toolbarControlHover: "#f4f4f5",
   surface: "#ffffff",
+  menu: "#ffffff",
   surfaceRaised: "#fcfcfc",
   surfaceOverlay: "#ffffff",
   text: "#27272a",
@@ -379,6 +393,7 @@ const T3_CODE_DARK_THEME_COLORS: ThemeColors = {
   toolbarControlForeground: "#f5f5f5",
   toolbarControlHover: "#141414",
   surface: "#111111",
+  menu: "#111111",
   surfaceRaised: "#141414",
   surfaceOverlay: "#191919",
   text: "#f5f5f5",
@@ -907,6 +922,7 @@ export function createVividThemeColors(
     toolbarControlForeground: themeRgbToThemeColor(textRgb),
     toolbarControlHover: themeColor(surfaceAt(dark ? 0.14 : 0.09, tintC * 1.6)),
     surface: themeColor(surface),
+    menu: themeColor(surfaceRaised),
     surfaceRaised: themeColor(surfaceRaised),
     surfaceOverlay: themeColor(surfaceOverlay),
     text: themeRgbToThemeColor(textRgb),
@@ -1151,6 +1167,7 @@ export function createManagedThemeColors(
     toolbarControlForeground: themeRgbToThemeColor(text),
     toolbarControlHover: themeRgbToThemeColor(accentSurface),
     surface: themeRgbToThemeColor(canvas),
+    menu: themeRgbToThemeColor(surfaceRaised),
     surfaceRaised: themeRgbToThemeColor(surfaceRaised),
     surfaceOverlay: themeRgbToThemeColor(surfaceOverlay),
     text: themeRgbToThemeColor(text),
@@ -1273,6 +1290,7 @@ export function updateThemeColorFamily(
     case "canvas":
       return { ...colors, canvas: normalized, chrome: normalized, toolbar: normalized };
     case "surface":
+    case "menu":
     case "surfaceRaised":
     case "surfaceOverlay":
     case "input":
@@ -1736,10 +1754,11 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
         throw new Error(`Theme variants must not repeat the base appearance "${appearance}".`);
       }
       const variantFallback = getDefaultThemeColors(variantAppearance);
-      variants[variantAppearance] = {
+      const variantOverrides = parseThemeColorOverrides(variantColors);
+      variants[variantAppearance] = inheritUnspecifiedMenu({
         ...variantFallback,
-        ...parseThemeColorOverrides(variantColors),
-      };
+        ...variantOverrides,
+      }, variantOverrides);
     }
   }
 
@@ -1747,7 +1766,7 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
     id,
     label: name.trim(),
     appearance,
-    colors: { ...fallback, ...overrides },
+    colors: inheritUnspecifiedMenu({ ...fallback, ...overrides }, overrides),
     ...(Object.keys(variants).length > 0 ? { variants } : {}),
     ...(collection ? { collection } : {}),
     ...(value.managed === true ? { managed: true } : {}),
@@ -1779,6 +1798,7 @@ const APP_THEME_VARIABLES: Readonly<Record<ThemeColorRole, string>> = {
   toolbarControlForeground: "--app-theme-toolbar-control-foreground",
   toolbarControlHover: "--app-theme-toolbar-control-hover",
   surface: "--app-theme-surface",
+  menu: "--app-theme-menu",
   surfaceRaised: "--app-theme-surface-raised",
   surfaceOverlay: "--app-theme-surface-overlay",
   text: "--app-theme-text",

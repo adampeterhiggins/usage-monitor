@@ -148,7 +148,7 @@ export function FontFamilySelect({
               align="start"
               sideOffset={4}
               collisionPadding={12}
-              className="z-[90] max-h-64 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto rounded-xl bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+              className="z-[90] max-h-64 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto rounded-xl bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
             >
               <FontOption
                 label={defaultLabel}
@@ -209,7 +209,7 @@ export function FontFamilySelect({
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[95] bg-black/30" />
           <Dialog.Content
-            className="fixed left-1/2 top-1/2 z-[100] w-[min(360px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-black/10"
+            className="fixed left-1/2 top-1/2 z-[100] w-[min(360px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10"
             onOpenAutoFocus={(event) => {
               event.preventDefault();
               inputRef.current?.focus();

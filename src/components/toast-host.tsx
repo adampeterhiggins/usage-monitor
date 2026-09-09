@@ -12,8 +12,8 @@ export function ToastHost() {
           key={t.id}
           className={`rounded-xl px-3 py-2 text-[12px] shadow-lg ring-1 ${
             t.tone === "error"
-              ? "bg-surface text-support-red ring-support-red/20"
-              : "bg-surface text-ink ring-black/10"
+              ? "bg-menu text-support-red ring-support-red/20"
+              : "bg-menu text-ink ring-black/10"
           }`}
         >
           <div className="font-semibold">{t.title}</div>
