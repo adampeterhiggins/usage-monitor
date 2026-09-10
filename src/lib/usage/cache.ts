@@ -1,8 +1,8 @@
-import type { Account, ProviderId, UsageFetchHooks, UsageResult, UsageSnapshot } from "../usage-types";
+import type { Account, ProviderId, UsageFetchHooks, UsageResult, UsageSnapshot } from "./types";
 import { fetchClaudeUsage } from "./claude";
 import { fetchCodexUsage } from "./codex";
 import { fetchCursorUsage } from "./cursor";
-import { HttpError } from "../http";
+import { HttpError } from "../platform/http";
 
 const TTL_MS: Record<ProviderId, number> = {
   claude: 180_000,

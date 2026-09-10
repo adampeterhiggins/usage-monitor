@@ -20,8 +20,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { removeAccount, reorderAccounts, setAccountHidden } from "../lib/accounts";
-import { toast } from "../lib/toast";
-import { PROVIDERS, type AccountPublic } from "../lib/usage-types";
+import { toast } from "../lib/platform/toast";
+import { PROVIDERS, type AccountPublic } from "../lib/usage/types";
 import { Badge, Button, cn, Text } from "./ui";
 
 interface AccountManagementDialogProps {

@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { fetchJson, fetchText } from "./http";
+import { fetchJson, fetchText } from "../platform/http";
 import {
   abortError,
   decodeJwtPayload,

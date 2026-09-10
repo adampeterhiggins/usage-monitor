@@ -1,6 +1,6 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
-import type { Account, AccountPublic, ProviderId } from "./usage-types";
-import { toPublic } from "./usage-types";
+import type { Account, AccountPublic, ProviderId } from "./usage/types";
+import { toPublic } from "./usage/types";
 import { fetchUsage, invalidate } from "./usage/cache";
 
 const store = new LazyStore("accounts.json");

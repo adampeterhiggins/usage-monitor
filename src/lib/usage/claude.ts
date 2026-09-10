@@ -4,10 +4,10 @@ import {
   parseClaudeOauthCredentials,
   resolveClaudeOauthTokens,
   serializeClaudeOauthCredentials,
-} from "../claude-oauth";
-import { fetchJson } from "../http";
-import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
-import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "../usage-types";
+} from "../auth/claude-oauth";
+import { fetchJson } from "../platform/http";
+import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
+import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "./types";
 
 interface UsageBucket {
   utilization?: number | null;

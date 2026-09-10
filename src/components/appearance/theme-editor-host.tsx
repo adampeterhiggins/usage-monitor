@@ -15,7 +15,7 @@ import {
 } from "../../lib/theme/types";
 import { installAndPersistTheme } from "../../lib/settings";
 import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
-import { toast } from "../../lib/toast";
+import { toast } from "../../lib/platform/toast";
 import { Button, cn, Input } from "../ui";
 import { UsageMonitorPreview } from "./appearance-preview";
 import { useThemeEditorStore } from "./theme-editor-store";

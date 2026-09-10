@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import { fetchJson } from "../http";
-import { CURSOR_IDE_PIN, KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
-import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
+import { fetchJson } from "../platform/http";
+import { CURSOR_IDE_PIN, KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
+import type { Account, UsageSnapshot, UsageWindow } from "./types";
 
 interface CursorUsageSummary {
   billingCycleStart?: string;

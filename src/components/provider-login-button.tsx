@@ -11,9 +11,9 @@ import {
   submitClaudeLoginCode,
   type ProviderLoginResult,
   type ProviderLoginSession,
-} from "../lib/provider-login";
-import { toast } from "../lib/toast";
-import { PROVIDERS, type ProviderId } from "../lib/usage-types";
+} from "../lib/auth/provider-login";
+import { toast } from "../lib/platform/toast";
+import { PROVIDERS, type ProviderId } from "../lib/usage/types";
 import { Button, cn } from "./ui";
 
 const ACCENT_CLASS = {

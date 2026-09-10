@@ -1,5 +1,5 @@
-import { useUpdates } from "../lib/state/updates";
-import { formatBytes, formatPublished } from "../lib/updates";
+import { useUpdates } from "../lib/updates/store";
+import { formatBytes, formatPublished } from "../lib/updates/api";
 import { Button } from "./ui";
 
 export function UpdatePanel({ hasToken }: { hasToken: boolean }) {

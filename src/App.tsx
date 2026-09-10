@@ -17,7 +17,7 @@ import { ToastHost } from "./components/toast-host";
 import { Tooltip } from "./components/tooltip";
 import { Button, EmptyState, Text } from "./components/ui";
 import { fetchAccountUsage, listAccounts } from "./lib/accounts";
-import { initToggleShortcut } from "./lib/global-shortcut";
+import { initToggleShortcut } from "./lib/platform/global-shortcut";
 import {
   getGithubToken,
   getLayout,
@@ -29,10 +29,10 @@ import {
 import { refreshAppliedAppearance } from "./lib/theme/controller";
 import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
 import { AppearancePanel } from "./components/appearance/appearance-dialog";
-import { APPEARANCE_CHANGED_EVENT } from "./lib/appearance-window";
-import { provideUpdateToken, useUpdates } from "./lib/state/updates";
-import { acceleratorFromKeyDown, acceleratorGlyphs, DEFAULT_REFRESH_SHORTCUT } from "./lib/shortcut";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type Layout } from "./lib/usage-types";
+import { APPEARANCE_CHANGED_EVENT } from "./lib/platform/appearance-window";
+import { provideUpdateToken, useUpdates } from "./lib/updates/store";
+import { acceleratorFromKeyDown, acceleratorGlyphs, DEFAULT_REFRESH_SHORTCUT } from "./lib/platform/shortcut";
+import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type Layout } from "./lib/usage/types";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },

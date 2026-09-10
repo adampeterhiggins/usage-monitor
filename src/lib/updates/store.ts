@@ -8,7 +8,7 @@ import {
   installUpdate,
   restartToApply,
   type UpdateState,
-} from "../updates";
+} from "./api";
 
 let pendingUpdate: Update | null = null;
 

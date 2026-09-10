@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { fetchJson, fetchText, header, HttpError } from "./http";
+import { fetchJson, fetchText, header, HttpError } from "../platform/http";
 import {
   abortError,
   oauthErrorMessage,

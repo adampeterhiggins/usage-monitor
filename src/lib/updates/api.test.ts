@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeUpdateError, formatBytes, formatPublished } from "./updates";
+import { describeUpdateError, formatBytes, formatPublished } from "./api";
 
 describe("formatBytes", () => {
   it("renders KB below a megabyte and MB above", () => {

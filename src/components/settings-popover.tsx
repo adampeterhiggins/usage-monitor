@@ -25,17 +25,17 @@ import {
   setRefreshShortcut,
   setToggleShortcut,
 } from "../lib/settings";
-import { openAppearanceWindow } from "../lib/appearance-window";
+import { openAppearanceWindow } from "../lib/platform/appearance-window";
 import {
   acceleratorFromKeyDown,
   DEFAULT_REFRESH_SHORTCUT,
   DEFAULT_TOGGLE_SHORTCUT,
   formatAccelerator,
   toGlobalShortcut,
-} from "../lib/shortcut";
-import { registerToggleShortcut } from "../lib/global-shortcut";
-import { toast } from "../lib/toast";
-import { type Layout } from "../lib/usage-types";
+} from "../lib/platform/shortcut";
+import { registerToggleShortcut } from "../lib/platform/global-shortcut";
+import { toast } from "../lib/platform/toast";
+import { type Layout } from "../lib/usage/types";
 import { exit } from "@tauri-apps/plugin-process";
 import { Tooltip } from "./tooltip";
 import { GithubAuthSettings } from "./github-auth-settings";

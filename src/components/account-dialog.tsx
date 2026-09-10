@@ -9,10 +9,10 @@ import {
   listKeychainAccounts,
   type CursorIdeLogin,
   type KeychainEntry,
-} from "../lib/keychain";
-import { credentialLooksLikeSession, signInLabel } from "../lib/provider-login";
-import { toast } from "../lib/toast";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
+} from "../lib/auth/keychain";
+import { credentialLooksLikeSession, signInLabel } from "../lib/auth/provider-login";
+import { toast } from "../lib/platform/toast";
+import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage/types";
 import { ProviderLoginButton } from "./provider-login-button";
 import { Button, Input, cn } from "./ui";
 

@@ -3,8 +3,8 @@ import * as Popover from "@radix-ui/react-popover";
 import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { removeAccount } from "../lib/accounts";
-import { toast } from "../lib/toast";
-import { PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
+import { toast } from "../lib/platform/toast";
+import { PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage/types";
 import { Button, cn } from "./ui";
 
 const DASHBOARD_URLS: Record<ProviderId, string> = {
