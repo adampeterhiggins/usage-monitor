@@ -13,7 +13,8 @@
     "check": "npm run typecheck && npm run test && npm run check:workflows",
     "release:prepare": "node scripts/set-version.mjs",
     "release:manifest": "node scripts/build-update-manifest.mjs",
-    "check:workflows": "node scripts/lint-workflows.mjs"
+    "check:workflows": "node scripts/lint-workflows.mjs",
+    "dev:mock": "vite --mode mock"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
