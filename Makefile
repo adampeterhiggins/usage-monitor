@@ -66,7 +66,7 @@ deps: ## Make node_modules match package-lock.json (runs npm ci only when it is 
 dev: ## Run the app in development mode
 	npm run tauri dev
 
-check: deps ## Typecheck, run query tests and lint the workflows
+check: deps ## Typecheck, test, and lint the workflows
 	npm run check
 
 doctor: ## Check the release prerequisites are in place

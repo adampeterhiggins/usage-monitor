@@ -69,7 +69,7 @@ function number(value: unknown): number | undefined {
  * rolled out. Find a metric object only when it lives below a Grok/Bot-ish
  * key, so an unrelated weekly field cannot be mistaken for this meter.
  */
-function findGrokBotUsage(value: unknown, path: string[] = []): GrokBotUsage | undefined {
+export function findGrokBotUsage(value: unknown, path: string[] = []): GrokBotUsage | undefined {
   if (!value || typeof value !== "object") return undefined;
 
   if (Array.isArray(value)) {
@@ -150,7 +150,7 @@ function rawJwtFromSecret(raw: string, describe: string): string {
 }
 
 /** Build the `WorkosCursorSessionToken` cookie the dashboard API expects: `userId::jwt`. */
-function sessionCookieFromJwt(raw: string, describe: string): string {
+export function sessionCookieFromJwt(raw: string, describe: string): string {
   const token = rawJwtFromSecret(raw, describe);
   const payload = decodeJwtPayload(token, describe);
   const sub = typeof payload.sub === "string" ? payload.sub : "";
@@ -167,7 +167,7 @@ function sessionCookieFromJwt(raw: string, describe: string): string {
   return `${userId}::${token}`;
 }
 
-function cookieFromPasted(raw: string): string {
+export function cookieFromPasted(raw: string): string {
   const trimmed = raw.replace(/^WorkosCursorSessionToken=/i, "").trim();
   if (trimmed.includes("::") || trimmed.includes("%3A%3A")) return trimmed;
   if (trimmed.split(".").length === 3) return sessionCookieFromJwt(trimmed, "Pasted credential");
