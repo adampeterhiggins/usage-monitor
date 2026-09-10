@@ -1,15 +1,15 @@
 {
-  "version": "0.1.21",
-  "notes": "## What's Changed\n* Organize lib/ into domain directories by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/21\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.20...v0.1.21",
-  "pub_date": "2026-09-10T17:42:06Z",
+  "version": "0.1.22",
+  "notes": "## What's Changed\n* Extract Shell's ten effects into src/hooks/ by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/23\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.21...v0.1.22",
+  "pub_date": "2026-09-10T17:52:29Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUZRU0xOVzRuajBTYmtFL1JhclVrdXJZK2JGbUZqUDU2K1dIaXl5ZDI1Z1ZZK2NvQ1hHOHF4ZGNmRFNkU2VmSVhaV0I3MjNyVkFQOFhlTTYxK0UyMHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDYyMDU2CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CkNVKzlabFRQeVpBMzRYM2pSNllRZ3JVWXMwbHNjZ1JjUDh4V1ZoalJ4bHFqTFdqR0VBQ0xnUTIxRW5XeHpGdFFqY2dQdWVjVWdBbnIya3drRGZhN0N3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555493367"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNRd3NiaFB3a1EzdFpLSDJ1NDNacG1ndjRMdngwQjlianBzRHJTbEcvTHNKOGxWa1FuOFdDbUpUcW16cGc5TCswWG5PT25DU1dpMUpKVDNFMUlQM2drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDYyNzAyCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnJwWlBMTXRYUG91aXlwS2c3czVOMWhrb095RjlObFdDTjJELzVFUExmTW1nNmE3N09MMGZuZXg0a3oxa2JnOHgzTEZmZmhjVEF1Ym9JMkYxUndIeERnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555509718"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUZRU0xOVzRuajBTYmtFL1JhclVrdXJZK2JGbUZqUDU2K1dIaXl5ZDI1Z1ZZK2NvQ1hHOHF4ZGNmRFNkU2VmSVhaV0I3MjNyVkFQOFhlTTYxK0UyMHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDYyMDU2CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CkNVKzlabFRQeVpBMzRYM2pSNllRZ3JVWXMwbHNjZ1JjUDh4V1ZoalJ4bHFqTFdqR0VBQ0xnUTIxRW5XeHpGdFFqY2dQdWVjVWdBbnIya3drRGZhN0N3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555493367"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNRd3NiaFB3a1EzdFpLSDJ1NDNacG1ndjRMdngwQjlianBzRHJTbEcvTHNKOGxWa1FuOFdDbUpUcW16cGc5TCswWG5PT25DU1dpMUpKVDNFMUlQM2drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDYyNzAyCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnJwWlBMTXRYUG91aXlwS2c3czVOMWhrb095RjlObFdDTjJELzVFUExmTW1nNmE3N09MMGZuZXg0a3oxa2JnOHgzTEZmZmhjVEF1Ym9JMkYxUndIeERnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555509718"
     }
   }
 }
