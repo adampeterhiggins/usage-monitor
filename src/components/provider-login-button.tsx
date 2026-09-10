@@ -1,12 +1,15 @@
 import * as React from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
+  cancelProviderLogin,
   credentialLooksLikeSession,
   describeLoginError,
   isAbortError,
+  peekProviderLogin,
   signInLabel,
   startProviderLogin,
   submitClaudeLoginCode,
+  type ProviderLoginResult,
   type ProviderLoginSession,
 } from "../lib/provider-login";
 import { toast } from "../lib/toast";
@@ -18,6 +21,35 @@ const ACCENT_CLASS = {
   green: "bg-support-green",
   blue: "bg-support-blue",
 } as const;
+
+const attachedDone = new WeakSet<ProviderLoginSession>();
+const latestDoneHandlers = new WeakMap<
+  ProviderLoginSession,
+  {
+    onSuccess: (result: ProviderLoginResult) => void;
+    onError: (error: unknown) => void;
+    onFinally: () => void;
+  }
+>();
+
+function attachDone(
+  session: ProviderLoginSession,
+  handlers: {
+    onSuccess: (result: ProviderLoginResult) => void;
+    onError: (error: unknown) => void;
+    onFinally: () => void;
+  },
+): void {
+  latestDoneHandlers.set(session, handlers);
+  if (attachedDone.has(session)) return;
+  attachedDone.add(session);
+  void session.done
+    .then(
+      (result) => latestDoneHandlers.get(session)?.onSuccess(result),
+      (error) => latestDoneHandlers.get(session)?.onError(error),
+    )
+    .finally(() => latestDoneHandlers.get(session)?.onFinally());
+}
 
 export function ProviderLoginButton({
   provider,
@@ -32,22 +64,54 @@ export function ProviderLoginButton({
   onSignedIn: (result: { credential: string; extra?: string; suggestedLabel?: string }) => void;
   onClear?: () => void;
 }) {
-  const [session, setSession] = React.useState<ProviderLoginSession | null>(null);
+  const [session, setSession] = React.useState<ProviderLoginSession | null>(() => peekProviderLogin(provider));
   const [pasteCode, setPasteCode] = React.useState("");
-  const sessionRef = React.useRef<ProviderLoginSession | null>(null);
+  const [submittingCode, setSubmittingCode] = React.useState(false);
+  const sessionRef = React.useRef<ProviderLoginSession | null>(session);
+  const startingRef = React.useRef(false);
+  const onSignedInRef = React.useRef(onSignedIn);
+  onSignedInRef.current = onSignedIn;
+  const providerRef = React.useRef(provider);
+
+  function bindSession(next: ProviderLoginSession): void {
+    sessionRef.current = next;
+    setSession(next);
+    attachDone(next, {
+      onSuccess: (result) => {
+        onSignedInRef.current(result);
+        toast.success(
+          result.suggestedLabel
+            ? `Signed in as ${result.suggestedLabel}`
+            : `Signed in with ${PROVIDERS[provider].name}`,
+        );
+      },
+      onError: (error) => {
+        if (!isAbortError(error)) {
+          toast.error(describeLoginError(error, "Sign-in failed."));
+        }
+      },
+      onFinally: () => {
+        if (sessionRef.current === next) {
+          sessionRef.current = null;
+          setSession(null);
+          setPasteCode("");
+          setSubmittingCode(false);
+        }
+      },
+    });
+  }
 
   React.useEffect(() => {
-    return () => {
-      sessionRef.current?.cancel();
+    if (providerRef.current !== provider) {
+      cancelProviderLogin(providerRef.current);
       sessionRef.current = null;
-    };
-  }, []);
-
-  React.useEffect(() => {
-    sessionRef.current?.cancel();
-    sessionRef.current = null;
-    setSession(null);
-    setPasteCode("");
+      setSession(null);
+      setPasteCode("");
+      setSubmittingCode(false);
+      providerRef.current = provider;
+    }
+    const existing = peekProviderLogin(provider);
+    if (existing) bindSession(existing);
   }, [provider]);
 
   const pending = session !== null;
@@ -55,31 +119,25 @@ export function ProviderLoginButton({
   const hasCredential = credential.trim().length > 0;
 
   async function handleSignIn() {
-    if (pending || disabled) return;
+    if (pending || startingRef.current || disabled) return;
+    startingRef.current = true;
     try {
-      const next = await startProviderLogin(provider);
-      sessionRef.current = next;
-      setSession(next);
-      const result = await next.done;
-      onSignedIn(result);
-      toast.success(
-        result.suggestedLabel
-          ? `Signed in as ${result.suggestedLabel}`
-          : `Signed in with ${PROVIDERS[provider].name}`,
-      );
+      bindSession(await startProviderLogin(provider));
     } catch (error) {
       if (!isAbortError(error)) {
         toast.error(describeLoginError(error, "Sign-in failed."));
       }
     } finally {
-      sessionRef.current = null;
-      setSession(null);
-      setPasteCode("");
+      startingRef.current = false;
     }
   }
 
   function handleCancel() {
-    sessionRef.current?.cancel();
+    cancelProviderLogin(provider);
+    sessionRef.current = null;
+    setSession(null);
+    setPasteCode("");
+    setSubmittingCode(false);
   }
 
   async function handleCopyCode() {
@@ -93,10 +151,12 @@ export function ProviderLoginButton({
   }
 
   function handleSubmitPasteCode() {
-    if (!session) return;
+    if (!session || submittingCode) return;
     try {
+      setSubmittingCode(true);
       submitClaudeLoginCode(session, pasteCode);
     } catch (error) {
+      setSubmittingCode(false);
       toast.error(describeLoginError(error, "Couldn’t submit that code."));
     }
   }
@@ -131,8 +191,13 @@ export function ProviderLoginButton({
           spellCheck={false}
         />
         <div className="mt-2 flex gap-2">
-          <Button size="small" variant="accent" disabled={!pasteCode.trim()} onClick={handleSubmitPasteCode}>
-            Continue
+          <Button
+            size="small"
+            variant="accent"
+            disabled={!pasteCode.trim() || submittingCode}
+            onClick={handleSubmitPasteCode}
+          >
+            {submittingCode ? "Signing in…" : "Continue"}
           </Button>
           <Button size="small" variant="glass" onClick={handleCancel}>
             Cancel

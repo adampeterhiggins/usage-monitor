@@ -83,6 +83,7 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AccountPublic | null>(null);
   const blockingOverlay = dialogOpen || manageOpen || settingsOpen;
+  const accountModalOpen = dialogOpen || manageOpen;
   const [fetchStates, setFetchStates] = React.useState<Record<string, AccountFetchState>>({});
   const [refreshingAll, setRefreshingAll] = React.useState(false);
   const [githubToken, setGithubTokenState] = React.useState<string | null>(null);
@@ -129,6 +130,21 @@ function Shell() {
   React.useEffect(() => {
     provideUpdateToken(() => githubToken);
   }, [githubToken]);
+
+  React.useEffect(() => {
+    // Do not send `open: false` from this effect's cleanup — React Strict Mode
+    // remounts immediately and that race left the panel hidden / accessory
+    // while the modal was still open.
+    void invoke("set_account_modal_open", { open: accountModalOpen }).catch(() => {
+      // Older native builds without the command keep tray hide-on-blur.
+    });
+  }, [accountModalOpen]);
+
+  React.useEffect(() => {
+    return () => {
+      void invoke("set_account_modal_open", { open: false }).catch(() => {});
+    };
+  }, []);
 
   React.useEffect(() => startPoller(), [startPoller]);
 
@@ -216,7 +232,9 @@ function Shell() {
       // Make sure the document owns keyboard focus so Escape works without a click first.
       window.focus();
       if (dialogOpen || manageOpen || visibleAccounts.length === 0 || refreshingAll) return;
-      void refreshAll(true);
+      // Respect TTL / backoff. A forced refresh here re-hit Claude's OAuth
+      // token endpoint on every tray open and burned the sign-in rate limit.
+      void refreshAll(false);
     }).then((fn) => {
       unlisten = fn;
     });
@@ -240,6 +258,7 @@ function Shell() {
 
   function openEdit(account: AccountPublic) {
     setEditing(account);
+    setManageOpen(true);
     setDialogOpen(true);
   }
 
@@ -447,7 +466,10 @@ function Shell() {
       <FitCorner contentRef={contentRef} headerRef={headerRef} />
       <AccountManagementDialog
         open={manageOpen}
-        onOpenChange={setManageOpen}
+        onOpenChange={(open) => {
+          if (!open && dialogOpen) return;
+          setManageOpen(open);
+        }}
         accounts={accounts}
         onAddAccount={openAdd}
         onEditAccount={openEdit}

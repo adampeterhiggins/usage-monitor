@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { fetchJson, fetchText } from "./http";
+import { fetchJson, fetchText, header, HttpError } from "./http";
 import {
   abortError,
   oauthErrorMessage,
@@ -95,6 +95,15 @@ export function parseClaudeCallback(input: string): { code: string; state?: stri
   return { code: value };
 }
 
+/** Claude Code may store Unix seconds; we persist milliseconds. */
+export function expiresAtMs(value: number | undefined): number | undefined {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) return undefined;
+  return value < 1e12 ? value * 1000 : value;
+}
+
+const DEFAULT_ACCESS_TOKEN_MS = 8 * 60 * 60 * 1000;
+const refreshInflight = new Map<string, Promise<ClaudeOauthTokens>>();
+
 async function postToken(
   body: Record<string, string>,
   signal: AbortSignal,
@@ -117,6 +126,17 @@ async function postToken(
   } catch {
     throw new Error(`Claude sign-in failed: ${res.body.replace(/\s+/g, " ").slice(0, 200)}`);
   }
+  if (res.status === 429) {
+    const retryAfter = header(res.headers, "retry-after");
+    const seconds = retryAfter ? parseInt(retryAfter, 10) || undefined : undefined;
+    throw new HttpError(
+      seconds
+        ? `Claude is rate-limiting sign-in. Try again in ${seconds}s — this app will not keep retrying.`
+        : "Claude is rate-limiting sign-in. Wait before trying once more — this app will not keep retrying.",
+      429,
+      seconds,
+    );
+  }
   const tokens = data as TokenResponse;
   if (res.status >= 400 || !tokens.access_token) {
     throw new Error(oauthErrorMessage(data, `Claude token request failed (HTTP ${res.status}).`));
@@ -125,10 +145,16 @@ async function postToken(
 }
 
 function tokensFromResponse(data: TokenResponse, previous?: ClaudeOauthTokens): ClaudeOauthTokens {
+  const previousExpiry = expiresAtMs(previous?.expiresAt);
+  const expiresAt = data.expires_in
+    ? Date.now() + data.expires_in * 1000
+    : previousExpiry && previousExpiry > Date.now() + 60_000
+      ? previousExpiry
+      : Date.now() + DEFAULT_ACCESS_TOKEN_MS;
   return {
     accessToken: data.access_token!,
     refreshToken: data.refresh_token || previous?.refreshToken,
-    expiresAt: data.expires_in ? Date.now() + data.expires_in * 1000 : previous?.expiresAt,
+    expiresAt,
     scopes: data.scope?.split(/\s+/).filter(Boolean) ?? previous?.scopes,
   };
 }
@@ -140,7 +166,11 @@ export async function refreshClaudeOauth(
   if (!tokens.refreshToken) {
     throw new Error("Claude session has expired. Sign in again on this account.");
   }
-  const data = await postToken(
+  const key = tokens.refreshToken;
+  const existing = refreshInflight.get(key);
+  if (existing) return existing;
+
+  const promise = postToken(
     {
       grant_type: "refresh_token",
       refresh_token: tokens.refreshToken,
@@ -148,17 +178,24 @@ export async function refreshClaudeOauth(
     },
     signal ?? new AbortController().signal,
     { "anthropic-beta": "oauth-2025-04-20" },
-  );
-  return tokensFromResponse(data, tokens);
+  )
+    .then((data) => tokensFromResponse(data, tokens))
+    .finally(() => {
+      if (refreshInflight.get(key) === promise) refreshInflight.delete(key);
+    });
+  refreshInflight.set(key, promise);
+  return promise;
 }
 
 export async function resolveClaudeOauthTokens(
   tokens: ClaudeOauthTokens,
   signal?: AbortSignal,
 ): Promise<{ tokens: ClaudeOauthTokens; refreshed: boolean }> {
-  const expired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!expired) return { tokens, refreshed: false };
-  return { tokens: await refreshClaudeOauth(tokens, signal), refreshed: true };
+  const expiresAt = expiresAtMs(tokens.expiresAt);
+  const normalized = expiresAt === tokens.expiresAt ? tokens : { ...tokens, expiresAt };
+  const expired = expiresAt !== undefined && expiresAt < Date.now() + 60_000;
+  if (!expired) return { tokens: normalized, refreshed: false };
+  return { tokens: await refreshClaudeOauth(normalized, signal), refreshed: true };
 }
 
 async function fetchSuggestedLabel(accessToken: string, signal: AbortSignal): Promise<string | undefined> {
