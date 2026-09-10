@@ -7,10 +7,10 @@ import {
   severityTextClass,
   type AccountPublic,
   type UsageWindow,
-} from "../lib/usage/types";
-import { AccountActionsMenu } from "./account-actions-menu";
-import type { AccountFetchState } from "./account-card";
-import { Badge, Button, cn, Text } from "./ui";
+} from "../../lib/usage/types";
+import { AccountActionsMenu } from "../accounts/account-actions-menu";
+import type { AccountFetchState } from "../accounts/account-card";
+import { Badge, Button, cn, Text } from "../ui";
 
 interface LedgerViewProps {
   accounts: AccountPublic[];

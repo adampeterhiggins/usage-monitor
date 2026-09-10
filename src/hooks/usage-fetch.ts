@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { AccountFetchState } from "../components/account-card";
+import type { AccountFetchState } from "../components/accounts/account-card";
 import { fetchAccountUsage } from "../lib/accounts";
 import type { AccountPublic } from "../lib/usage/types";
 

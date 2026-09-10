@@ -2,11 +2,11 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CircleHelp } from "lucide-react";
-import { mergeDeploymentInfo } from "../lib/platform/deployment";
-import { toast } from "../lib/platform/toast";
-import { currentVersion } from "../lib/updates/api";
-import { Tooltip } from "./tooltip";
-import { Button } from "./ui";
+import { mergeDeploymentInfo } from "../../lib/platform/deployment";
+import { toast } from "../../lib/platform/toast";
+import { currentVersion } from "../../lib/updates/api";
+import { Tooltip } from "../ui/tooltip";
+import { Button } from "../ui";
 
 async function copyValue(value: string, label: string): Promise<void> {
   try {

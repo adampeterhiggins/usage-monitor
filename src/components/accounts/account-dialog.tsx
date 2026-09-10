@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { addAccount, getAccountSecret, updateAccount } from "../lib/accounts";
+import { addAccount, getAccountSecret, updateAccount } from "../../lib/accounts";
 import {
   CURSOR_IDE_PIN,
   cursorIdeLoginMeta,
@@ -9,12 +9,12 @@ import {
   listKeychainAccounts,
   type CursorIdeLogin,
   type KeychainEntry,
-} from "../lib/auth/keychain";
-import { credentialLooksLikeSession, signInLabel } from "../lib/auth/provider-login";
-import { toast } from "../lib/platform/toast";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage/types";
+} from "../../lib/auth/keychain";
+import { credentialLooksLikeSession, signInLabel } from "../../lib/auth/provider-login";
+import { toast } from "../../lib/platform/toast";
+import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../../lib/usage/types";
 import { ProviderLoginButton } from "./provider-login-button";
-import { Button, Input, cn } from "./ui";
+import { Button, Input, cn } from "../ui";
 
 type AuthMethod = "signin" | "local" | "paste";
 

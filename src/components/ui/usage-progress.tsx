@@ -1,5 +1,5 @@
-import { formatPercent, formatReset, severityFillClass } from "../lib/usage/types";
-import { cn, Text } from "./ui";
+import { formatPercent, formatReset, severityFillClass } from "../../lib/usage/types";
+import { cn, Text } from ".";
 
 interface UsageProgressProps {
   label: string;

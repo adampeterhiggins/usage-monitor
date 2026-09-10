@@ -7,11 +7,11 @@ import {
   worstPercent,
   type AccountPublic,
   type ProviderId,
-} from "../lib/usage/types";
-import { AccountActionsMenu } from "./account-actions-menu";
-import type { AccountFetchState } from "./account-card";
-import { UsageProgress } from "./usage-progress";
-import { Badge, Button, cn, Text } from "./ui";
+} from "../../lib/usage/types";
+import { AccountActionsMenu } from "../accounts/account-actions-menu";
+import type { AccountFetchState } from "../accounts/account-card";
+import { UsageProgress } from "../ui/usage-progress";
+import { Badge, Button, cn, Text } from "../ui";
 
 interface FocusViewProps {
   grouped: Array<{ id: ProviderId; accounts: AccountPublic[] }>;
