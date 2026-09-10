@@ -81,7 +81,7 @@ async function resolveCreds(account: Account): Promise<CodexCreds> {
   return { accessToken: cred, accountId: account.extra };
 }
 
-function parseAuthJson(raw: string, describe: string): CodexCreds {
+export function parseAuthJson(raw: string, describe: string): CodexCreds {
   let json: { tokens?: { access_token?: string; account_id?: string }; OPENAI_API_KEY?: string };
   try {
     json = JSON.parse(raw);
@@ -99,7 +99,7 @@ function parseAuthJson(raw: string, describe: string): CodexCreds {
   return { accessToken: token, accountId: json.tokens?.account_id || accountIdFromAccessToken(token) };
 }
 
-function windowLabel(w: RateLimitWindow, fallback: string): string {
+export function windowLabel(w: RateLimitWindow, fallback: string): string {
   const secs = w.limit_window_seconds ?? 0;
   if (!secs) return fallback;
   const hours = secs / 3600;
@@ -109,7 +109,7 @@ function windowLabel(w: RateLimitWindow, fallback: string): string {
   return `${Math.round(days)}-day limit`;
 }
 
-function toWindow(
+export function toWindow(
   w: RateLimitWindow | null | undefined,
   fallbackLabel: string,
   prefix = "",

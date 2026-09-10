@@ -15,7 +15,7 @@ interface UsageBucket {
   resets_at?: string | null;
 }
 
-interface ClaudeUsageResponse {
+export interface ClaudeUsageResponse {
   five_hour?: UsageBucket | null;
   seven_day?: UsageBucket | null;
   seven_day_sonnet?: UsageBucket | null;
@@ -50,7 +50,7 @@ function bucket(label: string, b?: UsageBucket | null): UsageWindow | null {
   return { label, usedPercent: b.utilization, resetsAt: ms(b.resets_at) };
 }
 
-function parseUsage(data: ClaudeUsageResponse): UsageWindow[] {
+export function parseUsage(data: ClaudeUsageResponse): UsageWindow[] {
   const windows: UsageWindow[] = [];
   const seen = new Set<string>();
   const push = (w: UsageWindow | null) => {
