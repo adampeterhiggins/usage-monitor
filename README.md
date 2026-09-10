@@ -98,7 +98,7 @@ src/
     github-oauth.ts  device-flow sign-in for private-repo updates
     claude-oauth.ts  Claude Code PKCE sign-in (per-account session)
     codex-oauth.ts   Codex device-flow sign-in (per-account session)
-    cursor-login.ts  Cursor webview sign-in + local CLI fallback
+    cursor-login.ts  Cursor browser PKCE sign-in + local CLI fallback
     updates.ts       Tauri updater, private-repo auth headers
   components/        cards, layouts, settings popover
 src-tauri/

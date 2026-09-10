@@ -10,16 +10,30 @@ import {
   type CursorIdeLogin,
   type KeychainEntry,
 } from "../lib/keychain";
+import { credentialLooksLikeSession, signInLabel } from "../lib/provider-login";
 import { toast } from "../lib/toast";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../lib/usage-types";
 import { ProviderLoginButton } from "./provider-login-button";
-import { Button, Input } from "./ui";
+import { Button, Input, cn } from "./ui";
+
+type AuthMethod = "signin" | "local" | "paste";
+
+const SELECT_CLASS =
+  "h-8 rounded-lg border border-separator bg-surface px-2 text-[13px] outline-none focus:ring-2 focus:ring-support-blue/30";
 
 interface AccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: AccountPublic | null;
   onSaved: () => void;
+}
+
+function inferAuthMethod(provider: ProviderId, credential: string): AuthMethod {
+  const cred = credential.trim();
+  if (!cred && KEYCHAIN_LOGINS[provider]) return "local";
+  if (cred && credentialLooksLikeSession(provider, cred)) return "signin";
+  if (cred) return "paste";
+  return "signin";
 }
 
 export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountDialogProps) {
@@ -34,6 +48,7 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
   const [keychainEntries, setKeychainEntries] = React.useState<KeychainEntry[]>([]);
   const [cursorIde, setCursorIde] = React.useState<CursorIdeLogin | null>(null);
   const [loadingSecret, setLoadingSecret] = React.useState(false);
+  const [authMethod, setAuthMethod] = React.useState<AuthMethod>("signin");
   const [error, setError] = React.useState<string | null>(null);
 
   const meta = PROVIDERS[provider];
@@ -60,6 +75,7 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
           } else {
             setSavedExtra(secret.extra);
           }
+          setAuthMethod(inferAuthMethod(account.provider, secret.credential));
         })
         .catch((e) => setError(e instanceof Error ? e.message : String(e)))
         .finally(() => setLoadingSecret(false));
@@ -69,6 +85,7 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
       setCredential("");
       setSavedExtra(undefined);
       setKeychainAccount("");
+      setAuthMethod("signin");
       setLoadingSecret(false);
     }
   }, [open, account]);
@@ -91,8 +108,8 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
       });
     if (provider === "cursor") {
       void cursorIdeLoginMeta()
-        .then((meta) => {
-          if (!cancelled) setCursorIde(meta);
+        .then((login) => {
+          if (!cancelled) setCursorIde(login);
         })
         .catch(() => {
           if (!cancelled) setCursorIde(null);
@@ -119,28 +136,43 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
     });
   }
 
-  const usesKeychain = !!keychainLogin && credential.trim() === "";
   const pinnedMissing = keychainAccount !== "" && !nativeOptions.some((o) => o.id === keychainAccount);
-  const showKeychainPicker = usesKeychain && (nativeOptions.length > 1 || keychainAccount !== "");
+  const showKeychainPicker = nativeOptions.length > 1 || keychainAccount !== "";
 
-  /** What to persist in `extra`: the Keychain pin in native mode, else the carried-through value. */
+  function applyAuthMethod(next: AuthMethod) {
+    if (next === authMethod) return;
+    if (next === "local") {
+      setCredential("");
+    } else if (next === "signin") {
+      if (!credentialLooksLikeSession(provider, credential)) setCredential("");
+      setKeychainAccount("");
+    } else {
+      if (credentialLooksLikeSession(provider, credential)) setCredential("");
+      setKeychainAccount("");
+    }
+    setAuthMethod(next);
+  }
+
   function nextExtra(): string | undefined {
-    if (usesKeychain) return keychainAccount || undefined;
+    if (authMethod === "local") return keychainAccount || undefined;
     return savedExtra;
   }
 
   const canSubmit =
-    label.trim().length > 0 && !loadingSecret && (meta.credentialOptional || credential.trim().length > 0);
+    label.trim().length > 0 &&
+    !loadingSecret &&
+    (authMethod === "local" || credential.trim().length > 0);
 
   async function handleConfirm() {
     setError(null);
     try {
+      const nextCredential = authMethod === "local" ? "" : credential.trim();
       if (editing && account) {
         await updateAccount({
           id: account.id,
           provider,
           label: label.trim(),
-          credential: credential.trim(),
+          credential: nextCredential,
           extra: nextExtra(),
         });
         toast.success("Account updated", { description: `${meta.name} · ${label.trim()}` });
@@ -148,7 +180,7 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
         await addAccount({
           provider,
           label: label.trim(),
-          credential: credential.trim(),
+          credential: nextCredential,
           extra: nextExtra(),
         });
         toast.success("Account added", { description: `${meta.name} · ${label.trim()}` });
@@ -165,51 +197,76 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/25" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[70] w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+        <Dialog.Overlay className="fixed inset-0 z-[60] rounded-[16px] bg-black/25" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[70] max-h-[calc(100vh-2rem)] w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
           <Dialog.Title className="text-[16px] font-semibold">
             {editing ? "Edit Account" : "Add Account"}
           </Dialog.Title>
-          <Dialog.Description className="mt-1 text-[12px] text-secondary">
-            Monitor usage for Claude, Codex, or Cursor. Credentials stay on this Mac.
+          <Dialog.Description className="mt-1 text-[12px] leading-[16px] text-secondary">
+            Credentials stay on this Mac.
           </Dialog.Description>
 
-          <div className="mt-4 flex flex-col gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-secondary">Provider</span>
-              <select
-                value={provider}
-                disabled={editing}
-                onChange={(e) => {
-                  setProvider(e.target.value as ProviderId);
-                  if (editing) return;
-                  setCredential("");
-                  setSavedExtra(undefined);
-                  setKeychainAccount("");
-                }}
-                className="h-8 rounded-lg border border-separator bg-surface px-2 text-[13px]"
-              >
-                {PROVIDER_ORDER.map((id) => (
-                  <option key={id} value={id}>
-                    {PROVIDERS[id].name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-medium text-secondary">Provider</span>
+                <div
+                  className={cn(
+                    "grid grid-cols-3 rounded-lg bg-control-subtle p-0.5",
+                    editing && "opacity-60",
+                  )}
+                >
+                  {PROVIDER_ORDER.map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={editing}
+                      onClick={() => {
+                        if (editing || id === provider) return;
+                        setProvider(id);
+                        setCredential("");
+                        setSavedExtra(undefined);
+                        setKeychainAccount("");
+                        if (authMethod === "local" && !KEYCHAIN_LOGINS[id]) setAuthMethod("signin");
+                      }}
+                      className={cn(
+                        "h-7 rounded-md text-[12px] font-medium transition-colors",
+                        provider === id ? "bg-surface text-ink shadow-sm" : "text-secondary hover:text-ink",
+                      )}
+                    >
+                      {PROVIDERS[id].name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-secondary">Label</span>
-              <Input
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                placeholder="Personal"
-                autoFocus={!editing}
-              />
-              <span className="text-[11px] text-quaternary">e.g. “Personal” or “Work”</span>
-            </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-medium text-secondary">Label</span>
+                <Input
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="Personal or Work"
+                  autoFocus={!editing}
+                />
+              </label>
 
-            <div className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-secondary">Login</span>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-medium text-secondary">Sign-in method</span>
+                <select
+                  value={authMethod}
+                  onChange={(e) => applyAuthMethod(e.target.value as AuthMethod)}
+                  className={SELECT_CLASS}
+                >
+                  <option value="signin">{signInLabel(provider)}</option>
+                  {keychainLogin ? (
+                    <option value="local">Use {meta.nativeLoginName} on this Mac</option>
+                  ) : null}
+                  <option value="paste">{meta.pasteMethodLabel}</option>
+                </select>
+              </label>
+            </div>
+
+            {authMethod === "signin" ? (
               <ProviderLoginButton
                 provider={provider}
                 credential={credential}
@@ -220,11 +277,54 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
                   if (result.extra) setSavedExtra(result.extra);
                   if (!label.trim() && result.suggestedLabel) setLabel(result.suggestedLabel);
                 }}
+                onClear={() => {
+                  setCredential("");
+                  setSavedExtra(undefined);
+                }}
               />
-            </div>
+            ) : null}
 
-            <label className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-secondary">{meta.credentialTitle}</span>
+            {authMethod === "local" && keychainLogin ? (
+              <div className="flex flex-col gap-1.5">
+                {showKeychainPicker ? (
+                  <>
+                    <span className="text-[11px] text-tertiary">
+                      {nativeOptions.length} local logins found. Pin one if Automatic picks the wrong account.
+                    </span>
+                    <select
+                      value={keychainAccount}
+                      onChange={(e) => setKeychainAccount(e.target.value)}
+                      className={SELECT_CLASS}
+                      aria-label={provider === "cursor" ? "Local login" : keychainLogin.noun}
+                    >
+                      <option value="">
+                        {provider === "cursor"
+                          ? "Automatic — Cursor app, else cursor-agent"
+                          : "Automatic — newest local login"}
+                      </option>
+                      {nativeOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                      {pinnedMissing ? (
+                        <option value={keychainAccount}>
+                          {keychainAccount === CURSOR_IDE_PIN
+                            ? "Cursor IDE (no longer signed in)"
+                            : `${keychainAccount} (no longer in Keychain)`}
+                        </option>
+                      ) : null}
+                    </select>
+                  </>
+                ) : (
+                  <p className="text-[12px] leading-[16px] text-secondary">
+                    Uses the {meta.nativeLoginName} login already on this Mac.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            {authMethod === "paste" ? (
               <Input
                 type="password"
                 value={credential}
@@ -234,51 +334,9 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
                 autoComplete="off"
                 spellCheck={false}
               />
-              <span className="text-[11px] text-quaternary">{meta.credentialHelp}</span>
-              {error ? <span className="text-[11px] text-support-red">{error}</span> : null}
-            </label>
-
-            {showKeychainPicker && keychainLogin ? (
-              <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-secondary">
-                  {provider === "cursor" ? "Local login" : keychainLogin.noun}
-                </span>
-                <select
-                  value={keychainAccount}
-                  onChange={(e) => setKeychainAccount(e.target.value)}
-                  className="h-8 rounded-lg border border-separator bg-surface px-2 text-[13px]"
-                >
-                  <option value="">
-                    {provider === "cursor"
-                      ? "Automatic — Cursor IDE if signed in, else cursor-agent"
-                      : "Automatic — newest login with a valid token"}
-                  </option>
-                  {nativeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                  {pinnedMissing ? (
-                    <option value={keychainAccount}>
-                      {keychainAccount === CURSOR_IDE_PIN
-                        ? "Cursor IDE (no longer signed in)"
-                        : `${keychainAccount} (no longer in Keychain)`}
-                    </option>
-                  ) : null}
-                </select>
-                <span className="text-[11px] text-quaternary">
-                  {provider === "cursor"
-                    ? nativeOptions.length <= 1
-                      ? "Uses the Cursor app login, or cursor-agent if the app is not signed in."
-                      : `${nativeOptions.length} local Cursor logins found. Pin one if Automatic picks the wrong account.`
-                    : `${
-                        keychainEntries.length === 1
-                          ? "One entry uses"
-                          : `${keychainEntries.length} entries share`
-                      } the “${keychainLogin.service}” Keychain service. Pin one if Automatic picks the wrong login.`}
-                </span>
-              </label>
             ) : null}
+
+            {error ? <span className="text-[11px] text-support-red">{error}</span> : null}
           </div>
 
           <div className="mt-5 flex justify-end gap-2">

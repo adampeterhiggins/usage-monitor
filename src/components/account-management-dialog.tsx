@@ -209,7 +209,7 @@ export function AccountManagementDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/25" />
+        <Dialog.Overlay className="fixed inset-0 z-40 rounded-[16px] bg-black/25" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
           <div className="flex shrink-0 items-start justify-between gap-3">
             <div>
@@ -272,7 +272,7 @@ export function AccountManagementDialog({
             }}
           >
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/20" />
+              <Dialog.Overlay className="fixed inset-0 z-[80] rounded-[16px] bg-black/20" />
               <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] w-[min(384px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
                 {removeCandidate ? (
                   <>

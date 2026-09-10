@@ -115,7 +115,7 @@ export function AccountActionsMenu({
       </Popover.Root>
 
       {confirmRemove ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/20 p-6">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-black/20 p-6">
           <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
             <div className="text-[15px] font-semibold">Remove {account.label}?</div>
             <p className="mt-1 text-[12px] text-secondary">

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   credentialLooksLikeSession,
   describeLoginError,
@@ -10,18 +11,26 @@ import {
 } from "../lib/provider-login";
 import { toast } from "../lib/toast";
 import { PROVIDERS, type ProviderId } from "../lib/usage-types";
-import { Button } from "./ui";
+import { Button, cn } from "./ui";
+
+const ACCENT_CLASS = {
+  orange: "bg-support-orange",
+  green: "bg-support-green",
+  blue: "bg-support-blue",
+} as const;
 
 export function ProviderLoginButton({
   provider,
   credential,
   disabled,
   onSignedIn,
+  onClear,
 }: {
   provider: ProviderId;
   credential: string;
   disabled?: boolean;
   onSignedIn: (result: { credential: string; extra?: string; suggestedLabel?: string }) => void;
+  onClear?: () => void;
 }) {
   const [session, setSession] = React.useState<ProviderLoginSession | null>(null);
   const [pasteCode, setPasteCode] = React.useState("");
@@ -43,6 +52,7 @@ export function ProviderLoginButton({
 
   const pending = session !== null;
   const signedIn = credentialLooksLikeSession(provider, credential);
+  const hasCredential = credential.trim().length > 0;
 
   async function handleSignIn() {
     if (pending || disabled) return;
@@ -52,7 +62,11 @@ export function ProviderLoginButton({
       setSession(next);
       const result = await next.done;
       onSignedIn(result);
-      toast.success(result.suggestedLabel ? `Signed in as ${result.suggestedLabel}` : `Signed in with ${PROVIDERS[provider].name}`);
+      toast.success(
+        result.suggestedLabel
+          ? `Signed in as ${result.suggestedLabel}`
+          : `Signed in with ${PROVIDERS[provider].name}`,
+      );
     } catch (error) {
       if (!isAbortError(error)) {
         toast.error(describeLoginError(error, "Sign-in failed."));
@@ -89,8 +103,8 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "device_code") {
     return (
-      <div className="rounded-lg bg-control-subtle px-2.5 py-2">
-        <div className="text-[11px] text-secondary">Enter this code in the browser that opened:</div>
+      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
+        <div className="text-[12px] text-secondary">Enter this code in the browser that opened:</div>
         <div className="mt-1 font-mono text-[15px] tracking-wide">{session.userCode}</div>
         <div className="mt-2 flex gap-2">
           <Button size="small" variant="glass" onClick={() => void handleCopyCode()}>
@@ -106,12 +120,12 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "paste_code") {
     return (
-      <div className="rounded-lg bg-control-subtle px-2.5 py-2">
-        <div className="text-[11px] text-secondary">{session.prompt}</div>
+      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
+        <div className="text-[12px] text-secondary">{session.prompt}</div>
         <input
           value={pasteCode}
           onChange={(event) => setPasteCode(event.target.value)}
-          placeholder="Paste the authorization code"
+          placeholder="Paste the full code (abc#xyz)"
           className="mt-2 h-8 w-full rounded-lg border border-separator bg-surface px-2 text-[12px]"
           autoComplete="off"
           spellCheck={false}
@@ -130,9 +144,14 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "browser") {
     return (
-      <div className="rounded-lg bg-control-subtle px-2.5 py-2">
-        <div className="text-[11px] text-secondary">{session.prompt}</div>
-        <div className="mt-2">
+      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
+        <div className="text-[12px] text-secondary">{session.prompt}</div>
+        <div className="mt-2 flex gap-2">
+          {session.verificationUri ? (
+            <Button size="small" variant="glass" onClick={() => void openUrl(session.verificationUri!)}>
+              Open browser again
+            </Button>
+          ) : null}
           <Button size="small" variant="glass" onClick={handleCancel}>
             Cancel
           </Button>
@@ -141,14 +160,34 @@ export function ProviderLoginButton({
     );
   }
 
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="text-[11px] text-tertiary">
-        {signedIn ? "This account has its own login session." : "Optional — creates a login just for this account."}
+  if (signedIn || hasCredential) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-xl bg-control-subtle px-3 py-2">
+        <div className="min-w-0 text-[12px]">
+          {signedIn ? `Signed in with ${PROVIDERS[provider].name}` : "Using a pasted credential"}
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          {onClear ? (
+            <Button size="small" variant="glass" disabled={disabled} onClick={onClear}>
+              Clear
+            </Button>
+          ) : null}
+          <Button size="small" variant="glass" disabled={disabled} onClick={() => void handleSignIn()}>
+            {signedIn ? "Sign in again" : signInLabel(provider)}
+          </Button>
+        </div>
       </div>
-      <Button size="small" variant={signedIn ? "glass" : "accent"} disabled={disabled} onClick={() => void handleSignIn()}>
-        {signedIn ? "Sign in again" : signInLabel(provider)}
-      </Button>
-    </div>
+    );
+  }
+
+  return (
+    <Button
+      variant="accent"
+      disabled={disabled}
+      onClick={() => void handleSignIn()}
+      className={cn("w-full", ACCENT_CLASS[PROVIDERS[provider].accent])}
+    >
+      {signInLabel(provider)}
+    </Button>
   );
 }

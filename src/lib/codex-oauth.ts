@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { fetchText } from "./http";
 import {
   decodeJwtPayload,
+  oauthErrorMessage,
   sleep,
   type ProviderLoginResult,
   type ProviderLoginSession,
@@ -122,7 +123,7 @@ async function exchangeCode(
     throw new Error(`Codex token exchange failed: ${res.body.replace(/\s+/g, " ").slice(0, 200)}`);
   }
   if (res.status >= 400 || !data.access_token) {
-    throw new Error(data.error_description?.trim() || data.error?.trim() || `Codex token exchange failed (HTTP ${res.status}).`);
+    throw new Error(oauthErrorMessage(data, `Codex token exchange failed (HTTP ${res.status}).`));
   }
   return {
     accessToken: data.access_token,

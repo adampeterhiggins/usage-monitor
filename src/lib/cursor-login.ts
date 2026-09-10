@@ -1,11 +1,20 @@
-import { invoke } from "@tauri-apps/api/core";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { fetchJson } from "./http";
-import { abortError, decodeJwtPayload, sleep, type ProviderLoginResult, type ProviderLoginSession } from "./login-session";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { fetchJson, fetchText } from "./http";
+import {
+  abortError,
+  decodeJwtPayload,
+  isAbortError,
+  oauthErrorMessage,
+  pkceChallenge,
+  randomBase64Url,
+  sleep,
+  type ProviderLoginResult,
+  type ProviderLoginSession,
+} from "./login-session";
 
-const LOGIN_WINDOW_LABEL = "login-cursor";
-const LOGIN_URL = "https://cursor.com/login";
-const COOKIE_NAME = "WorkosCursorSessionToken";
+const LOGIN_URL = "https://cursor.com/loginDeepControl";
+const POLL_URL = "https://api2.cursor.sh/auth/poll";
+const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 
 export function decodeCursorUserId(token: string): string | undefined {
   const payload = decodeJwtPayload(token);
@@ -53,91 +62,80 @@ async function fetchSuggestedLabel(sessionToken: string, signal: AbortSignal): P
   }
 }
 
-async function waitForCookie(signal: AbortSignal): Promise<string> {
+function accessTokenFromPoll(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const record = data as { accessToken?: unknown; access_token?: unknown };
+  const token = record.accessToken ?? record.access_token;
+  return typeof token === "string" && token.trim() ? token.trim() : undefined;
+}
+
+async function pollCursorAuth(uuid: string, verifier: string, signal: AbortSignal): Promise<string> {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let delay = 1000;
   while (!signal.aborted) {
+    if (Date.now() > deadline) throw new Error("Cursor sign-in timed out. Try again.");
+    const url = `${POLL_URL}?uuid=${encodeURIComponent(uuid)}&verifier=${encodeURIComponent(verifier)}`;
     try {
-      const value = await invoke<string | null>("read_window_cookie", {
-        label: LOGIN_WINDOW_LABEL,
-        name: COOKIE_NAME,
-        urls: ["https://cursor.com/", "https://www.cursor.com/", "https://authenticator.cursor.sh/"],
+      const res = await fetchText(url, {
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        signal,
       });
-      if (value?.trim()) return sessionTokenFromAccessToken(value);
-    } catch {
-      // Window may not be ready yet.
+      if (res.status === 404) {
+        await sleep(delay, signal);
+        delay = Math.min(Math.round(delay * 1.2), 10_000);
+        continue;
+      }
+      let data: unknown;
+      try {
+        data = JSON.parse(res.body) as unknown;
+      } catch {
+        throw new Error(`Cursor sign-in failed: ${res.body.replace(/\s+/g, " ").slice(0, 200)}`);
+      }
+      if (res.status >= 400) {
+        throw new Error(oauthErrorMessage(data, `Cursor sign-in failed (HTTP ${res.status}).`));
+      }
+      const accessToken = accessTokenFromPoll(data);
+      if (accessToken) return accessToken;
+      throw new Error("Cursor did not return an access token.");
+    } catch (error) {
+      if (isAbortError(error)) throw error;
+      if (error instanceof Error && /Cursor sign-in|did not return/.test(error.message)) throw error;
+      await sleep(delay, signal);
+      delay = Math.min(Math.round(delay * 1.2), 10_000);
     }
-    await sleep(800, signal);
   }
   throw abortError(signal);
 }
 
 export async function startCursorLogin(): Promise<ProviderLoginSession> {
   const controller = new AbortController();
-  try {
-    await invoke("prepare_open_appearance");
-  } catch {
-    // Older builds without the command still attempt to open the window.
-  }
+  const verifier = randomBase64Url(32);
+  const challenge = pkceChallenge(verifier);
+  const uuid = crypto.randomUUID();
+  const loginUrl = new URL(LOGIN_URL);
+  loginUrl.searchParams.set("challenge", challenge);
+  loginUrl.searchParams.set("uuid", uuid);
+  loginUrl.searchParams.set("mode", "login");
+  loginUrl.searchParams.set("redirectTarget", "cli");
 
-  const existing = await WebviewWindow.getByLabel(LOGIN_WINDOW_LABEL);
-  if (existing) {
-    try {
-      await existing.close();
-    } catch {
-      // Replace a leftover window from a previous attempt.
-    }
-  }
-
-  const window = new WebviewWindow(LOGIN_WINDOW_LABEL, {
-    url: LOGIN_URL,
-    title: "Sign in to Cursor",
-    width: 520,
-    height: 740,
-    minWidth: 420,
-    minHeight: 560,
-    decorations: true,
-    transparent: false,
-    center: true,
-    focus: true,
-    alwaysOnTop: true,
-    skipTaskbar: false,
-  });
-
-  const closeWindow = () => {
-    void window.close().catch(() => undefined);
-    void invoke("appearance_window_closed").catch(() => undefined);
-  };
-
-  void window.once("tauri://destroyed", () => {
-    void invoke("appearance_window_closed").catch(() => undefined);
-    if (!controller.signal.aborted) controller.abort();
-  });
-  void window.once("tauri://error", () => {
-    closeWindow();
-    if (!controller.signal.aborted) controller.abort();
+  void openUrl(loginUrl.toString()).catch(() => {
+    // The account dialog still shows a way to reopen the browser.
   });
 
   const done = (async (): Promise<ProviderLoginResult> => {
-    try {
-      const credential = await waitForCookie(controller.signal);
-      controller.abort();
-      closeWindow();
-      return {
-        credential,
-        suggestedLabel: await fetchSuggestedLabel(credential, new AbortController().signal),
-      };
-    } catch (error) {
-      closeWindow();
-      throw error;
-    }
+    const accessToken = await pollCursorAuth(uuid, verifier, controller.signal);
+    const credential = sessionTokenFromAccessToken(accessToken);
+    return {
+      credential,
+      suggestedLabel: await fetchSuggestedLabel(credential, new AbortController().signal),
+    };
   })();
 
   return {
     kind: "browser",
-    prompt: "Finish signing in in the Cursor window that opened.",
+    prompt: "Finish signing in in your browser. Passkeys work there.",
+    verificationUri: loginUrl.toString(),
     done,
-    cancel: () => {
-      controller.abort();
-      closeWindow();
-    },
+    cancel: () => controller.abort(),
   };
 }

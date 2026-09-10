@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { fetchJson, fetchText } from "./http";
 import {
   abortError,
+  oauthErrorMessage,
   pkceChallenge,
   randomBase64Url,
   type ProviderLoginResult,
@@ -62,25 +63,29 @@ export function serializeClaudeOauthCredentials(tokens: ClaudeOauthTokens): stri
 }
 
 export function parseClaudeCallback(input: string): { code: string; state?: string } {
-  const value = input.trim();
+  const value = input.trim().replace(/^['"]|['"]$/g, "");
   if (!value) throw new Error("Paste the code from the Claude authorization page.");
 
-  try {
+  if (/^https?:\/\//i.test(value)) {
     const url = new URL(value);
     const fromQuery = url.searchParams.get("code")?.trim();
-    if (fromQuery) return { code: fromQuery, state: url.searchParams.get("state")?.trim() || undefined };
+    const stateFromQuery = url.searchParams.get("state")?.trim() || undefined;
     const hash = url.hash.replace(/^#/, "");
+    let codeFromHash: string | undefined;
+    let stateFromHash: string | undefined;
     if (hash.includes("code=")) {
       const params = new URLSearchParams(hash);
-      const code = params.get("code")?.trim();
-      if (code) return { code, state: params.get("state")?.trim() || undefined };
-    }
-    if (hash.includes("#")) {
+      codeFromHash = params.get("code")?.trim() || undefined;
+      stateFromHash = params.get("state")?.trim() || undefined;
+    } else if (hash.includes("#")) {
       const [code, state] = hash.split("#", 2);
-      if (code.trim()) return { code: code.trim(), state: state?.trim() };
+      codeFromHash = code.trim() || undefined;
+      stateFromHash = state?.trim() || undefined;
+    } else if (hash) {
+      stateFromHash = hash.trim() || undefined;
     }
-  } catch {
-    // Not a URL — fall through to code#state / raw code.
+    const code = fromQuery || codeFromHash;
+    if (code) return { code, state: stateFromQuery || stateFromHash };
   }
 
   if (value.includes("#")) {
@@ -90,26 +95,33 @@ export function parseClaudeCallback(input: string): { code: string; state?: stri
   return { code: value };
 }
 
-async function postToken(body: Record<string, string>, signal: AbortSignal): Promise<TokenResponse> {
+async function postToken(
+  body: Record<string, string>,
+  signal: AbortSignal,
+  extraHeaders: Record<string, string> = {},
+): Promise<TokenResponse> {
   const res = await fetchText(TOKEN_URL, {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      "User-Agent": "claude-code/2.1.0",
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
     signal,
   });
-  let data: TokenResponse & { error?: string; error_description?: string };
+  let data: unknown;
   try {
-    data = JSON.parse(res.body) as TokenResponse & { error?: string; error_description?: string };
+    data = JSON.parse(res.body) as unknown;
   } catch {
     throw new Error(`Claude sign-in failed: ${res.body.replace(/\s+/g, " ").slice(0, 200)}`);
   }
-  if (res.status >= 400 || !data.access_token) {
-    throw new Error(data.error_description?.trim() || data.error?.trim() || `Claude token request failed (HTTP ${res.status}).`);
+  const tokens = data as TokenResponse;
+  if (res.status >= 400 || !tokens.access_token) {
+    throw new Error(oauthErrorMessage(data, `Claude token request failed (HTTP ${res.status}).`));
   }
-  return data;
+  return tokens;
 }
 
 function tokensFromResponse(data: TokenResponse, previous?: ClaudeOauthTokens): ClaudeOauthTokens {
@@ -135,6 +147,7 @@ export async function refreshClaudeOauth(
       client_id: CLAUDE_OAUTH_CLIENT_ID,
     },
     signal ?? new AbortController().signal,
+    { "anthropic-beta": "oauth-2025-04-20" },
   );
   return tokensFromResponse(data, tokens);
 }
@@ -175,6 +188,7 @@ export async function startClaudeLogin(): Promise<ProviderLoginSession> {
   url.searchParams.set("scope", SCOPE);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
+  // Anthropic's Claude Code authorize endpoint requires state === the PKCE verifier.
   url.searchParams.set("state", verifier);
 
   void openUrl(url.toString()).catch(() => {
@@ -194,6 +208,9 @@ export async function startClaudeLogin(): Promise<ProviderLoginSession> {
   const done = (async (): Promise<ProviderLoginResult> => {
     const pastedCode = await pasted;
     const parsed = parseClaudeCallback(pastedCode);
+    if (parsed.state && parsed.state !== verifier) {
+      throw new Error("That code doesn’t match this sign-in. Start again and paste the new code from the page.");
+    }
     const data = await postToken(
       {
         grant_type: "authorization_code",
@@ -216,7 +233,7 @@ export async function startClaudeLogin(): Promise<ProviderLoginSession> {
 
   return {
     kind: "paste_code",
-    prompt: "After authorizing in the browser, paste the code from the Claude page.",
+    prompt: "After authorizing in the browser, paste the full code from the Claude page (it looks like abc#xyz).",
     done,
     cancel: () => controller.abort(),
     submitCode: (code: string) => submit?.(code),

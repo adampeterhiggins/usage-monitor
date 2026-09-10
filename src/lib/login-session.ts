@@ -33,6 +33,33 @@ export function describeLoginError(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
+function stringMessage(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+/** Anthropic (and some other OAuth APIs) return `error` as an object, not a string. */
+export function oauthErrorMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== "object") return fallback;
+  const record = data as Record<string, unknown>;
+
+  const fromDescription = stringMessage(record.error_description);
+  if (fromDescription) return fromDescription;
+
+  const fromError = stringMessage(record.error);
+  if (fromError) return fromError;
+
+  if (record.error && typeof record.error === "object") {
+    const nested = record.error as Record<string, unknown>;
+    const fromNested =
+      stringMessage(nested.message) || stringMessage(nested.error_description) || stringMessage(nested.type);
+    if (fromNested) return fromNested;
+  }
+
+  return stringMessage(record.message) || fallback;
+}
+
 export function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
 }

@@ -386,7 +386,11 @@ function Shell() {
 
   const body = renderBody();
   const scrolledBody =
-    layout === "focus" && !isEmpty && !accountsQuery.isLoading ? (
+    isEmpty || allHidden ? (
+      <div ref={contentRef} className="h-full">
+        {body}
+      </div>
+    ) : layout === "focus" && !accountsQuery.isLoading ? (
       <div ref={contentRef} className="h-full">
         {body}
       </div>
