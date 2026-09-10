@@ -4,11 +4,10 @@ import {
   parseClaudeOauthCredentials,
   resolveClaudeOauthTokens,
   serializeClaudeOauthCredentials,
-  type ClaudeOauthTokens,
 } from "../claude-oauth";
 import { fetchJson } from "../http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
-import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
+import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface UsageBucket {
   utilization?: number | null;
@@ -194,31 +193,34 @@ async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapsh
   return fetchViaAccessToken(token, planLabel);
 }
 
-async function persistRefreshed(account: Account, tokens: ClaudeOauthTokens): Promise<void> {
-  try {
-    const { replaceAccountCredential } = await import("../accounts");
-    await replaceAccountCredential(account.id, serializeClaudeOauthCredentials(tokens));
-  } catch {
-    // Usage still works this session even if the store write fails.
-  }
-}
-
-async function fetchViaStoredOauth(account: Account, cred: string): Promise<UsageSnapshot> {
+async function fetchViaStoredOauth(
+  cred: string,
+  hooks?: UsageFetchHooks,
+): Promise<UsageSnapshot> {
   if (cred.startsWith("sk-ant-oat")) {
     return fetchViaAccessToken(cred, "Signed in");
   }
   const stored = parseClaudeOauthCredentials(cred, "Saved Claude login");
   const { tokens, refreshed } = await resolveClaudeOauthTokens(stored.claudeAiOauth);
-  if (refreshed) await persistRefreshed(account, tokens);
+  if (refreshed) {
+    try {
+      await hooks?.persistCredential?.(serializeClaudeOauthCredentials(tokens));
+    } catch {
+      // Usage still works this session even if the store write fails.
+    }
+  }
   return fetchViaAccessToken(tokens.accessToken, "Signed in");
 }
 
-export async function fetchClaudeUsage(account: Account): Promise<UsageSnapshot> {
+export async function fetchClaudeUsage(
+  account: Account,
+  hooks?: UsageFetchHooks,
+): Promise<UsageSnapshot> {
   const cred = account.credential.trim();
   if (cred === "") return fetchViaClaudeCode(account.extra?.trim() || undefined);
   if (isClaudeOauthJson(cred) || /^sk-ant-oat/.test(cred)) {
     try {
-      return await fetchViaStoredOauth(account, cred);
+      return await fetchViaStoredOauth(cred, hooks);
     } catch (e) {
       if (e instanceof Error && /HTTP 40[13]/.test(e.message)) {
         throw new Error("Claude session expired — sign in again on this account.");

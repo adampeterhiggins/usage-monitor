@@ -1,7 +1,7 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
 import type { Account, AccountPublic, ProviderId } from "./usage-types";
 import { toPublic } from "./usage-types";
-import { invalidate } from "./usage/cache";
+import { fetchUsage, invalidate } from "./usage/cache";
 
 const store = new LazyStore("accounts.json");
 const ACCOUNTS_KEY = "accounts";
@@ -141,8 +141,10 @@ export async function reorderAccounts(orderedIds: string[]): Promise<AccountPubl
 }
 
 export async function fetchAccountUsage(id: string, force = false) {
-  const { fetchUsage } = await import("./usage/cache");
   const account = await getAccount(id);
   if (!account) throw new Error("Account not found.");
-  return fetchUsage(account, { force });
+  return fetchUsage(account, {
+    force,
+    persistCredential: (credential) => replaceAccountCredential(id, credential),
+  });
 }

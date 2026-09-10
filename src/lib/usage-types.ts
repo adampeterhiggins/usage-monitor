@@ -56,6 +56,11 @@ export interface UsageResult {
   stale: boolean;
 }
 
+export interface UsageFetchHooks {
+  /** Persist a refreshed credential for the account being fetched. */
+  persistCredential?: (credential: string) => Promise<void> | void;
+}
+
 export interface ProviderMeta {
   id: ProviderId;
   name: string;
