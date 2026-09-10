@@ -156,6 +156,20 @@ body,
   background: transparent;
 }
 
+/* The tray panel is a rounded transparent window. Radix portals paint
+   position:fixed overlays onto the viewport, which would otherwise fill the
+   square webview and leave ghost corners outside .app-shell. */
+html:not([data-window="appearance"]),
+html:not([data-window="appearance"]) body,
+html:not([data-window="appearance"]) #root {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+html:not([data-window="appearance"]) body {
+  contain: paint;
+}
+
 html[data-window="appearance"],
 html[data-window="appearance"] body,
 html[data-window="appearance"] #root {

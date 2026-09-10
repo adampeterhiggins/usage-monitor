@@ -218,7 +218,7 @@ async function resolveNativeCookie(pin?: string): Promise<string> {
   }
 
   throw new Error(
-    "Cursor login not found. Sign in to the Cursor app or cursor-agent, or paste a WorkosCursorSessionToken cookie.",
+    "Cursor login not found. Sign in below, use the Cursor app or cursor-agent, or paste a WorkosCursorSessionToken cookie.",
   );
 }
 
@@ -238,7 +238,7 @@ export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot>
     if (e instanceof Error && /HTTP 401|not_authenticated/.test(e.message)) {
       throw new Error(
         pasted
-          ? "Cursor session expired — copy a fresh `WorkosCursorSessionToken` cookie from cursor.com and edit this account."
+          ? "Cursor session expired — sign in again on this account, or copy a fresh `WorkosCursorSessionToken` cookie."
           : "Cursor session expired — sign in to the Cursor app or cursor-agent, then retry.",
       );
     }

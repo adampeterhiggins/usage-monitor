@@ -102,6 +102,15 @@ export async function setAccountHidden(id: string, hidden: boolean): Promise<Acc
   return toPublic(accounts[idx]);
 }
 
+/** Persist a refreshed provider token without changing label/extra/hidden. */
+export async function replaceAccountCredential(id: string, credential: string): Promise<void> {
+  const accounts = await load();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx < 0) return;
+  accounts[idx] = { ...accounts[idx], credential };
+  await persist(accounts);
+}
+
 export async function removeAccount(id: string): Promise<void> {
   const accounts = await load();
   const next = accounts.filter((a) => a.id !== id);

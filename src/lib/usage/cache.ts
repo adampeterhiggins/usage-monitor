@@ -28,6 +28,7 @@ function rawFetch(account: Account): Promise<UsageSnapshot> {
 const snapshots = new Map<string, UsageSnapshot>();
 const backoffUntil = new Map<string, number>();
 const lastLapseProbe = new Map<string, number>();
+const inflight = new Map<string, Promise<UsageResult>>();
 
 function evictIfNeeded(): void {
   while (snapshots.size > MAX_ENTRIES) {
@@ -49,6 +50,19 @@ function isSnapshotStale(account: Account, snapshot: UsageSnapshot): boolean {
 }
 
 export async function fetchUsage(account: Account, opts: { force?: boolean } = {}): Promise<UsageResult> {
+  const existing = inflight.get(account.id);
+  if (existing) return existing;
+
+  const pending = fetchUsageOnce(account, opts);
+  inflight.set(account.id, pending);
+  try {
+    return await pending;
+  } finally {
+    if (inflight.get(account.id) === pending) inflight.delete(account.id);
+  }
+}
+
+async function fetchUsageOnce(account: Account, opts: { force?: boolean }): Promise<UsageResult> {
   const cached = snapshots.get(account.id);
   const age = cached ? Date.now() - cached.fetchedAt : Infinity;
 
@@ -92,4 +106,5 @@ export function invalidate(accountId: string): void {
   snapshots.delete(accountId);
   backoffUntil.delete(accountId);
   lastLapseProbe.delete(accountId);
+  inflight.delete(accountId);
 }

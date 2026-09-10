@@ -32,8 +32,13 @@
       "identifier": "http:default",
       "allow": [
         { "url": "https://claude.ai/*" },
+        { "url": "https://console.anthropic.com/*" },
         { "url": "https://api.anthropic.com/*" },
         { "url": "https://cursor.com/*" },
+        { "url": "https://www.cursor.com/*" },
+        { "url": "https://api2.cursor.sh/*" },
+        { "url": "https://authenticator.cursor.sh/*" },
+        { "url": "https://auth.openai.com/*" },
         { "url": "https://chatgpt.com/*" },
         { "url": "https://api.github.com/*" },
         { "url": "https://raw.githubusercontent.com/*" },

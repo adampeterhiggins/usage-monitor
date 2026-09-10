@@ -11,7 +11,14 @@ use tauri::{
 };
 
 #[cfg(target_os = "macos")]
-use objc2_app_kit::NSApplication;
+use objc2_app_kit::{
+    NSApplication, NSApplicationActivationOptions, NSImage, NSRunningApplication, NSWindowStyleMask,
+    NSWorkspace,
+};
+#[cfg(target_os = "macos")]
+use objc2_foundation::NSData;
+#[cfg(target_os = "macos")]
+use tauri_nspanel::objc2::AnyThread;
 #[cfg(target_os = "macos")]
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
@@ -22,7 +29,7 @@ tauri_panel! {
     panel!(MainPanel {
         config: {
             can_become_key_window: true,
-            can_become_main_window: false,
+            can_become_main_window: true,
             is_floating_panel: true,
             becomes_key_only_if_needed: false,
             hides_on_deactivate: false
@@ -32,6 +39,82 @@ tauri_panel! {
 
 const WINDOW_SHOWN_EVENT: &str = "window:shown";
 const OPEN_SETTINGS_EVENT: &str = "settings:openPopover";
+
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct ProcessSerialNumber {
+    high_long_of_psn: u32,
+    low_long_of_psn: u32,
+}
+
+#[cfg(target_os = "macos")]
+const K_CURRENT_PROCESS: u32 = 2;
+#[cfg(target_os = "macos")]
+const PROCESS_TRANSFORM_TO_FOREGROUND_APPLICATION: u32 = 1;
+#[cfg(target_os = "macos")]
+const PROCESS_TRANSFORM_TO_UI_ELEMENT_APPLICATION: u32 = 4;
+
+#[cfg(target_os = "macos")]
+#[link(name = "ApplicationServices", kind = "framework")]
+unsafe extern "C" {
+    fn GetCurrentProcess(psn: *mut ProcessSerialNumber) -> i32;
+    fn TransformProcessType(psn: *mut ProcessSerialNumber, transform_state: u32) -> i32;
+    fn SetFrontProcess(psn: *const ProcessSerialNumber) -> i32;
+}
+
+#[cfg(target_os = "macos")]
+fn current_psn() -> ProcessSerialNumber {
+    let mut psn = ProcessSerialNumber {
+        high_long_of_psn: 0,
+        low_long_of_psn: K_CURRENT_PROCESS,
+    };
+    unsafe {
+        GetCurrentProcess(&mut psn);
+    }
+    psn
+}
+
+/// Make an LSUIElement process a real foreground app (or back). `setActivationPolicy`
+/// alone adds us to Cmd-Tab at the end; TransformProcessType updates the switcher order.
+#[cfg(target_os = "macos")]
+fn transform_process(foreground: bool) {
+    let mut psn = current_psn();
+    let state = if foreground {
+        PROCESS_TRANSFORM_TO_FOREGROUND_APPLICATION
+    } else {
+        PROCESS_TRANSFORM_TO_UI_ELEMENT_APPLICATION
+    };
+    unsafe {
+        TransformProcessType(&mut psn, state);
+    }
+}
+
+/// Activate as a foreground app, yielding from `yielding` (the app the user
+/// was in before the panel became a regular window). The Dock only moves us
+/// to the front of Cmd-Tab when it sees the frontmost app *change* to us.
+#[cfg(target_os = "macos")]
+fn activate_as_foreground(yielding: Option<&NSRunningApplication>) {
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let ns_app = NSApplication::sharedApplication(mtm);
+    ns_app.unhide(None);
+
+    let current = NSRunningApplication::currentApplication();
+    if let Some(front) = yielding {
+        current.activateFromApplication_options(
+            front,
+            NSApplicationActivationOptions::ActivateAllWindows,
+        );
+    }
+    ns_app.activate();
+    current.activateWithOptions(NSApplicationActivationOptions::ActivateAllWindows);
+
+    let psn = current_psn();
+    unsafe {
+        SetFrontProcess(&psn);
+    }
+}
 
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 struct WindowFrame {
@@ -46,6 +129,9 @@ struct PanelState {
     /// When true, hide the tray panel without calling NSApp.hide — used while the
     /// Appearance window is open so it isn't swept away with the panel.
     keep_app_active: AtomicBool,
+    /// Add Account / Manage Accounts is open: behave like a normal app so login
+    /// can Cmd-Tab back, and do not dismiss the panel on blur.
+    account_modal_open: AtomicBool,
     last_tray_rect: Mutex<Option<Rect>>,
     saved_frame: Mutex<Option<WindowFrame>>,
 }
@@ -55,10 +141,15 @@ impl Default for PanelState {
         Self {
             ignore_next_blur: AtomicBool::new(false),
             keep_app_active: AtomicBool::new(false),
+            account_modal_open: AtomicBool::new(false),
             last_tray_rect: Mutex::new(None),
             saved_frame: Mutex::new(None),
         }
     }
+}
+
+fn panel_holds_focus(state: &PanelState) -> bool {
+    state.keep_app_active.load(Ordering::SeqCst) || state.account_modal_open.load(Ordering::SeqCst)
 }
 
 fn main_window(app: &AppHandle) -> Option<WebviewWindow> {
@@ -237,20 +328,23 @@ fn first_responder_view(
     None
 }
 
-fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
+fn make_panel_key(app: &AppHandle, as_foreground: bool) {
     let Some(win) = main_window(app) else { return };
-    let state = app.state::<PanelState>();
-
-    place_panel(app, &win, tray_bounds);
-
-    state.ignore_next_blur.store(true, Ordering::SeqCst);
+    app.state::<PanelState>()
+        .ignore_next_blur
+        .store(true, Ordering::SeqCst);
 
     #[cfg(target_os = "macos")]
     {
         if let Ok(panel) = app.get_webview_panel("main") {
-            let was_visible = panel.is_visible();
             panel.show();
-            panel.make_key_window();
+            if as_foreground {
+                panel.make_main_window();
+                panel.make_key_and_order_front();
+                panel.order_front_regardless();
+            } else {
+                panel.make_key_window();
+            }
 
             if let Ok(ns_view) = win.ns_view() {
                 let view = ns_view as *const tauri_nspanel::NSView;
@@ -264,41 +358,65 @@ fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
                     let _ = panel.make_first_responder(Some(responder.as_ref()));
                 }
             }
-
-            if !was_visible {
-                let _ = win.emit(WINDOW_SHOWN_EVENT, ());
-            }
+        }
+        // Tauri's `set_focus` calls `activateIgnoringOtherApps:`. In tray mode
+        // the non-activating panel must take key status *without* activating the
+        // app: if we are already frontmost when we later switch to Regular, the
+        // Dock appends us to the end of Cmd-Tab and no activate call moves us.
+        if as_foreground {
+            let _ = win.set_focus();
+            activate_as_foreground(None);
         }
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        let was_visible = win.is_visible().unwrap_or(false);
         let _ = win.show();
         let _ = win.set_focus();
-
-        if !was_visible {
-            let _ = win.emit(WINDOW_SHOWN_EVENT, ());
-        }
+        let _ = as_foreground;
     }
+}
 
+fn schedule_release_blur_shield(app: &AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(250));
+        std::thread::sleep(std::time::Duration::from_millis(400));
         let state = handle.state::<PanelState>();
-        if !state.keep_app_active.load(Ordering::SeqCst) {
+        if !panel_holds_focus(&state) {
             state.ignore_next_blur.store(false, Ordering::SeqCst);
         }
     });
 }
 
-fn appearance_window_visible(app: &AppHandle) -> bool {
-    app.get_webview_window("appearance")
-        .and_then(|win| win.is_visible().ok())
-        .unwrap_or(false)
+fn show_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
+    let Some(win) = main_window(app) else { return };
+    let was_visible = panel_visible(app);
+
+    place_panel(app, &win, tray_bounds);
+    make_panel_key(app, false);
+
+    if !was_visible {
+        let _ = win.emit(WINDOW_SHOWN_EVENT, ());
+    }
+
+    schedule_release_blur_shield(app);
+}
+
+fn aux_window_visible(app: &AppHandle) -> bool {
+    app.webview_windows().iter().any(|(label, win)| {
+        (label == "appearance" || label.starts_with("login-")) && win.is_visible().unwrap_or(false)
+    })
 }
 
 fn hide_panel(app: &AppHandle) {
+    if app
+        .state::<PanelState>()
+        .account_modal_open
+        .load(Ordering::SeqCst)
+    {
+        return;
+    }
+
     remember_frame(app);
 
     #[cfg(target_os = "macos")]
@@ -315,7 +433,7 @@ fn hide_panel(app: &AppHandle) {
             .state::<PanelState>()
             .keep_app_active
             .load(Ordering::SeqCst)
-            || appearance_window_visible(app);
+            || aux_window_visible(app);
         if !keep_active {
             resign_app_activation();
         }
@@ -331,6 +449,15 @@ fn hide_panel(app: &AppHandle) {
 
 fn toggle_panel(app: &AppHandle, tray_bounds: Option<Rect>) {
     if panel_visible(app) {
+        if app
+            .state::<PanelState>()
+            .account_modal_open
+            .load(Ordering::SeqCst)
+        {
+            // Don't dismiss an in-progress login; bring the panel forward.
+            show_panel(app, tray_bounds);
+            return;
+        }
         hide_panel(app);
     } else {
         show_panel(app, tray_bounds);
@@ -364,8 +491,8 @@ fn open_settings_popover(app: AppHandle) {
     open_settings(&app);
 }
 
-/// Call before creating/focusing the Appearance window so the tray panel's
-/// blur-to-hide path does not NSApp.hide() the new window away.
+/// Call before creating/focusing an auxiliary window (Appearance, provider
+/// login) so the tray panel's blur-to-hide path does not NSApp.hide() it away.
 #[tauri::command]
 fn prepare_open_appearance(app: AppHandle) {
     let state = app.state::<PanelState>();
@@ -375,9 +502,247 @@ fn prepare_open_appearance(app: AppHandle) {
 
 #[tauri::command]
 fn appearance_window_closed(app: AppHandle) {
+    let keep = aux_window_visible(&app);
     let state = app.state::<PanelState>();
-    state.keep_app_active.store(false, Ordering::SeqCst);
-    state.ignore_next_blur.store(false, Ordering::SeqCst);
+    state.keep_app_active.store(keep, Ordering::SeqCst);
+    if !keep && !state.account_modal_open.load(Ordering::SeqCst) {
+        state.ignore_next_blur.store(false, Ordering::SeqCst);
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn tray_collection_behavior() -> CollectionBehavior {
+    CollectionBehavior::new()
+        .can_join_all_spaces()
+        .full_screen_auxiliary()
+        .transient()
+        .stationary()
+        .ignores_cycle()
+}
+
+#[cfg(target_os = "macos")]
+fn interactive_collection_behavior() -> CollectionBehavior {
+    CollectionBehavior::new()
+        .can_join_all_spaces()
+        .participates_in_cycle()
+        .full_screen_auxiliary()
+}
+
+#[cfg(target_os = "macos")]
+fn apply_dock_icon() {
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    const PNG: &[u8] = include_bytes!("../icons/icon-1024.png");
+    let data = NSData::with_bytes(PNG);
+    let Some(source) = NSImage::initWithData(NSImage::alloc(), &data) else {
+        return;
+    };
+
+    // Bundled art is full-bleed. Dock / Cmd-Tab compare against Apple's 1024
+    // icon grid, where the squircle is 824pt — so an edge-to-edge image reads
+    // larger than Messages, Finder, etc.
+    let canvas_size = NSSize::new(1024.0, 1024.0);
+    let canvas = NSImage::initWithSize(NSImage::alloc(), canvas_size);
+    #[allow(deprecated)]
+    canvas.lockFocus();
+    let glyph = 824.0;
+    let inset = (1024.0 - glyph) / 2.0;
+    source.drawInRect(NSRect::new(
+        NSPoint::new(inset, inset),
+        NSSize::new(glyph, glyph),
+    ));
+    #[allow(deprecated)]
+    canvas.unlockFocus();
+
+    let ns_app = NSApplication::sharedApplication(mtm);
+    // Required when an LSUIElement process becomes Regular: macOS otherwise
+    // shows the generic executable tile in the Dock / Cmd-Tab.
+    unsafe { ns_app.setApplicationIconImage(Some(&canvas)) };
+}
+
+fn apply_account_modal_mode(app: &AppHandle, open: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(panel) = app.get_webview_panel("main") {
+            let mut mask = panel.as_panel().styleMask();
+            if open {
+                mask.remove(NSWindowStyleMask::NonactivatingPanel);
+                panel.set_style_mask(mask);
+                panel.set_collection_behavior(interactive_collection_behavior().into());
+            } else {
+                mask.insert(NSWindowStyleMask::NonactivatingPanel);
+                panel.set_style_mask(mask);
+                panel.set_floating_panel(true);
+                panel.set_level(PanelLevel::Floating.into());
+                panel.set_collection_behavior(tray_collection_behavior().into());
+            }
+        }
+
+        // The Dock inserts a newly Regular app at the end of Cmd-Tab and only
+        // moves it forward on a frontmost-app *transition*. So we must not be
+        // the active app when the policy flips. Tray mode never activates us
+        // (see `make_panel_key`); if something else did (e.g. the Appearance
+        // window), hand activation back first and re-activate on a later turn.
+        let mut yielding = None;
+        let mut was_active = false;
+        if open {
+            if let Some(mtm) = MainThreadMarker::new() {
+                let ns_app = NSApplication::sharedApplication(mtm);
+                was_active = ns_app.isActive();
+                if was_active {
+                    ns_app.deactivate();
+                }
+            }
+            let current_pid = std::process::id() as i32;
+            yielding = NSWorkspace::sharedWorkspace()
+                .frontmostApplication()
+                .filter(|front| front.processIdentifier() != current_pid);
+        }
+
+        if open {
+            transform_process(true);
+        }
+        let _ = app.set_activation_policy(if open {
+            tauri::ActivationPolicy::Regular
+        } else {
+            tauri::ActivationPolicy::Accessory
+        });
+        if !open {
+            transform_process(false);
+        }
+
+        if open {
+            apply_dock_icon();
+        }
+
+        if let Some(win) = main_window(app) {
+            // Stay on top through the policy switch so the panel does not slip
+            // behind other apps before we can make it key again.
+            let _ = win.set_always_on_top(true);
+            let _ = win.set_skip_taskbar(!open);
+        }
+
+        if open {
+            if let Ok(panel) = app.get_webview_panel("main") {
+                panel.set_floating_panel(false);
+                panel.set_level(PanelLevel::Normal.into());
+            }
+            if let Some(win) = main_window(app) {
+                let _ = win.set_always_on_top(false);
+            }
+            if was_active {
+                // Deactivate and activate in the same turn coalesce into no
+                // transition. Let the deferred activation below do it.
+                make_panel_key(app, false);
+            } else {
+                make_panel_key(app, true);
+                activate_as_foreground(yielding.as_deref());
+            }
+            // Activate again on a later run-loop turn: the policy change and the
+            // window-server side of TransformProcessType settle asynchronously.
+            let handle = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(80));
+                let on_main = handle.clone();
+                let _ = handle.run_on_main_thread(move || {
+                    if !on_main
+                        .state::<PanelState>()
+                        .account_modal_open
+                        .load(Ordering::SeqCst)
+                    {
+                        return;
+                    }
+                    if let Some(win) = main_window(&on_main) {
+                        let _ = win.set_focus();
+                    }
+                    activate_as_foreground(yielding.as_deref());
+                    if let Ok(panel) = on_main.get_webview_panel("main") {
+                        panel.make_main_window();
+                        panel.make_key_and_order_front();
+                    }
+                });
+            });
+        } else {
+            if let Some(win) = main_window(app) {
+                let _ = win.set_always_on_top(true);
+                let _ = win.set_skip_taskbar(true);
+            }
+            // Tray mode again: do not foreground-activate or the blur shield stays
+            // up and the floating panel looks pinned over other apps.
+            make_panel_key(app, false);
+            schedule_release_blur_shield(app);
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if let Some(win) = main_window(app) {
+            let _ = win.set_always_on_top(true);
+            let _ = win.set_skip_taskbar(!open);
+        }
+
+        if open {
+            if let Some(win) = main_window(app) {
+                let _ = win.set_always_on_top(false);
+            }
+            make_panel_key(app, true);
+        } else {
+            make_panel_key(app, false);
+            schedule_release_blur_shield(app);
+        }
+    }
+}
+
+/// While Add Account or Manage Accounts is open, become a normal app (Dock /
+/// Cmd-Tab) and do not hide the panel when the browser takes focus.
+#[tauri::command]
+fn set_account_modal_open(app: AppHandle, open: bool) {
+    let state = app.state::<PanelState>();
+    let was_open = state.account_modal_open.swap(open, Ordering::SeqCst);
+    if was_open == open {
+        return;
+    }
+    if open {
+        state.ignore_next_blur.store(true, Ordering::SeqCst);
+    } else if !state.keep_app_active.load(Ordering::SeqCst) {
+        state.ignore_next_blur.store(false, Ordering::SeqCst);
+    }
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        apply_account_modal_mode(&handle, open);
+    });
+}
+
+/// Read a named cookie from a webview (used by Cursor sign-in).
+#[tauri::command]
+async fn read_window_cookie(
+    app: AppHandle,
+    label: String,
+    name: String,
+    urls: Option<Vec<String>>,
+) -> Result<Option<String>, String> {
+    let win = app
+        .get_webview_window(&label)
+        .ok_or_else(|| "Login window not found.".to_string())?;
+    let mut cookies = Vec::new();
+    if let Some(urls) = urls {
+        for raw in urls {
+            let url = raw
+                .parse::<tauri::Url>()
+                .map_err(|e| format!("Invalid cookie URL {raw}: {e}"))?;
+            if let Ok(found) = win.cookies_for_url(url) {
+                cookies.extend(found);
+            }
+        }
+    }
+    if cookies.is_empty() {
+        cookies = win.cookies().map_err(|e| format!("Could not read cookies: {e}"))?;
+    }
+    Ok(cookies
+        .into_iter()
+        .find(|cookie| cookie.name() == name && !cookie.value().is_empty())
+        .map(|cookie| cookie.value().to_string()))
 }
 
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).
@@ -768,11 +1133,13 @@ pub fn run() {
             open_settings_popover,
             prepare_open_appearance,
             appearance_window_closed,
+            set_account_modal_open,
             read_home_file,
             read_keychain_password,
             list_keychain_accounts,
             cursor_ide_login_meta,
             read_cursor_ide_access_token,
+            read_window_cookie,
             http_request
         ])
         .setup(|app| {
@@ -797,13 +1164,7 @@ pub fn run() {
                     panel.set_style_mask(style.into());
                     panel.set_level(PanelLevel::Floating.into());
 
-                    let behavior = CollectionBehavior::new()
-                        .can_join_all_spaces()
-                        .full_screen_auxiliary()
-                        .transient()
-                        .stationary()
-                        .ignores_cycle();
-                    panel.set_collection_behavior(behavior.into());
+                    panel.set_collection_behavior(tray_collection_behavior().into());
                 }
 
                 #[cfg(target_os = "macos")]
@@ -821,7 +1182,9 @@ pub fn run() {
                 win.on_window_event(move |event| match event {
                     tauri::WindowEvent::Focused(false) => {
                         let state = handle.state::<PanelState>();
-                        if state.ignore_next_blur.load(Ordering::SeqCst) {
+                        if state.ignore_next_blur.load(Ordering::SeqCst)
+                            || state.account_modal_open.load(Ordering::SeqCst)
+                        {
                             return;
                         }
                         hide_panel(&handle);
@@ -836,7 +1199,7 @@ pub fn run() {
                         std::thread::spawn(move || {
                             std::thread::sleep(std::time::Duration::from_millis(400));
                             let state = clear.state::<PanelState>();
-                            if !state.keep_app_active.load(Ordering::SeqCst) {
+                            if !panel_holds_focus(&state) {
                                 state.ignore_next_blur.store(false, Ordering::SeqCst);
                             }
                         });
