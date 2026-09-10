@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { ThemeAppearance, ThemeDefinition } from "../../lib/theme/palette";
+import type { ThemeAppearance, ThemeDefinition } from "../../lib/theme/types";
 
 export type ThemeEditorSession = {
   editingThemeId: string | null;

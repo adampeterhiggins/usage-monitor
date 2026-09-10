@@ -1,20 +1,18 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RotateCcw, X } from "lucide-react";
+import { themeColorToHex } from "../../lib/theme/colors";
+import { createVividThemeColors, updateThemeColorFamily } from "../../lib/theme/derive";
+import { applyThemeColorPreview } from "../../lib/theme/preview";
+import { getThemeColorsForMode, getThemeDefinition } from "../../lib/theme/registry";
+import { parseThemeFile } from "../../lib/theme/theme-file";
 import {
-  applyThemeColorPreview,
-  createVividThemeColors,
-  getThemeColorsForMode,
-  getThemeDefinition,
-  parseThemeFile,
   THEME_FILE_VERSION,
-  themeColorToHex,
-  updateThemeColorFamily,
   type ThemeAppearance,
   type ThemeColorRole,
   type ThemeColors,
   type ThemeDefinition,
-} from "../../lib/theme/palette";
+} from "../../lib/theme/types";
 import { installAndPersistTheme } from "../../lib/settings";
 import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
 import { toast } from "../../lib/toast";

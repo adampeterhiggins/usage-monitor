@@ -6,15 +6,11 @@ import {
 } from "./appearance";
 import { applyAppearanceContrast } from "./contrast";
 import { applyAppearanceFontVariables } from "./fonts";
-import {
-  applyThemePalette,
-  getThemeDefinition,
-  parseThemeHalves,
-  resolveThemeAppearance,
-  type ThemeHalves,
-  type ThemePreference,
-  type ThemePreferenceMode,
-} from "./palette";
+import { parseThemeHalves, type ThemeHalves } from "./halves";
+import { applyThemePalette } from "./preview";
+import { getThemeDefinition } from "./registry";
+import { resolveThemeAppearance } from "./resolve";
+import type { ThemePreference, ThemePreferenceMode } from "./types";
 
 export type ThemeBootState = {
   theme: ThemePreference;
