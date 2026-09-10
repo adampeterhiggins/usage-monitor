@@ -68,7 +68,6 @@ import {
   getThemePreference,
   installAndPersistTheme,
   loadCustomThemesIntoMemory,
-  refreshAppliedAppearanceAndBroadcast,
   removeAndPersistTheme,
   replaceAndPersistThemeCollection,
   saveAppearancePreset,
@@ -77,6 +76,7 @@ import {
   setThemeHalves,
   setThemePreference,
 } from "../../lib/settings";
+import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
 import { toast } from "../../lib/toast";
 import { Button, cn } from "../ui";
 import { AppearancePreview } from "./appearance-preview";

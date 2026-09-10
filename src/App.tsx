@@ -24,9 +24,9 @@ import {
   getRefreshShortcut,
   getToggleShortcut,
   REFRESH_SHORTCUT_QUERY_KEY,
-  refreshAppliedAppearance,
   setLayout as persistLayout,
 } from "./lib/settings";
+import { refreshAppliedAppearance } from "./lib/theme/controller";
 import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
 import { AppearancePanel } from "./components/appearance/appearance-dialog";
 import { APPEARANCE_CHANGED_EVENT } from "./lib/appearance-window";
