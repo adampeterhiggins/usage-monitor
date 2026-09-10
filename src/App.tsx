@@ -1,10 +1,9 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
-import { AccountCard, type AccountFetchState } from "./components/account-card";
+import { AccountCard } from "./components/account-card";
 import { AccountDialog } from "./components/account-dialog";
 import { AccountManagementDialog } from "./components/account-management-dialog";
 import { FitCorner } from "./components/fit-corner";
@@ -16,23 +15,23 @@ import { StripView } from "./components/strip-view";
 import { ToastHost } from "./components/toast-host";
 import { Tooltip } from "./components/tooltip";
 import { Button, EmptyState, Text } from "./components/ui";
-import { fetchAccountUsage, listAccounts } from "./lib/accounts";
-import { initToggleShortcut } from "./lib/platform/global-shortcut";
-import {
-  getGithubToken,
-  getLayout,
-  getRefreshShortcut,
-  getToggleShortcut,
-  REFRESH_SHORTCUT_QUERY_KEY,
-  setLayout as persistLayout,
-} from "./lib/settings";
-import { refreshAppliedAppearance } from "./lib/theme/controller";
 import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
 import { AppearancePanel } from "./components/appearance/appearance-dialog";
-import { APPEARANCE_CHANGED_EVENT } from "./lib/platform/appearance-window";
-import { provideUpdateToken, useUpdates } from "./lib/updates/store";
-import { acceleratorFromKeyDown, acceleratorGlyphs, DEFAULT_REFRESH_SHORTCUT } from "./lib/platform/shortcut";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type Layout } from "./lib/usage/types";
+import { useAppearanceRefresh } from "./hooks/appearance";
+import {
+  useIntervalTick,
+  useLayout,
+  useModalOpenBridge,
+  usePanelKeys,
+  useRefreshShortcut,
+  useToggleShortcut,
+  useWindowShownRefresh,
+} from "./hooks/panel";
+import { useGithubToken, useUpdaterPoller } from "./hooks/updater";
+import { useUsageFetch } from "./hooks/usage-fetch";
+import { listAccounts } from "./lib/accounts";
+import { acceleratorGlyphs } from "./lib/platform/shortcut";
+import { PROVIDER_ORDER, PROVIDERS, type AccountPublic } from "./lib/usage/types";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -58,15 +57,10 @@ export default function App() {
 }
 
 function AppearanceWindowApp() {
+  useAppearanceRefresh({ listenForExternalChanges: false });
+
   React.useEffect(() => {
-    void refreshAppliedAppearance();
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      void refreshAppliedAppearance();
-    };
-    media.addEventListener("change", onChange);
     return () => {
-      media.removeEventListener("change", onChange);
       void invoke("appearance_window_closed");
     };
   }, []);
@@ -76,7 +70,6 @@ function AppearanceWindowApp() {
 
 function Shell() {
   const client = useQueryClient();
-  const [layout, setLayout] = React.useState<Layout>("wall");
   const [focusSelectedId, setFocusSelectedId] = React.useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [manageOpen, setManageOpen] = React.useState(false);
@@ -84,105 +77,35 @@ function Shell() {
   const [editing, setEditing] = React.useState<AccountPublic | null>(null);
   const blockingOverlay = dialogOpen || manageOpen || settingsOpen;
   const accountModalOpen = dialogOpen || manageOpen;
-  const [fetchStates, setFetchStates] = React.useState<Record<string, AccountFetchState>>({});
-  const [refreshingAll, setRefreshingAll] = React.useState(false);
-  const [githubToken, setGithubTokenState] = React.useState<string | null>(null);
-  const [, setTick] = React.useState(0);
   const headerRef = React.useRef<HTMLElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   const accountsQuery = useQuery({ queryKey: ACCOUNTS_KEY, queryFn: listAccounts });
   const accounts = accountsQuery.data ?? [];
-  const refreshShortcutQuery = useQuery({ queryKey: REFRESH_SHORTCUT_QUERY_KEY, queryFn: getRefreshShortcut });
-  const refreshShortcut = refreshShortcutQuery.data ?? DEFAULT_REFRESH_SHORTCUT;
-  const startPoller = useUpdates((s) => s.startPoller);
-
-  React.useEffect(() => {
-    void (async () => {
-      await refreshAppliedAppearance();
-      setLayout(await getLayout());
-      const token = await getGithubToken();
-      setGithubTokenState(token);
-      const saved = await getToggleShortcut();
-      await initToggleShortcut(saved);
-    })();
-  }, []);
-
-  React.useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      void refreshAppliedAppearance();
-    };
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  React.useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen(APPEARANCE_CHANGED_EVENT, () => {
-      void refreshAppliedAppearance();
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    return () => unlisten?.();
-  }, []);
-
-  React.useEffect(() => {
-    provideUpdateToken(() => githubToken);
-  }, [githubToken]);
-
-  React.useEffect(() => {
-    // Do not send `open: false` from this effect's cleanup — React Strict Mode
-    // remounts immediately and that race left the panel hidden / accessory
-    // while the modal was still open.
-    void invoke("set_account_modal_open", { open: accountModalOpen }).catch(() => {
-      // Older native builds without the command keep tray hide-on-blur.
-    });
-  }, [accountModalOpen]);
-
-  React.useEffect(() => {
-    return () => {
-      void invoke("set_account_modal_open", { open: false }).catch(() => {});
-    };
-  }, []);
-
-  React.useEffect(() => startPoller(), [startPoller]);
-
-  React.useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const loadOne = React.useCallback(async (account: AccountPublic, force: boolean) => {
-    setFetchStates((prev) => {
-      const current = prev[account.id];
-      const previous =
-        current?.status === "ok"
-          ? current.result
-          : current?.status === "error" || current?.status === "loading"
-            ? current.previous
-            : undefined;
-      return { ...prev, [account.id]: { status: "loading", previous } };
-    });
-    try {
-      const result = await fetchAccountUsage(account.id, force);
-      setFetchStates((prev) => ({ ...prev, [account.id]: { status: "ok", result } }));
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setFetchStates((prev) => {
-        const current = prev[account.id];
-        const previous =
-          current?.status === "loading" || current?.status === "error"
-            ? current.previous
-            : current?.status === "ok"
-              ? current.result
-              : undefined;
-        return { ...prev, [account.id]: { status: "error", message, previous } };
-      });
-    }
-  }, []);
-
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
+
+  const [layout, changeLayout] = useLayout();
+  const [githubToken, setGithubToken] = useGithubToken();
+  const refreshShortcut = useRefreshShortcut();
+  useAppearanceRefresh();
+  useToggleShortcut();
+  useUpdaterPoller();
+  useModalOpenBridge(accountModalOpen);
+  useIntervalTick(30_000);
+
+  const { fetchStates, loadOne, refreshAll, refreshingAll, resetFetchStates } =
+    useUsageFetch(visibleAccounts);
+
+  usePanelKeys({
+    refreshShortcut,
+    blockingOverlay,
+    canRefresh: visibleAccounts.length > 0 && !refreshingAll,
+    onRefreshAll: () => void refreshAll(true),
+  });
+  useWindowShownRefresh({
+    skip: accountModalOpen || visibleAccounts.length === 0 || refreshingAll,
+    onShown: () => void refreshAll(false),
+  });
 
   React.useEffect(() => {
     if (focusSelectedId && !visibleAccounts.some((a) => a.id === focusSelectedId)) {
@@ -190,60 +113,9 @@ function Shell() {
     }
   }, [visibleAccounts, focusSelectedId]);
 
-  React.useEffect(() => {
-    for (const account of visibleAccounts) {
-      if (!fetchStates[account.id]) void loadOne(account, false);
-    }
-  }, [visibleAccounts, fetchStates, loadOne]);
-
-  const refreshAll = React.useCallback(
-    async (force: boolean) => {
-      if (visibleAccounts.length === 0) return;
-      setRefreshingAll(true);
-      try {
-        await Promise.all(visibleAccounts.map((a) => loadOne(a, force)));
-      } finally {
-        setRefreshingAll(false);
-      }
-    },
-    [visibleAccounts, loadOne],
-  );
-
-  React.useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        if (blockingOverlay) return;
-        void invoke("hide_window");
-        return;
-      }
-      const accelerator = acceleratorFromKeyDown(e, { allowBareKey: true });
-      if (!accelerator || accelerator !== refreshShortcut) return;
-      if (blockingOverlay || visibleAccounts.length === 0 || refreshingAll) return;
-      e.preventDefault();
-      void refreshAll(true);
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [refreshAll, blockingOverlay, visibleAccounts.length, refreshingAll, refreshShortcut]);
-
-  React.useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen("window:shown", () => {
-      // Make sure the document owns keyboard focus so Escape works without a click first.
-      window.focus();
-      if (dialogOpen || manageOpen || visibleAccounts.length === 0 || refreshingAll) return;
-      // Respect TTL / backoff. A forced refresh here re-hit Claude's OAuth
-      // token endpoint on every tray open and burned the sign-in rate limit.
-      void refreshAll(false);
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    return () => unlisten?.();
-  }, [refreshAll, dialogOpen, manageOpen, visibleAccounts.length, refreshingAll]);
-
   function handleSaved() {
     void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
-    setFetchStates({});
+    resetFetchStates();
   }
 
   function handleRemoved(accountId: string) {
@@ -260,11 +132,6 @@ function Shell() {
     setEditing(account);
     setManageOpen(true);
     setDialogOpen(true);
-  }
-
-  function changeLayout(next: Layout) {
-    setLayout(next);
-    void persistLayout(next);
   }
 
   const grouped = React.useMemo(() => {
@@ -458,7 +325,7 @@ function Shell() {
             dialogOpen={blockingOverlay}
             onOpenChange={setSettingsOpen}
             githubToken={githubToken}
-            onGithubTokenChange={setGithubTokenState}
+            onGithubTokenChange={setGithubToken}
           />
         </div>
       </header>
