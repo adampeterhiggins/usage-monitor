@@ -1,5 +1,6 @@
 export * from "./appearance";
 export * from "./apply";
+export * from "./controller";
 export * from "./contrast";
 export * from "./fonts";
 export * from "./openVsx";

@@ -15,7 +15,8 @@ import {
   type ThemeColors,
   type ThemeDefinition,
 } from "../../lib/theme/palette";
-import { installAndPersistTheme, refreshAppliedAppearanceAndBroadcast } from "../../lib/settings";
+import { installAndPersistTheme } from "../../lib/settings";
+import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
 import { toast } from "../../lib/toast";
 import { Button, cn, Input } from "../ui";
 import { UsageMonitorPreview } from "./appearance-preview";
