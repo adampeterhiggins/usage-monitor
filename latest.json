@@ -1,15 +1,15 @@
 {
-  "version": "0.1.14",
-  "notes": "## What's Changed\n* Fix remove-account confirm clicks falling through by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/15\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.13...v0.1.14",
-  "pub_date": "2026-09-10T08:41:42Z",
+  "version": "0.1.15",
+  "notes": "## What's Changed\n* Add optional login sessions for Claude, Codex, and Cursor by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/12\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.14...v0.1.15",
+  "pub_date": "2026-09-10T14:08:42Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtVWWs0ZEE0V0o5YkNYRTdWVlh0MzhLSkhvVVNOQ2ZzdW1aVEpiQ25VV1hNWGhmZ3JzRHgvY0RiMXZSUG51WWFkMXZUNmxnMURjS0RZOElWRGczRHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDI5NjYxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CllRT1pUM1pEVjNNL2xLeHNmMnFsaFdhU3NqM0FkQU0wdnlZVTVzNmZvQkVVS3lmdGJtNGZrNEFHRnVyTnd4MWRBc3B4WGpEcnh4cldFa1hFRjRFQ0FRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/554616130"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtiSldRRHNNeFlXSFR2OHp4UERoM2Y0QlVtcWJZem5uMGp3aXFOUmV0ZSsxRXZFVUxLcEpUelRtMkRPSzhnN3RDS1lncUxaLy84OFU3TDFxUmpSR2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDQ5MjYzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClBlUTFLTXhpanB5VjRsWGtHcGFGOWdMWlgrY2szeHdYcXFlMGV6Y3B3RWVwT0pieSt5K0JEVTJTRUUwMy9YSE9ETWtzcVpuMytmclFaOXJCVkQ0T0RnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555142663"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtVWWs0ZEE0V0o5YkNYRTdWVlh0MzhLSkhvVVNOQ2ZzdW1aVEpiQ25VV1hNWGhmZ3JzRHgvY0RiMXZSUG51WWFkMXZUNmxnMURjS0RZOElWRGczRHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDI5NjYxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CllRT1pUM1pEVjNNL2xLeHNmMnFsaFdhU3NqM0FkQU0wdnlZVTVzNmZvQkVVS3lmdGJtNGZrNEFHRnVyTnd4MWRBc3B4WGpEcnh4cldFa1hFRjRFQ0FRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/554616130"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtiSldRRHNNeFlXSFR2OHp4UERoM2Y0QlVtcWJZem5uMGp3aXFOUmV0ZSsxRXZFVUxLcEpUelRtMkRPSzhnN3RDS1lncUxaLy84OFU3TDFxUmpSR2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MDQ5MjYzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClBlUTFLTXhpanB5VjRsWGtHcGFGOWdMWlgrY2szeHdYcXFlMGV6Y3B3RWVwT0pieSt5K0JEVTJTRUUwMy9YSE9ETWtzcVpuMytmclFaOXJCVkQ0T0RnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/555142663"
     }
   }
 }
