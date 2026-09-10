@@ -1,5 +1,5 @@
-import { DEFAULT_REFRESH_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "../shortcut";
-import type { Layout } from "../usage-types";
+import { DEFAULT_REFRESH_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "../platform/shortcut";
+import type { Layout } from "../usage/types";
 import { settingsStore } from "./store";
 
 export const REFRESH_SHORTCUT_QUERY_KEY = ["settings", "refreshShortcut"] as const;

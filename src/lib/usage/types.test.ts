@@ -8,7 +8,7 @@ import {
   toPublic,
   worstPercent,
   type Account,
-} from "./usage-types";
+} from "./types";
 
 afterEach(() => {
   vi.useRealTimers();

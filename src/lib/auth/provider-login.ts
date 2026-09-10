@@ -3,7 +3,7 @@ import { startCodexLogin } from "./codex-oauth";
 import { startCursorLogin } from "./cursor-login";
 import { isClaudeOauthJson } from "./claude-oauth";
 import type { ProviderLoginSession } from "./login-session";
-import type { ProviderId } from "./usage-types";
+import type { ProviderId } from "../usage/types";
 
 export type { ProviderLoginResult, ProviderLoginSession } from "./login-session";
 export { describeLoginError, isAbortError } from "./login-session";

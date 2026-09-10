@@ -7,7 +7,7 @@ import {
   worstPercent,
   type AccountPublic,
   type ProviderId,
-} from "../lib/usage-types";
+} from "../lib/usage/types";
 import { AccountActionsMenu } from "./account-actions-menu";
 import type { AccountFetchState } from "./account-card";
 import { UsageProgress } from "./usage-progress";

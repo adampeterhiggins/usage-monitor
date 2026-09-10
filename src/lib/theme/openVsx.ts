@@ -2,7 +2,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import JSZip from "jszip";
 import { parse, type ParseError } from "jsonc-parser";
 
-import { fetchBytes, fetchText, header } from "../http";
+import { fetchBytes, fetchText, header } from "../platform/http";
 import type { ThemeDefinition } from "./types";
 import {
   isVsCodeThemeFile,

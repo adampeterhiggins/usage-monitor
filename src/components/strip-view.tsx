@@ -6,7 +6,7 @@ import {
   shortLabel,
   type AccountPublic,
   type ProviderId,
-} from "../lib/usage-types";
+} from "../lib/usage/types";
 import { AccountActionsMenu } from "./account-actions-menu";
 import type { AccountFetchState } from "./account-card";
 import { Badge, Text } from "./ui";

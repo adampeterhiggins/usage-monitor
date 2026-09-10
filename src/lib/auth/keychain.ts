@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ProviderId } from "./usage-types";
+import type { ProviderId } from "../usage/types";
 
 /** Keychain service name Claude Code stores its OAuth login under. */
 export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";

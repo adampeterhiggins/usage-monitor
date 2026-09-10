@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../codex-oauth";
-import { fetchJson } from "../http";
-import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
-import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "../usage-types";
+import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../auth/codex-oauth";
+import { fetchJson } from "../platform/http";
+import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
+import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "./types";
 
 interface RateLimitWindow {
   used_percent?: number | null;

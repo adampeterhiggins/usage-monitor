@@ -1,5 +1,5 @@
 import * as React from "react";
-import { subscribeToasts, type Toast } from "../lib/toast";
+import { subscribeToasts, type Toast } from "../lib/platform/toast";
 
 export function ToastHost() {
   const [toasts, setToasts] = React.useState<Toast[]>([]);

@@ -1,4 +1,4 @@
-import { formatPercent, formatReset, severityFillClass } from "../lib/usage-types";
+import { formatPercent, formatReset, severityFillClass } from "../lib/usage/types";
 import { cn, Text } from "./ui";
 
 interface UsageProgressProps {

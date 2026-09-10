@@ -2,9 +2,9 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CircleHelp } from "lucide-react";
-import { mergeDeploymentInfo } from "../lib/deployment";
-import { toast } from "../lib/toast";
-import { currentVersion } from "../lib/updates";
+import { mergeDeploymentInfo } from "../lib/platform/deployment";
+import { toast } from "../lib/platform/toast";
+import { currentVersion } from "../lib/updates/api";
 import { Tooltip } from "./tooltip";
 import { Button } from "./ui";
 

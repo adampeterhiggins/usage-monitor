@@ -74,7 +74,7 @@ import {
   setThemePreference,
 } from "../../lib/settings";
 import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
-import { toast } from "../../lib/toast";
+import { toast } from "../../lib/platform/toast";
 import { Button, cn } from "../ui";
 import { AppearancePreview } from "./appearance-preview";
 import { FontFamilySelect } from "./font-family-select";
