@@ -89,9 +89,9 @@ fn transform_process(foreground: bool) {
     }
 }
 
-/// Steal frontmost status from `yielding` (the app the user was in *before*
-/// we transformed out of LSUIElement). Querying frontmost after the transform
-/// often returns us, and activating from ourselves leaves Cmd-Tab unchanged.
+/// Activate as a foreground app, yielding from `yielding` (the app the user
+/// was in before the panel became a regular window). The Dock only moves us
+/// to the front of Cmd-Tab when it sees the frontmost app *change* to us.
 #[cfg(target_os = "macos")]
 fn activate_as_foreground(yielding: Option<&NSRunningApplication>) {
     let Some(mtm) = MainThreadMarker::new() else {
@@ -359,8 +359,12 @@ fn make_panel_key(app: &AppHandle, as_foreground: bool) {
                 }
             }
         }
-        let _ = win.set_focus();
+        // Tauri's `set_focus` calls `activateIgnoringOtherApps:`. In tray mode
+        // the non-activating panel must take key status *without* activating the
+        // app: if we are already frontmost when we later switch to Regular, the
+        // Dock appends us to the end of Cmd-Tab and no activate call moves us.
         if as_foreground {
+            let _ = win.set_focus();
             activate_as_foreground(None);
         }
     }
@@ -575,13 +579,26 @@ fn apply_account_modal_mode(app: &AppHandle, open: bool) {
             }
         }
 
-        // Capture before TransformProcessType — afterwards NSWorkspace may
-        // already report us as frontmost even though Cmd-Tab still has us last.
-        let yielding = if open {
-            NSWorkspace::sharedWorkspace().frontmostApplication()
-        } else {
-            None
-        };
+        // The Dock inserts a newly Regular app at the end of Cmd-Tab and only
+        // moves it forward on a frontmost-app *transition*. So we must not be
+        // the active app when the policy flips. Tray mode never activates us
+        // (see `make_panel_key`); if something else did (e.g. the Appearance
+        // window), hand activation back first and re-activate on a later turn.
+        let mut yielding = None;
+        let mut was_active = false;
+        if open {
+            if let Some(mtm) = MainThreadMarker::new() {
+                let ns_app = NSApplication::sharedApplication(mtm);
+                was_active = ns_app.isActive();
+                if was_active {
+                    ns_app.deactivate();
+                }
+            }
+            let current_pid = std::process::id() as i32;
+            yielding = NSWorkspace::sharedWorkspace()
+                .frontmostApplication()
+                .filter(|front| front.processIdentifier() != current_pid);
+        }
 
         if open {
             transform_process(true);
@@ -614,11 +631,16 @@ fn apply_account_modal_mode(app: &AppHandle, open: bool) {
             if let Some(win) = main_window(app) {
                 let _ = win.set_always_on_top(false);
             }
-            make_panel_key(app, true);
-            activate_as_foreground(yielding.as_deref());
-            // TransformProcessType is async with the window server. A second
-            // activation on the next turn is what actually moves us to the front
-            // of Cmd-Tab instead of appending at the end.
+            if was_active {
+                // Deactivate and activate in the same turn coalesce into no
+                // transition. Let the deferred activation below do it.
+                make_panel_key(app, false);
+            } else {
+                make_panel_key(app, true);
+                activate_as_foreground(yielding.as_deref());
+            }
+            // Activate again on a later run-loop turn: the policy change and the
+            // window-server side of TransformProcessType settle asynchronously.
             let handle = app.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(80));
@@ -630,6 +652,9 @@ fn apply_account_modal_mode(app: &AppHandle, open: bool) {
                         .load(Ordering::SeqCst)
                     {
                         return;
+                    }
+                    if let Some(win) = main_window(&on_main) {
+                        let _ = win.set_focus();
                     }
                     activate_as_foreground(yielding.as_deref());
                     if let Ok(panel) = on_main.get_webview_panel("main") {
