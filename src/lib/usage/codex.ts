@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../codex-oauth";
 import { fetchJson } from "../http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../keychain";
-import type { Account, UsageSnapshot, UsageWindow } from "../usage-types";
+import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "../usage-types";
 
 interface RateLimitWindow {
   used_percent?: number | null;
@@ -128,7 +128,10 @@ async function fetchWham(creds: CodexCreds): Promise<WhamUsage> {
   return fetchJson<WhamUsage>("https://chatgpt.com/backend-api/wham/usage", { headers });
 }
 
-async function refreshStoredCodex(account: Account, cred: string): Promise<CodexCreds | null> {
+async function refreshStoredCodex(
+  cred: string,
+  hooks?: UsageFetchHooks,
+): Promise<CodexCreds | null> {
   if (!cred.startsWith("{")) return null;
   let tokens;
   try {
@@ -139,15 +142,17 @@ async function refreshStoredCodex(account: Account, cred: string): Promise<Codex
   if (!tokens.refreshToken) return null;
   const next = await refreshCodexOauth(tokens);
   try {
-    const { replaceAccountCredential } = await import("../accounts");
-    await replaceAccountCredential(account.id, serializeCodexAuthJson(next));
+    await hooks?.persistCredential?.(serializeCodexAuthJson(next));
   } catch {
     // Usage still works this session even if the store write fails.
   }
   return { accessToken: next.accessToken, accountId: next.accountId };
 }
 
-export async function fetchCodexUsage(account: Account): Promise<UsageSnapshot> {
+export async function fetchCodexUsage(
+  account: Account,
+  hooks?: UsageFetchHooks,
+): Promise<UsageSnapshot> {
   const creds = await resolveCreds(account);
 
   let data: WhamUsage;
@@ -155,7 +160,7 @@ export async function fetchCodexUsage(account: Account): Promise<UsageSnapshot> 
     data = await fetchWham(creds);
   } catch (e) {
     if (e instanceof Error && /HTTP 401/.test(e.message)) {
-      const refreshed = await refreshStoredCodex(account, account.credential.trim()).catch(() => null);
+      const refreshed = await refreshStoredCodex(account.credential.trim(), hooks).catch(() => null);
       if (refreshed) {
         data = await fetchWham(refreshed);
       } else {
