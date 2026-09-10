@@ -1,11 +1,8 @@
 import type { CSSProperties } from "react";
 import { RefreshCw, Settings } from "lucide-react";
-import {
-  getThemeColorVariable,
-  isThemeColor,
-  THEME_COLOR_ROLES,
-  type ThemeColors,
-} from "../../lib/theme/palette";
+import { isThemeColor } from "../../lib/theme/colors";
+import { getThemeColorVariable } from "../../lib/theme/preview";
+import { THEME_COLOR_ROLES, type ThemeColors } from "../../lib/theme/types";
 import { cn } from "../ui";
 
 function cssVarsForThemeColors(colors: ThemeColors): CSSProperties {

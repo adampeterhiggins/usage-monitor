@@ -1,13 +1,13 @@
+import { themeColorToHex } from "./colors";
+import { createVividThemeColors } from "./derive";
+import { getThemeModes } from "./registry";
+import { parseThemeFile } from "./theme-file";
 import {
-  createVividThemeColors,
-  getThemeModes,
-  parseThemeFile,
-  themeColorToHex,
   THEME_FILE_VERSION,
   type ThemeAppearance,
   type ThemeColorRole,
   type ThemeDefinition,
-} from "./palette";
+} from "./types";
 
 /**
  * Best-effort import of a VS Code color theme (`*-color-theme.json`).

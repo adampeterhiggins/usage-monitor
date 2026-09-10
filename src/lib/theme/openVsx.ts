@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { parse, type ParseError } from "jsonc-parser";
 
 import { fetchBytes, fetchText, header } from "../http";
-import type { ThemeDefinition } from "./palette";
+import type { ThemeDefinition } from "./types";
 import {
   isVsCodeThemeFile,
   pairVsCodeThemes,

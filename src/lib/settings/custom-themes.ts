@@ -1,28 +1,22 @@
 import {
-  CUSTOM_THEMES_STORAGE_KEY,
-  getCustomThemes,
+  customThemesStorageSnapshot,
+  hydrateCustomThemeLibrary,
   installCustomTheme,
-  invalidateCustomThemes,
   removeCustomTheme,
   removeCustomThemes,
   replaceCustomThemeCollection,
-  type ThemeDefinition,
-} from "../theme/palette";
+} from "../theme/custom-library";
+import type { ThemeDefinition } from "../theme/types";
 import { settingsStore } from "./store";
 
+const CUSTOM_THEMES_KEY = "customThemes";
+
 export async function loadCustomThemesIntoMemory(): Promise<void> {
-  const stored = (await settingsStore.get<unknown[]>("customThemes")) ?? [];
-  try {
-    window.localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(stored));
-  } catch {
-    // localStorage may be unavailable in some webview modes.
-  }
-  invalidateCustomThemes();
+  hydrateCustomThemeLibrary(await settingsStore.get<unknown[]>(CUSTOM_THEMES_KEY));
 }
 
 export async function persistCustomThemesFromMemory(): Promise<void> {
-  const themes = getCustomThemes();
-  await settingsStore.set("customThemes", themes);
+  await settingsStore.set(CUSTOM_THEMES_KEY, customThemesStorageSnapshot());
   await settingsStore.save();
 }
 

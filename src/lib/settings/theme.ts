@@ -1,10 +1,7 @@
 import { parseStoredHalves } from "../theme/apply";
-import {
-  isKnownThemePreference,
-  type ThemeHalves,
-  type ThemePreference,
-  type ThemePreferenceMode,
-} from "../theme/palette";
+import type { ThemeHalves } from "../theme/halves";
+import { isKnownThemePreference } from "../theme/registry";
+import type { ThemePreference, ThemePreferenceMode } from "../theme/types";
 import { settingsStore } from "./store";
 
 export const THEME_QUERY_KEY = ["settings", "theme"] as const;

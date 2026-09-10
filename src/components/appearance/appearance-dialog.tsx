@@ -27,23 +27,20 @@ import {
   type AppearancePreset,
   type AppearanceSettings,
 } from "../../lib/theme/appearance";
+import { getCustomThemes, subscribeToCustomThemes } from "../../lib/theme/custom-library";
+import type { ThemeHalves } from "../../lib/theme/halves";
+import { applyThemeColorPreview } from "../../lib/theme/preview";
+import { getThemeColorsForMode, getThemeDefinition } from "../../lib/theme/registry";
+import { parseThemeFile } from "../../lib/theme/theme-file";
 import {
   EMBER_THEME,
   GROVE_THEME,
   IRIS_THEME,
   OCEAN_THEME,
   T3_CHAT_THEME,
-  applyThemeColorPreview,
-  getCustomThemes,
-  getThemeColorsForMode,
-  getThemeDefinition,
-  parseThemeFile,
-  subscribeToCustomThemes,
   type ThemeDefinition,
-  type ThemeHalves,
-  type ThemePreference,
-  type ThemePreferenceMode,
-} from "../../lib/theme/palette";
+} from "../../lib/theme/themePalettes";
+import type { ThemePreference, ThemePreferenceMode } from "../../lib/theme/types";
 import { parse as parseJsonc } from "jsonc-parser";
 import {
   importOpenVsxThemeExtension,
