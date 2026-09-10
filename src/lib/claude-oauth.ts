@@ -12,7 +12,9 @@ import {
 /** Public Claude Code OAuth client. Device/PKCE flow does not use a secret. */
 export const CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const AUTHORIZE_URL = "https://claude.ai/oauth/authorize";
-const TOKEN_URL = "https://console.anthropic.com/v1/oauth/token";
+// Use the API host for native token exchanges. The console host is protected by
+// Cloudflare and can reject non-browser clients before OAuth handles the request.
+const TOKEN_URL = "https://api.anthropic.com/v1/oauth/token";
 const REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback";
 const SCOPE = "org:create_api_key user:profile user:inference";
 const PROFILE_URL = "https://api.anthropic.com/api/oauth/profile";
@@ -129,10 +131,13 @@ async function postToken(
   if (res.status === 429) {
     const retryAfter = header(res.headers, "retry-after");
     const seconds = retryAfter ? parseInt(retryAfter, 10) || undefined : undefined;
+    const blockedAtEdge = header(res.headers, "cf-ray") && !header(res.headers, "request-id");
     throw new HttpError(
-      seconds
-        ? `Claude is rate-limiting sign-in. Try again in ${seconds}s — this app will not keep retrying.`
-        : "Claude is rate-limiting sign-in. Wait before trying once more — this app will not keep retrying.",
+      blockedAtEdge
+        ? "Cloudflare blocked the Claude sign-in request before it reached Anthropic. Try again later or from another network."
+        : seconds
+          ? `Claude is rate-limiting sign-in. Try again in ${seconds}s — this app will not keep retrying.`
+          : "Claude is rate-limiting sign-in. Wait before trying once more — this app will not keep retrying.",
       429,
       seconds,
     );
