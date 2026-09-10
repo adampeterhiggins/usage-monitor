@@ -1,4 +1,4 @@
-import type { Account, ProviderId, UsageResult, UsageSnapshot } from "../usage-types";
+import type { Account, ProviderId, UsageFetchHooks, UsageResult, UsageSnapshot } from "../usage-types";
 import { fetchClaudeUsage } from "./claude";
 import { fetchCodexUsage } from "./codex";
 import { fetchCursorUsage } from "./cursor";
@@ -14,12 +14,12 @@ const LAPSE_PROBE_MS = 60_000;
 const STALE_TTL_MULTIPLE = 2;
 const MAX_ENTRIES = 200;
 
-function rawFetch(account: Account): Promise<UsageSnapshot> {
+function rawFetch(account: Account, hooks: UsageFetchHooks): Promise<UsageSnapshot> {
   switch (account.provider) {
     case "claude":
-      return fetchClaudeUsage(account);
+      return fetchClaudeUsage(account, hooks);
     case "codex":
-      return fetchCodexUsage(account);
+      return fetchCodexUsage(account, hooks);
     case "cursor":
       return fetchCursorUsage(account);
   }
@@ -49,7 +49,11 @@ function isSnapshotStale(account: Account, snapshot: UsageSnapshot): boolean {
   );
 }
 
-export async function fetchUsage(account: Account, opts: { force?: boolean } = {}): Promise<UsageResult> {
+export interface FetchUsageOptions extends UsageFetchHooks {
+  force?: boolean;
+}
+
+export async function fetchUsage(account: Account, opts: FetchUsageOptions = {}): Promise<UsageResult> {
   const existing = inflight.get(account.id);
   if (existing) return existing;
 
@@ -62,7 +66,7 @@ export async function fetchUsage(account: Account, opts: { force?: boolean } = {
   }
 }
 
-async function fetchUsageOnce(account: Account, opts: { force?: boolean }): Promise<UsageResult> {
+async function fetchUsageOnce(account: Account, opts: FetchUsageOptions): Promise<UsageResult> {
   const cached = snapshots.get(account.id);
   const age = cached ? Date.now() - cached.fetchedAt : Infinity;
 
@@ -83,7 +87,7 @@ async function fetchUsageOnce(account: Account, opts: { force?: boolean }): Prom
   if (probeDue) lastLapseProbe.set(account.id, Date.now());
 
   try {
-    const snapshot = await rawFetch(account);
+    const snapshot = await rawFetch(account, opts);
     snapshots.set(account.id, snapshot);
     evictIfNeeded();
     backoffUntil.delete(account.id);
