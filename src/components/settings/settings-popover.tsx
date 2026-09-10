@@ -24,23 +24,23 @@ import {
   REFRESH_SHORTCUT_QUERY_KEY,
   setRefreshShortcut,
   setToggleShortcut,
-} from "../lib/settings";
-import { openAppearanceWindow } from "../lib/platform/appearance-window";
+} from "../../lib/settings";
+import { openAppearanceWindow } from "../../lib/platform/appearance-window";
 import {
   acceleratorFromKeyDown,
   DEFAULT_REFRESH_SHORTCUT,
   DEFAULT_TOGGLE_SHORTCUT,
   formatAccelerator,
   toGlobalShortcut,
-} from "../lib/platform/shortcut";
-import { registerToggleShortcut } from "../lib/platform/global-shortcut";
-import { toast } from "../lib/platform/toast";
-import { type Layout } from "../lib/usage/types";
+} from "../../lib/platform/shortcut";
+import { registerToggleShortcut } from "../../lib/platform/global-shortcut";
+import { toast } from "../../lib/platform/toast";
+import { type Layout } from "../../lib/usage/types";
 import { exit } from "@tauri-apps/plugin-process";
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "../ui/tooltip";
 import { GithubAuthSettings } from "./github-auth-settings";
 import { UpdatePanel } from "./update-panel";
-import { Button, cn } from "./ui";
+import { Button, cn } from "../ui";
 
 const OPEN_SETTINGS_EVENT = "settings:openPopover";
 const WINDOW_SHOWN_EVENT = "window:shown";

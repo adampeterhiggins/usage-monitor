@@ -1,8 +1,8 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import { formatFetchedAt, PROVIDERS, type AccountPublic, type UsageResult } from "../lib/usage/types";
+import { formatFetchedAt, PROVIDERS, type AccountPublic, type UsageResult } from "../../lib/usage/types";
 import { AccountActionsMenu } from "./account-actions-menu";
-import { UsageProgress } from "./usage-progress";
-import { Badge, Button, cn, Text } from "./ui";
+import { UsageProgress } from "../ui/usage-progress";
+import { Badge, Button, cn, Text } from "../ui";
 
 export type AccountFetchState =
   | { status: "loading"; previous?: UsageResult }

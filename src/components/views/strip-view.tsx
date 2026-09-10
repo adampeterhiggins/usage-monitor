@@ -6,10 +6,10 @@ import {
   shortLabel,
   type AccountPublic,
   type ProviderId,
-} from "../lib/usage/types";
-import { AccountActionsMenu } from "./account-actions-menu";
-import type { AccountFetchState } from "./account-card";
-import { Badge, Text } from "./ui";
+} from "../../lib/usage/types";
+import { AccountActionsMenu } from "../accounts/account-actions-menu";
+import type { AccountFetchState } from "../accounts/account-card";
+import { Badge, Text } from "../ui";
 
 interface StripViewProps {
   grouped: Array<{ id: ProviderId; accounts: AccountPublic[] }>;

@@ -6,7 +6,7 @@ import {
   resolveGithubOAuthClientId,
   startGithubDeviceFlow,
   type GithubDeviceFlowSession,
-} from "../lib/auth/github-oauth";
+} from "../../lib/auth/github-oauth";
 import {
   clearGithubCredentials,
   getGithubAuth,
@@ -15,9 +15,9 @@ import {
   saveGithubCredentials,
   setGithubOAuthClientId,
   type GithubAuth,
-} from "../lib/settings";
-import { toast } from "../lib/platform/toast";
-import { Button, cn } from "./ui";
+} from "../../lib/settings";
+import { toast } from "../../lib/platform/toast";
+import { Button, cn } from "../ui";
 
 export function GithubAuthSettings({
   githubToken,
