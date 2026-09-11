@@ -27,3 +27,4 @@ latest.json
 *.sln
 *.sw?
 .updater/
+.vite/
