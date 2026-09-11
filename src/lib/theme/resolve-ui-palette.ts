@@ -136,6 +136,7 @@ export interface PaletteDiagnostic {
     | "adjusted"
     | "ordered"
     | "target-unreachable"
+    | "below-floor"
     | "invalid"
     | "fallback-seed";
   detail: string;
@@ -309,19 +310,6 @@ function reduceToCap(color: string, surface: string, cap: number): string {
     else low = mid;
   }
   return hexOf(mixThemeRgbColors(bg, fg, low));
-}
-
-/**
- * Move a supplied foreground to `desired` contrast against `surface`:
- * raise it when too dim, dim it when above, keep it when within tolerance.
- */
-function solveToRatio(candidate: string, surface: string, desired: number): string {
-  const measured = hexRatio(candidate, surface);
-  if (measured < desired - 0.02) {
-    return solveForeground(candidate, [surface], desired).color;
-  }
-  if (measured > desired + 0.02) return reduceToCap(candidate, surface, desired);
-  return candidate;
 }
 
 // ---------------------------------------------------------------------------
@@ -568,18 +556,13 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
   const borderSubtle =
     subtleOverride ?? shiftSurface(background, dir * OFFSET_BORDER_SUBTLE * scale);
   const controlBorderOverride = compositeOverride(env, context, "borderControl", background);
-  const borderControl =
-    controlBorderOverride && hexRatio(controlBorderOverride, background) >= BOUNDARY_TARGET
-      ? controlBorderOverride
-      : solveBorder(env, context, "borderControl", controlBorderOverride ?? borderSubtle, background);
+  const borderControl = controlBorderOverride
+    ? keepAuthored(env, context, "borderControl", controlBorderOverride, background, BOUNDARY_TARGET)
+    : solveBorder(env, context, "borderControl", borderSubtle, background);
   const focusOverride = compositeOverride(env, context, "focusRing", background);
-  const borderFocus = solveBorder(
-    env,
-    context,
-    "focusRing",
-    focusOverride ?? env.accent,
-    background,
-  );
+  const borderFocus = focusOverride
+    ? keepAuthored(env, context, "focusRing", focusOverride, background, BOUNDARY_TARGET)
+    : solveBorder(env, context, "focusRing", env.accent, background);
 
   // -- Input ---------------------------------------------------------------------
   const inputBackground =
@@ -633,10 +616,18 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
   };
 
   // -- Accent as text -----------------------------------------------------------
-  const accentTextOverride = compositeOverride(env, context, "accentText", background);
-  const accentText = accentTextOverride
-    ? solveToFloor(env, context, "accentText", accentTextOverride, background, accentTextOverride)
-    : solveForeground(env.accent, [background], CONTRAST_FLOOR).color;
+  const accentText = compositeOverride(env, context, "accentText", background);
+  if (accentText && hexRatio(accentText, background) < CONTRAST_FLOOR) {
+    pushDiag(
+      env,
+      context,
+      "accentText",
+      "below-floor",
+      `"accentText" stays authored at ${hexRatio(accentText, background).toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
+    );
+  }
+  const accentTextColor =
+    accentText ?? solveForeground(env.accent, [background], CONTRAST_FLOOR).color;
 
   const track = shiftSurface(background, dir * OFFSET_TRACK * scale);
 
@@ -668,7 +659,7 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
     destructive,
     selection,
     input,
-    accentText,
+    accentText: accentTextColor,
     track,
     status,
     providers,
@@ -686,18 +677,31 @@ function resolveControlForeground(
   const authored = explicit
     ? (compositeThemeColor(explicit, surface) ?? explicit)
     : undefined;
-  const shared = solveForeground(
-    authored ?? null,
-    [bgs.rest, bgs.hover, bgs.pressed],
-    CONTRAST_FLOOR,
-  );
+  if (authored) {
+    const worst = Math.min(
+      hexRatio(authored, bgs.rest),
+      hexRatio(authored, bgs.hover),
+      hexRatio(authored, bgs.pressed),
+    );
+    if (worst < CONTRAST_FLOOR) {
+      pushDiag(
+        env,
+        context,
+        "controlForeground",
+        "below-floor",
+        `"controlForeground" stays authored at ${worst.toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
+      );
+    }
+    return { rest: authored, hover: authored, pressed: authored };
+  }
+  const shared = solveForeground(null, [bgs.rest, bgs.hover, bgs.pressed], CONTRAST_FLOOR);
   if (shared.reached) return { rest: shared.color, hover: shared.color, pressed: shared.color };
   // No single color clears the floor on every state — solve each separately.
   pushDiag(env, context, "controlForeground", "adjusted", "per-state control foregrounds");
   return {
-    rest: solveForeground(authored ?? null, [bgs.rest], CONTRAST_FLOOR).color,
-    hover: solveForeground(authored ?? null, [bgs.hover], CONTRAST_FLOOR).color,
-    pressed: solveForeground(authored ?? null, [bgs.pressed], CONTRAST_FLOOR).color,
+    rest: solveForeground(null, [bgs.rest], CONTRAST_FLOOR).color,
+    hover: solveForeground(null, [bgs.hover], CONTRAST_FLOOR).color,
+    pressed: solveForeground(null, [bgs.pressed], CONTRAST_FLOOR).color,
   };
 }
 
@@ -732,15 +736,34 @@ function resolveActionPair(
   const disabledBg = mixHex(restBg, surface, DISABLED_MIX);
 
   const fgOverride = compositeOverride(env, context, `${family}Foreground`, restBg);
-  const shared = solveForeground(fgOverride ?? null, [restBg, hoverBg, pressedBg], CONTRAST_FLOOR);
-  let fg = { rest: shared.color, hover: shared.color, pressed: shared.color };
-  if (!shared.reached) {
-    pushDiag(env, context, `${family}Foreground`, "adjusted", "per-state action foregrounds");
-    fg = {
-      rest: solveForeground(fgOverride ?? null, [restBg], CONTRAST_FLOOR).color,
-      hover: solveForeground(fgOverride ?? null, [hoverBg], CONTRAST_FLOOR).color,
-      pressed: solveForeground(fgOverride ?? null, [pressedBg], CONTRAST_FLOOR).color,
-    };
+  let fg: { rest: string; hover: string; pressed: string };
+  if (fgOverride) {
+    const worst = Math.min(
+      hexRatio(fgOverride, restBg),
+      hexRatio(fgOverride, hoverBg),
+      hexRatio(fgOverride, pressedBg),
+    );
+    if (worst < CONTRAST_FLOOR) {
+      pushDiag(
+        env,
+        context,
+        `${family}Foreground`,
+        "below-floor",
+        `"${family}Foreground" stays authored at ${worst.toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
+      );
+    }
+    fg = { rest: fgOverride, hover: fgOverride, pressed: fgOverride };
+  } else {
+    const shared = solveForeground(null, [restBg, hoverBg, pressedBg], CONTRAST_FLOOR);
+    fg = { rest: shared.color, hover: shared.color, pressed: shared.color };
+    if (!shared.reached) {
+      pushDiag(env, context, `${family}Foreground`, "adjusted", "per-state action foregrounds");
+      fg = {
+        rest: solveForeground(null, [restBg], CONTRAST_FLOOR).color,
+        hover: solveForeground(null, [hoverBg], CONTRAST_FLOOR).color,
+        pressed: solveForeground(null, [pressedBg], CONTRAST_FLOOR).color,
+      };
+    }
   }
 
   return {
@@ -754,7 +777,8 @@ function resolveActionPair(
   };
 }
 
-/** Keep `candidate` when it clears the floor on `surface`; else solve `fallback`. */
+/** Authored values are kept verbatim (diagnostic when below the floor);
+ *  only derived fallbacks are solved up to it. */
 function solveToFloor(
   env: ResolveEnv,
   context: Ctx,
@@ -764,11 +788,17 @@ function solveToFloor(
   fallback: string,
 ): string {
   if (candidate) {
-    const solved = solveForeground(candidate, [surface], CONTRAST_FLOOR);
-    if (!solved.reached) {
-      pushDiag(env, context, role, "target-unreachable", `"${role}" cannot reach ${CONTRAST_FLOOR}:1`);
+    const measured = hexRatio(candidate, surface);
+    if (measured < CONTRAST_FLOOR) {
+      pushDiag(
+        env,
+        context,
+        role,
+        "below-floor",
+        `"${role}" stays authored at ${measured.toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
+      );
     }
-    return solved.color;
+    return candidate;
   }
   const solved = solveForeground(fallback, [surface], CONTRAST_FLOOR);
   if (!solved.reached) {
@@ -777,7 +807,29 @@ function solveToFloor(
   return solved.color;
 }
 
-/** A border/boundary color kept authored when it already separates ≥3.1:1. */
+/** Authored boundary colors stay verbatim; flag the ones below target. */
+function keepAuthored(
+  env: ResolveEnv,
+  context: Ctx,
+  role: string,
+  color: string,
+  surface: string,
+  target: number,
+): string {
+  const measured = hexRatio(color, surface);
+  if (measured < target) {
+    pushDiag(
+      env,
+      context,
+      role,
+      "below-floor",
+      `"${role}" stays authored at ${measured.toFixed(2)}:1, below ${target}:1`,
+    );
+  }
+  return color;
+}
+
+/** A derived border/boundary color raised to `BOUNDARY_TARGET` separation. */
 function solveBorder(env: ResolveEnv, context: Ctx, role: string, color: string, surface: string): string {
   if (hexRatio(color, surface) >= BOUNDARY_TARGET) return color;
   const base = oklchOf(color);
@@ -822,19 +874,22 @@ function resolveTextLevels(
       ? (compositeThemeColor(supplied, surface) ?? supplied)
       : undefined;
     const desired = Math.min(
-      Math.max(
-        (authored ? hexRatio(authored, surface) : nominalTarget) + adjust * x,
-        CONTRAST_FLOOR,
-      ),
+      Math.max(nominalTarget + adjust * x, CONTRAST_FLOOR),
       Math.min(cap, headroom),
     );
     if (authored) {
-      const solved = solveToRatio(authored, surface, desired);
-      const capped =
-        hexRatio(solved, surface) > Math.min(cap, headroom) + 0.02
-          ? reduceToCap(solved, surface, Math.min(cap, headroom))
-          : solved;
-      return { color: capped, ratio: hexRatio(capped, surface) };
+      // Authored text stays verbatim; flag it when it sits below the floor.
+      const ratio = hexRatio(authored, surface);
+      if (ratio < CONTRAST_FLOOR) {
+        pushDiag(
+          env,
+          context,
+          "text",
+          "below-floor",
+          `authored text stays at ${ratio.toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
+        );
+      }
+      return { color: authored, ratio };
     }
     if (fallbackFrom === null) {
       // Generated primary: the strongest available pole.
@@ -912,12 +967,20 @@ function resolveStatusTone(
     };
   }
   if (tone === "info") {
-    return statusToneFromSeed(env, context, surface, dark, track, "info", env.accent);
+    return statusToneFromSeed(env, context, surface, dark, track, "info", env.accent, false);
   }
   const seeds = STATUS_SEEDS[dark ? "dark" : "light"];
-  const seed =
-    compositeOverride(env, context, tone, surface) ?? seeds[tone as "healthy" | "warning" | "high" | "critical"];
-  return statusToneFromSeed(env, context, surface, dark, track, tone, seed);
+  const authored = compositeOverride(env, context, tone, surface);
+  return statusToneFromSeed(
+    env,
+    context,
+    surface,
+    dark,
+    track,
+    tone,
+    authored ?? seeds[tone as "healthy" | "warning" | "high" | "critical"],
+    authored !== undefined,
+  );
 }
 
 function statusToneFromSeed(
@@ -928,7 +991,22 @@ function statusToneFromSeed(
   track: string,
   tone: string,
   seed: string,
+  authored: boolean,
 ): UiTonePalette {
+  if (authored) {
+    // Authored tones stay verbatim everywhere they are consumed; flag the
+    // ones that sit below the floors a derived tone would have been held to.
+    if (hexRatio(seed, track) < BOUNDARY_TARGET) {
+      pushDiag(env, context, `status.${tone}.fill`, "below-floor",
+        `"${tone}" fill stays authored below ${BOUNDARY_TARGET}:1 on track`);
+    }
+    const softBg = mixHex(surface, seed, dark ? SOFT_BADGE_MIX.dark : SOFT_BADGE_MIX.light);
+    if (hexRatio(seed, softBg) < CONTRAST_FLOOR) {
+      pushDiag(env, context, `status.${tone}.soft`, "below-floor",
+        `"${tone}" stays authored below ${CONTRAST_FLOOR}:1 on its soft badge`);
+    }
+    return { fill: seed, text: seed, soft: { background: softBg, foreground: seed } };
+  }
   // The fill rides on `track`; make sure it separates from it.
   let fill = seed;
   if (hexRatio(fill, track) < BOUNDARY_TARGET) {

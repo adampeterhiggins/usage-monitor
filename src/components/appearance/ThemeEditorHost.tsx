@@ -134,6 +134,7 @@ const RESOLVED_FIELD: Record<AppOverrideRole, (p: ResolvedUiPalette) => string> 
   actionBackground: (p) => p.contexts.canvas.action.rest.background,
   actionForeground: (p) => p.contexts.canvas.action.rest.foreground,
   actionHoverBackground: (p) => p.contexts.canvas.action.hover.background,
+  destructiveForeground: (p) => p.contexts.canvas.destructive.rest.foreground,
   selectionBackground: (p) => p.contexts.canvas.selection.rest.background,
   selectionForeground: (p) => p.contexts.canvas.selection.rest.foreground,
   selectionHoverBackground: (p) => p.contexts.canvas.selection.hover.background,

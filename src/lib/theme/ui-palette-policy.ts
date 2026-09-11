@@ -29,7 +29,7 @@ export const OFFSET_MENU = { dark: 0.065, light: 0.02 } as const;
 export const OFFSET_CONTROL_REST = 0.045;
 export const OFFSET_CONTROL_HOVER = 0.07;
 export const OFFSET_CONTROL_PRESSED = 0.09;
-export const OFFSET_TRACK = 0.03;
+export const OFFSET_TRACK = 0.05;
 export const OFFSET_INPUT = 0.02;
 /** Relative deltas for states derived from an explicit control background. */
 export const OFFSET_EXPLICIT_HOVER = 0.025;

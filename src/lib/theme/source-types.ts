@@ -45,6 +45,8 @@ export const APP_OVERRIDE_ROLES = [
   "actionBackground",
   "actionForeground",
   "actionHoverBackground",
+  // Destructive action
+  "destructiveForeground",
   // Selection
   "selectionBackground",
   "selectionForeground",
