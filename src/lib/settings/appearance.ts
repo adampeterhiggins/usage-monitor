@@ -3,7 +3,7 @@ import {
   type AppearancePreset,
   type AppearanceSettings,
 } from "../theme/appearance";
-import { parseStoredHalves } from "../theme/apply";
+import { parseStoredHalves } from "../theme/halves";
 import type { ThemeHalves } from "../theme/halves";
 import { isKnownThemePreference } from "../theme/registry";
 import type { ThemePreference, ThemePreferenceMode } from "../theme/types";

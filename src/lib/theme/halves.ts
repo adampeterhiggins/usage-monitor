@@ -30,6 +30,19 @@ export function parseThemeHalves(raw: string | null): ThemeHalves | null {
   }
 }
 
+/** Parse a stored `themeHalves` value — a JSON string or a plain record. */
+export function parseStoredHalves(raw: unknown): ThemeHalves | null {
+  if (typeof raw === "string") return parseThemeHalves(raw);
+  if (raw && typeof raw === "object") {
+    try {
+      return parseThemeHalves(JSON.stringify(raw));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** The theme that should render the given appearance under a mix, if any. */
 export function resolveThemeHalf(
   theme: ThemePreference,
