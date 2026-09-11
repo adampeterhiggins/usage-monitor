@@ -16,6 +16,7 @@ import type { ThemeAppearance } from "../../lib/theme/types";
 export interface ThemeModeDraft {
   seeds: { canvas: string; accent: string };
   overrides: Partial<Record<AppOverrideRole, string>>;
+  panelOpacity?: number;
 }
 
 export interface ThemeEditorDraft {
@@ -29,6 +30,7 @@ export function appSpecToDraft(spec: AppModeSpec): ThemeModeDraft {
   return {
     seeds: { ...spec.seeds },
     overrides: spec.overrides ? { ...spec.overrides } : {},
+    ...(spec.panelOpacity !== undefined ? { panelOpacity: spec.panelOpacity } : {}),
   };
 }
 
@@ -72,6 +74,7 @@ export function draftModeSpec(draft: ThemeModeDraft): AppModeSpec {
   return {
     seeds: draft.seeds,
     ...(Object.keys(draft.overrides).length > 0 ? { overrides: draft.overrides } : {}),
+    ...(draft.panelOpacity !== undefined ? { panelOpacity: draft.panelOpacity } : {}),
   };
 }
 
@@ -85,7 +88,13 @@ export function addDraftMode(draft: ThemeEditorDraft, mode: ThemeAppearance): Th
   const other = mode === "light" ? "dark" : "light";
   const seedFrom = draft.modes[other];
   const seeded: ThemeModeDraft = seedFrom
-    ? { seeds: { ...seedFrom.seeds }, overrides: { ...seedFrom.overrides } }
+    ? {
+        seeds: { ...seedFrom.seeds },
+        overrides: { ...seedFrom.overrides },
+        ...(seedFrom.panelOpacity !== undefined
+          ? { panelOpacity: seedFrom.panelOpacity }
+          : {}),
+      }
     : { seeds: { canvas: "#ffffff", accent: "#138af2" }, overrides: {} };
   return {
     ...draft,

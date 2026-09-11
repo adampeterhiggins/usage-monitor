@@ -78,6 +78,9 @@ export interface AppModeSpec {
   seeds: Readonly<{ canvas: string; accent: string }>;
   /** Optional role overrides; empty is valid. */
   overrides?: Readonly<Partial<Record<AppOverrideRole, string>>>;
+  /** Authored window-plane translucency (0–1). Absent → the resolver picks
+   *  the lowest opacity that keeps text readable over arbitrary backdrops. */
+  panelOpacity?: number;
 }
 
 /** The normalized theme every consumer works against. */

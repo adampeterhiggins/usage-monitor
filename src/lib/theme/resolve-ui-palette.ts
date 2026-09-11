@@ -1045,25 +1045,44 @@ function resolveMaterial(
   glassOpacity: number,
 ): UiMaterialPalette {
   // The translucent panel must keep primary text readable when the OS shows
-  // pure black or pure white behind the window.
+  // pure black or pure white behind the window. An authored panelOpacity is
+  // honored verbatim — with a diagnostic when it can't guarantee that.
   const primary = rgb(toolbar.text.primary) ?? BLACK;
-  let panelOpacity = PANEL_OPACITY_STEPS[PANEL_OPACITY_STEPS.length - 1]!;
-  for (const opacity of PANEL_OPACITY_STEPS) {
-    const overBlack = mixThemeRgbColors(BLACK, rgb(env.canvas) ?? BLACK, opacity);
-    const overWhite = mixThemeRgbColors(WHITE, rgb(env.canvas) ?? BLACK, opacity);
-    if (Math.min(ratio(primary, overBlack), ratio(primary, overWhite)) >= CONTRAST_FLOOR) {
-      panelOpacity = opacity;
-      break;
+  const authoredOpacity = env.spec.panelOpacity;
+  let panelOpacity: number;
+  if (authoredOpacity !== undefined && Number.isFinite(authoredOpacity)) {
+    panelOpacity = Math.min(1, Math.max(0, authoredOpacity));
+    const overBlack = mixThemeRgbColors(BLACK, rgb(env.canvas) ?? BLACK, panelOpacity);
+    const overWhite = mixThemeRgbColors(WHITE, rgb(env.canvas) ?? BLACK, panelOpacity);
+    const worst = Math.min(ratio(primary, overBlack), ratio(primary, overWhite));
+    if (worst < CONTRAST_FLOOR) {
+      pushDiag(
+        env,
+        "material",
+        "panelOpacity",
+        "below-floor",
+        `authored panel opacity ${panelOpacity} keeps text at ${worst.toFixed(2)}:1 worst-case, below ${CONTRAST_FLOOR}:1`,
+      );
     }
-  }
-  if (panelOpacity > PANEL_OPACITY_START) {
-    pushDiag(
-      env,
-      "material",
-      "panelOpacity",
-      "adjusted",
-      `panel opacity raised to ${panelOpacity} to keep text readable over arbitrary backdrops`,
-    );
+  } else {
+    panelOpacity = PANEL_OPACITY_STEPS[PANEL_OPACITY_STEPS.length - 1]!;
+    for (const opacity of PANEL_OPACITY_STEPS) {
+      const overBlack = mixThemeRgbColors(BLACK, rgb(env.canvas) ?? BLACK, opacity);
+      const overWhite = mixThemeRgbColors(WHITE, rgb(env.canvas) ?? BLACK, opacity);
+      if (Math.min(ratio(primary, overBlack), ratio(primary, overWhite)) >= CONTRAST_FLOOR) {
+        panelOpacity = opacity;
+        break;
+      }
+    }
+    if (panelOpacity > PANEL_OPACITY_START) {
+      pushDiag(
+        env,
+        "material",
+        "panelOpacity",
+        "adjusted",
+        `panel opacity raised to ${panelOpacity} to keep text readable over arbitrary backdrops`,
+      );
+    }
   }
 
   // Glass reads as the toolbar's highlight lifted toward the nearest pole.

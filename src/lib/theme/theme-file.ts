@@ -28,12 +28,14 @@ export interface ThemeFile {
   appearance: ThemeAppearance;
   seeds: { canvas: string; accent: string };
   overrides?: Partial<Record<AppOverrideRole, string>>;
+  panelOpacity?: number;
   variants?: Partial<
     Record<
       ThemeAppearance,
       {
         seeds: { canvas: string; accent: string };
         overrides?: Partial<Record<AppOverrideRole, string>>;
+        panelOpacity?: number;
       }
     >
   >;
@@ -76,7 +78,15 @@ function parseAppModeSpec(value: unknown, context: string): AppModeSpec {
   if (!isRecord(value)) throw new Error(`${context} must be an object.`);
   const seeds = parseAppSeeds(value.seeds);
   const overrides = parseAppOverrides(value.overrides);
-  return overrides ? { seeds, overrides } : { seeds };
+  const panelOpacity = value.panelOpacity;
+  if (panelOpacity !== undefined && (typeof panelOpacity !== "number" || !Number.isFinite(panelOpacity) || panelOpacity < 0 || panelOpacity > 1)) {
+    throw new Error("panelOpacity must be a number between 0 and 1.");
+  }
+  return {
+    seeds,
+    ...(overrides ? { overrides } : {}),
+    ...(panelOpacity !== undefined ? { panelOpacity } : {}),
+  };
 }
 
 function parseCollectionField(value: unknown) {
@@ -143,9 +153,11 @@ export function serializeThemeRecord(theme: ThemeDefinition): Record<string, unk
     if (mode === theme.appearance) continue;
     const spec = theme.modes[mode];
     if (!spec) continue;
-    variants[mode] = spec.overrides
-      ? { seeds: spec.seeds, overrides: spec.overrides }
-      : { seeds: spec.seeds };
+    variants[mode] = {
+      seeds: spec.seeds,
+      ...(spec.overrides ? { overrides: spec.overrides } : {}),
+      ...(spec.panelOpacity !== undefined ? { panelOpacity: spec.panelOpacity } : {}),
+    };
   }
   return {
     version: THEME_FILE_VERSION,
@@ -154,6 +166,7 @@ export function serializeThemeRecord(theme: ThemeDefinition): Record<string, unk
     appearance: theme.appearance,
     seeds: base.seeds,
     ...(base.overrides ? { overrides: base.overrides } : {}),
+    ...(base.panelOpacity !== undefined ? { panelOpacity: base.panelOpacity } : {}),
     ...(Object.keys(variants).length > 0 ? { variants } : {}),
     ...(theme.collection ? { collection: theme.collection } : {}),
     ...(theme.managed ? { managed: true } : {}),

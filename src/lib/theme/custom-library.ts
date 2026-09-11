@@ -53,7 +53,14 @@ function parseStoredAppSpec(value: unknown): AppModeSpec | null {
   const seeds = parseStoredSeeds(value.seeds);
   if (!seeds) return null;
   const overrides = parseStoredOverrides(value.overrides);
-  return overrides ? { seeds, overrides } : { seeds };
+  const panelOpacity = value.panelOpacity;
+  return {
+    seeds,
+    ...(overrides ? { overrides } : {}),
+    ...(typeof panelOpacity === "number" && Number.isFinite(panelOpacity)
+      ? { panelOpacity }
+      : {}),
+  };
 }
 
 function parseStoredMode(

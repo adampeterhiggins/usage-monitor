@@ -700,7 +700,7 @@
   --ui-toolbar-provider-blue-background: #e7f3fe;
   --ui-toolbar-provider-blue-foreground: #006ec6;
   --ui-panel-tint: #ffffff;
-  --ui-panel-opacity: 0.94;
+  --ui-panel-opacity: 0.42;
   --ui-shadow: rgb(0 0 0 / 0.12);
   --ui-scrim: rgb(0 0 0 / 0.25);
   --ui-glass-rest-background: #ffffff;
@@ -1012,7 +1012,7 @@
   --ui-toolbar-provider-blue-background: #263140;
   --ui-toolbar-provider-blue-foreground: #5aa0f0;
   --ui-panel-tint: #1c1c1e;
-  --ui-panel-opacity: 0.94;
+  --ui-panel-opacity: 0.55;
   --ui-shadow: rgb(0 0 0 / 0.12);
   --ui-scrim: rgb(0 0 0 / 0.25);
   --ui-glass-rest-background: #333336;
@@ -1325,7 +1325,7 @@
     --ui-toolbar-provider-blue-background: #263140;
     --ui-toolbar-provider-blue-foreground: #5aa0f0;
     --ui-panel-tint: #1c1c1e;
-    --ui-panel-opacity: 0.94;
+    --ui-panel-opacity: 0.55;
     --ui-shadow: rgb(0 0 0 / 0.12);
     --ui-scrim: rgb(0 0 0 / 0.25);
     --ui-glass-rest-background: #333336;

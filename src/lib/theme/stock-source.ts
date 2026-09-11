@@ -9,6 +9,8 @@ import type { ThemeAppearance } from "./themePalettes";
 
 const STOCK_LIGHT: AppModeSpec = {
   seeds: { canvas: "#ffffff", accent: "#138af2" },
+  // Old --page-plane was rgb(255 255 255 / 42%)
+  panelOpacity: 0.42,
   overrides: {
     // Surfaces
     cardBackground: "#fcfcfc",
@@ -47,6 +49,8 @@ const STOCK_LIGHT: AppModeSpec = {
 
 const STOCK_DARK: AppModeSpec = {
   seeds: { canvas: "#1c1c1e", accent: "#5aa0f0" },
+  // Old --page-plane was rgb(28 28 30 / 55%)
+  panelOpacity: 0.55,
   overrides: {
     cardBackground: "#2c2c2e",
     menuBackground: "#2c2c2e",

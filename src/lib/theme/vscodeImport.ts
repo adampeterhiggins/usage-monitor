@@ -397,10 +397,16 @@ export function pairVsCodeThemes(
               appearance: "light",
               seeds: lightSpec.seeds,
               ...(lightSpec.overrides ? { overrides: lightSpec.overrides } : {}),
+              ...(lightSpec.panelOpacity !== undefined
+                ? { panelOpacity: lightSpec.panelOpacity }
+                : {}),
               variants: {
                 dark: {
                   seeds: darkSpec.seeds,
                   ...(darkSpec.overrides ? { overrides: darkSpec.overrides } : {}),
+                  ...(darkSpec.panelOpacity !== undefined
+                    ? { panelOpacity: darkSpec.panelOpacity }
+                    : {}),
                 },
               },
             }),
