@@ -1,5 +1,6 @@
 //! Status-bar tray icon and its menu.
 
+use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::App;
@@ -16,7 +17,7 @@ pub(crate) fn build(app: &App) -> tauri::Result<()> {
 
     let handle = app.handle().clone();
     TrayIconBuilder::new()
-        .icon(app.default_window_icon().cloned().expect("app icon"))
+        .icon(tray_icon()?)
         .icon_as_template(true)
         .tooltip("Usage Monitor")
         .menu(&menu)
@@ -41,4 +42,17 @@ pub(crate) fn build(app: &App) -> tauri::Result<()> {
         .build(app)?;
 
     Ok(())
+}
+
+/// The menu-bar glyph: the app icon's three chart bars, alone, on transparency.
+///
+/// macOS treats a template image as a mask — only alpha matters, and the
+/// system paints it black or white to suit the menu bar (and light/dark mode,
+/// and the highlighted state). So the tray cannot reuse the app icon: its
+/// opaque rounded square would render as a solid block with the bars lost
+/// inside it. The PNG is authored at 2× by `scripts/make-icon.py`; tray-icon
+/// scales it to 18pt tall.
+fn tray_icon() -> tauri::Result<Image<'static>> {
+    const PNG: &[u8] = include_bytes!("../icons/tray-template.png");
+    Image::from_bytes(PNG)
 }
