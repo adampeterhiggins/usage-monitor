@@ -2,7 +2,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { removeAccount } from "../../lib/accounts";
+import { useAccountsStore } from "../../lib/accounts";
 import { toast } from "../../lib/platform/toast";
 import { PROVIDERS, type AccountPublic, type ProviderId } from "../../lib/usage/types";
 import { Button, cn } from "../ui";
@@ -16,7 +16,6 @@ const DASHBOARD_URLS: Record<ProviderId, string> = {
 interface AccountActionsMenuProps {
   account: AccountPublic;
   onEdit: (account: AccountPublic) => void;
-  onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
   triggerSize?: "small" | "medium";
 }
@@ -24,7 +23,6 @@ interface AccountActionsMenuProps {
 export function AccountActionsMenu({
   account,
   onEdit,
-  onRemoved,
   onRefresh,
   triggerSize = "small",
 }: AccountActionsMenuProps) {
@@ -34,9 +32,8 @@ export function AccountActionsMenu({
 
   async function handleRemove() {
     try {
-      await removeAccount(account.id);
+      await useAccountsStore.getState().remove(account.id);
       toast.success("Account removed", { description: `${meta.name} · ${account.label}` });
-      onRemoved(account.id);
       setConfirmRemove(false);
     } catch (e) {
       toast.error("Couldn’t remove account", {

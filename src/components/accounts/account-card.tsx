@@ -1,23 +1,18 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import { formatFetchedAt, PROVIDERS, type AccountPublic, type UsageResult } from "../../lib/usage/types";
+import { formatFetchedAt, PROVIDERS, type AccountPublic } from "../../lib/usage/types";
+import type { AccountFetchState } from "../../lib/usage/service";
 import { AccountActionsMenu } from "./account-actions-menu";
 import { UsageProgress } from "../ui/usage-progress";
 import { Badge, Button, cn, Text } from "../ui";
-
-export type AccountFetchState =
-  | { status: "loading"; previous?: UsageResult }
-  | { status: "ok"; result: UsageResult }
-  | { status: "error"; message: string; previous?: UsageResult };
 
 interface AccountCardProps {
   account: AccountPublic;
   state: AccountFetchState;
   onEdit: (account: AccountPublic) => void;
-  onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
 }
 
-export function AccountCard({ account, state, onEdit, onRemoved, onRefresh }: AccountCardProps) {
+export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardProps) {
   const meta = PROVIDERS[account.provider];
   const result = state.status === "ok" ? state.result : state.previous;
   const snapshot = result?.snapshot;
@@ -50,7 +45,7 @@ export function AccountCard({ account, state, onEdit, onRemoved, onRefresh }: Ac
         {stale && !isLoading ? (
           <TriangleAlert className="size-3.5 shrink-0 text-support-orange" aria-label="Stale data" />
         ) : null}
-        <AccountActionsMenu account={account} onEdit={onEdit} onRemoved={onRemoved} onRefresh={onRefresh} />
+        <AccountActionsMenu account={account} onEdit={onEdit} onRefresh={onRefresh} />
       </div>
 
       {snapshot ? (
