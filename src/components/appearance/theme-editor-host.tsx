@@ -3,7 +3,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RotateCcw, X } from "lucide-react";
 import { themeColorToHex } from "../../lib/theme/colors";
 import { createVividThemeColors, updateThemeColorFamily } from "../../lib/theme/derive";
-import { applyThemeColorPreview } from "../../lib/theme/preview";
 import { getThemeColorsForMode, getThemeDefinition } from "../../lib/theme/registry";
 import { parseThemeFile } from "../../lib/theme/theme-file";
 import {
@@ -14,7 +13,11 @@ import {
   type ThemeDefinition,
 } from "../../lib/theme/types";
 import { installAndPersistTheme } from "../../lib/settings";
-import { refreshAppliedAppearanceAndBroadcast } from "../../lib/theme/controller";
+import {
+  refreshAppliedAppearanceAndBroadcast,
+  themePreview,
+  type ThemePreviewSession,
+} from "../../lib/theme/controller";
 import { toast } from "../../lib/platform/toast";
 import { Button, cn, Input } from "../ui";
 import { UsageMonitorPreview } from "./appearance-preview";
@@ -205,17 +208,25 @@ export function ThemeEditorHost() {
     setColors(nextColors);
   }, [session]);
 
+  const previewRef = React.useRef<ThemePreviewSession | null>(null);
+
+  // While the editor is open it owns the live preview; opening it supersedes
+  // any marketplace preview, and closing restores the persisted appearance —
+  // unless a newer owner has already taken over.
   React.useEffect(() => {
     if (!session) return;
-    applyThemeColorPreview(colors, appearance);
-  }, [session, colors, appearance]);
+    const preview = themePreview.begin();
+    previewRef.current = preview;
+    return () => {
+      previewRef.current = null;
+      void preview.end({ restore: true });
+    };
+  }, [session]);
 
   React.useEffect(() => {
     if (!session) return;
-    return () => {
-      void refreshAppliedAppearanceAndBroadcast();
-    };
-  }, [session]);
+    previewRef.current?.show({ colors, appearance });
+  }, [session, colors, appearance]);
 
   function setFamily(role: ThemeColorRole, hex: string) {
     setColors((current) => updateThemeColorFamily(appearance, current, role, hex));

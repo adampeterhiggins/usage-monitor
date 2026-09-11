@@ -1,7 +1,10 @@
 import * as React from "react";
 import { listen } from "@tauri-apps/api/event";
 import { APPEARANCE_CHANGED_EVENT } from "../lib/platform/appearance-window";
-import { refreshAppliedAppearance } from "../lib/theme/controller";
+import {
+  refreshAppliedAppearance,
+  refreshAppearanceRespectingPreview,
+} from "../lib/theme/controller";
 
 /**
  * Keep this window's theme applied: once on mount, when the OS appearance
@@ -19,7 +22,7 @@ export function useAppearanceRefresh(options: { listenForExternalChanges?: boole
   React.useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
-      void refreshAppliedAppearance();
+      void refreshAppearanceRespectingPreview();
     };
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
@@ -29,7 +32,7 @@ export function useAppearanceRefresh(options: { listenForExternalChanges?: boole
     if (!listenForExternalChanges) return;
     let unlisten: (() => void) | undefined;
     void listen(APPEARANCE_CHANGED_EVENT, () => {
-      void refreshAppliedAppearance();
+      void refreshAppearanceRespectingPreview();
     }).then((fn) => {
       unlisten = fn;
     });
