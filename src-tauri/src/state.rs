@@ -5,7 +5,8 @@
 //! `ignore_next_blur` is armed before the panel shows, moves or resizes, then
 //! released on a delay by `panel::schedule_release_blur_shield` — unless
 //! `keep_app_active` or `account_modal_open` says an auxiliary window still
-//! needs the app to stay active.
+//! needs the app to stay active. The release also re-keys a panel that lost
+//! key status while shielded, so a swallowed blur cannot leave it pinned.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -51,13 +52,6 @@ impl PanelState {
 
     pub(crate) fn release_blur_shield(&self) {
         self.ignore_next_blur.store(false, Ordering::SeqCst);
-    }
-
-    /// Drop the shield unless an auxiliary window still needs the app active.
-    pub(crate) fn release_blur_shield_unless_held(&self) {
-        if !self.holds_focus() {
-            self.release_blur_shield();
-        }
     }
 
     /// An auxiliary window (Appearance, account modal) is holding app focus.

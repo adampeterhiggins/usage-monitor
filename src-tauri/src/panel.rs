@@ -116,29 +116,61 @@ fn panel_visible(app: &AppHandle) -> bool {
 /// activates the app (account-modal mode); tray mode never activates.
 pub(crate) fn make_key(app: &AppHandle, as_foreground: bool) {
     app.state::<PanelState>().arm_blur_shield();
+    make_key_platform(app, as_foreground);
+}
 
-    #[cfg(target_os = "macos")]
+#[cfg(target_os = "macos")]
+fn make_key_platform(app: &AppHandle, as_foreground: bool) {
     crate::macos::make_panel_key(app, as_foreground);
+}
 
-    #[cfg(not(target_os = "macos"))]
-    {
-        if let Some(win) = main_window(app) {
-            let _ = win.show();
-            let _ = win.set_focus();
-        }
-        let _ = as_foreground;
+#[cfg(not(target_os = "macos"))]
+fn make_key_platform(app: &AppHandle, as_foreground: bool) {
+    if let Some(win) = main_window(app) {
+        let _ = win.show();
+        let _ = win.set_focus();
     }
+    let _ = as_foreground;
+}
+
+#[cfg(target_os = "macos")]
+fn panel_is_key(app: &AppHandle) -> bool {
+    crate::macos::panel_is_key(app)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn panel_is_key(app: &AppHandle) -> bool {
+    main_window(app)
+        .and_then(|win| win.is_focused().ok())
+        .unwrap_or(false)
 }
 
 /// Drop the blur shield shortly after a show/move — long enough for focus
 /// churn to settle, short enough that a real click-away still dismisses.
+///
+/// Before dropping it, make sure the panel still holds key status. A blur
+/// that landed while the shield was up (most often the deferred app
+/// deactivation that follows the Regular → Accessory switch when an account
+/// modal closes) was swallowed, leaving the panel visible but not key. No
+/// later click-away can produce a blur in that state, so the panel would sit
+/// pinned over other apps until the user clicked it and away again. Taking
+/// key status back (without activating the app) restores the normal
+/// blur-to-hide path.
 pub(crate) fn schedule_release_blur_shield(app: &AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(400));
-        handle
-            .state::<PanelState>()
-            .release_blur_shield_unless_held();
+        let on_main = handle.clone();
+        let _ = handle.run_on_main_thread(move || {
+            let state = on_main.state::<PanelState>();
+            if state.holds_focus() {
+                return;
+            }
+            if panel_visible(&on_main) && !panel_is_key(&on_main) {
+                make_key_platform(&on_main, false);
+            }
+            state.release_blur_shield();
+        });
     });
 }
 

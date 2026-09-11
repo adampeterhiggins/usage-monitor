@@ -169,6 +169,14 @@ pub(crate) fn panel_visible(app: &AppHandle) -> bool {
         .unwrap_or(false)
 }
 
+/// Whether the panel currently holds key status. Blur-to-hide depends on it:
+/// a visible panel that is not key never receives the resign-key event.
+pub(crate) fn panel_is_key(app: &AppHandle) -> bool {
+    app.get_webview_panel("main")
+        .map(|panel| panel.as_panel().isKeyWindow())
+        .unwrap_or(false)
+}
+
 /// Show the panel and make it key, optionally activating as a foreground app.
 ///
 /// Tauri's `set_focus` calls `activateIgnoringOtherApps:`. In tray mode the
