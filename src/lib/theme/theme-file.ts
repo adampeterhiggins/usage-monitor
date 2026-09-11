@@ -1,43 +1,90 @@
+/** Theme files on disk: a `seeds`/`overrides` app spec per mode. Parsing is
+ *  strict — unknown roles and malformed values fail the file so authors get
+ *  told what is wrong. Serialization always emits the current version. */
+
 import { toCanonicalThemeColor } from "./colors";
-import { canonicalizeThemeDefinition, getDefaultThemeColors, inheritUnspecifiedMenu } from "./derive";
+import {
+  APP_OVERRIDE_ROLE_SET,
+  createThemeDefinition,
+  themeFileIdentity,
+  type AppModeSpec,
+  type AppOverrideRole,
+  type ThemeDefinition,
+} from "./source-types";
 import {
   isRecord,
   isThemeAppearance,
-  isThemeId,
   isThemeLabel,
   parseThemeCollection,
-  RESERVED_THEME_IDS,
-  THEME_COLOR_ROLE_SET,
-  THEME_FILE_VERSION,
-  themeIdFromName,
   type ThemeAppearance,
-  type ThemeColorOverrides,
-  type ThemeColorRole,
-  type ThemeColors,
-  type ThemeDefinition,
-  type ThemeFile,
 } from "./types";
 
-function parseThemeColorOverrides(value: unknown): ThemeColorOverrides {
-  if (!isRecord(value)) throw new Error("Theme colors must be objects.");
+export const THEME_FILE_VERSION = 2 as const;
 
-  const overrides: Partial<Record<ThemeColorRole, string>> = {};
+export interface ThemeFile {
+  version: typeof THEME_FILE_VERSION;
+  id: string;
+  name: string;
+  appearance: ThemeAppearance;
+  seeds: { canvas: string; accent: string };
+  overrides?: Partial<Record<AppOverrideRole, string>>;
+  variants?: Partial<
+    Record<
+      ThemeAppearance,
+      {
+        seeds: { canvas: string; accent: string };
+        overrides?: Partial<Record<AppOverrideRole, string>>;
+      }
+    >
+  >;
+  collection?: { id: string; label: string };
+  managed?: boolean;
+}
+
+function parseColorValue(value: unknown, role: string): string {
+  const normalized = toCanonicalThemeColor(value);
+  if (!normalized) {
+    throw new Error(
+      `The color for "${role}" must be a literal CSS color such as oklch(0.62 0.2 280).`,
+    );
+  }
+  return normalized;
+}
+
+function parseAppSeeds(value: unknown): AppModeSpec["seeds"] {
+  if (!isRecord(value)) throw new Error("Theme seeds must be an object.");
+  return {
+    canvas: parseColorValue(value.canvas, "canvas"),
+    accent: parseColorValue(value.accent, "accent"),
+  };
+}
+
+function parseAppOverrides(value: unknown): AppModeSpec["overrides"] {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) throw new Error("Theme overrides must be an object.");
+  const overrides: Partial<Record<AppOverrideRole, string>> = {};
   for (const [role, color] of Object.entries(value)) {
-    if (!THEME_COLOR_ROLE_SET.has(role)) {
-      throw new Error(`"${role}" is not a supported theme color role.`);
+    if (!APP_OVERRIDE_ROLE_SET.has(role)) {
+      throw new Error(`"${role}" is not a supported theme override role.`);
     }
-    const normalized = toCanonicalThemeColor(color);
-    if (!normalized) {
-      throw new Error(
-        `The color for "${role}" must be a literal CSS color such as oklch(0.62 0.2 280).`,
-      );
-    }
-    overrides[role as ThemeColorRole] = normalized;
+    overrides[role as AppOverrideRole] = parseColorValue(color, role);
   }
-  if (Object.keys(overrides).length === 0) {
-    throw new Error("Add at least one color role to the theme file.");
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function parseAppModeSpec(value: unknown, context: string): AppModeSpec {
+  if (!isRecord(value)) throw new Error(`${context} must be an object.`);
+  const seeds = parseAppSeeds(value.seeds);
+  const overrides = parseAppOverrides(value.overrides);
+  return overrides ? { seeds, overrides } : { seeds };
+}
+
+function parseCollectionField(value: unknown) {
+  const collection = parseThemeCollection(value);
+  if (value !== undefined && !collection) {
+    throw new Error("Theme collections need a valid id and label.");
   }
-  return overrides;
+  return collection;
 }
 
 export function parseThemeFile(value: unknown): ThemeDefinition {
@@ -45,74 +92,74 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
     throw new Error("Theme files must contain a JSON object.");
   }
   if (value.version !== THEME_FILE_VERSION) {
-    throw new Error(`This theme file uses an unsupported version. Expected ${THEME_FILE_VERSION}.`);
+    throw new Error(
+      `This theme file uses an unsupported version. Expected ${THEME_FILE_VERSION}.`,
+    );
   }
-
   const name = value.name;
   const appearance = value.appearance;
-  const rawColors = value.colors;
-  if (!isThemeLabel(name)) throw new Error("Theme files need a name (48 characters or fewer).");
   if (!isThemeAppearance(appearance)) {
     throw new Error('Theme files need an appearance of "light" or "dark".');
   }
-  if (!isRecord(rawColors)) throw new Error("Theme files need a colors object.");
+  if (!isThemeLabel(name)) throw new Error("Theme files need a name (48 characters or fewer).");
 
-  const id = value.id === undefined ? themeIdFromName(name) : value.id;
-  if (!isThemeId(id)) {
-    throw new Error("Theme ids may only contain lowercase letters, numbers, and hyphens.");
-  }
-  if (RESERVED_THEME_IDS.has(id)) {
-    throw new Error(`The theme id "${id}" is reserved.`);
-  }
+  const { id } = themeFileIdentity(name, typeof value.id === "string" ? value.id : undefined);
+  const collection = parseCollectionField(value.collection);
 
-  const overrides = parseThemeColorOverrides(rawColors);
-  const collection = parseThemeCollection(value.collection);
-  if (value.collection !== undefined && !collection) {
-    throw new Error("Theme collections need a valid id and label.");
-  }
-
-  const fallback = getDefaultThemeColors(appearance);
-  const variants: Partial<Record<ThemeAppearance, ThemeColors>> = {};
+  const modes: Partial<Record<ThemeAppearance, AppModeSpec>> = {
+    [appearance]: parseAppModeSpec(value, "Theme files"),
+  };
   if (value.variants !== undefined) {
     if (!isRecord(value.variants)) throw new Error("Theme variants must be an object.");
-    for (const [variantAppearance, variantColors] of Object.entries(value.variants)) {
+    for (const [variantAppearance, raw] of Object.entries(value.variants)) {
       if (!isThemeAppearance(variantAppearance)) {
         throw new Error('Theme variants may only be named "light" or "dark".');
       }
       if (variantAppearance === appearance) {
         throw new Error(`Theme variants must not repeat the base appearance "${appearance}".`);
       }
-      const variantFallback = getDefaultThemeColors(variantAppearance);
-      const variantOverrides = parseThemeColorOverrides(variantColors);
-      variants[variantAppearance] = inheritUnspecifiedMenu({
-        ...variantFallback,
-        ...variantOverrides,
-      }, variantOverrides);
+      modes[variantAppearance] = parseAppModeSpec(raw, "Theme variants");
     }
   }
 
-  return {
+  return createThemeDefinition({
     id,
-    label: name.trim(),
+    label: name,
     appearance,
-    colors: inheritUnspecifiedMenu({ ...fallback, ...overrides }, overrides),
-    ...(Object.keys(variants).length > 0 ? { variants } : {}),
+    modes,
     ...(collection ? { collection } : {}),
-    ...(value.managed === true ? { managed: true } : {}),
+    managed: value.managed === true,
+  });
+}
+
+/** The stored row a theme is written as — always the current file shape. */
+export function serializeThemeRecord(theme: ThemeDefinition): Record<string, unknown> {
+  const base = theme.modes[theme.appearance];
+  if (!base) {
+    throw new Error(`Theme "${theme.label}" is missing its base mode.`);
+  }
+  const variants: Record<string, unknown> = {};
+  for (const mode of ["light", "dark"] as const) {
+    if (mode === theme.appearance) continue;
+    const spec = theme.modes[mode];
+    if (!spec) continue;
+    variants[mode] = spec.overrides
+      ? { seeds: spec.seeds, overrides: spec.overrides }
+      : { seeds: spec.seeds };
+  }
+  return {
+    version: THEME_FILE_VERSION,
+    id: theme.id,
+    name: theme.label,
+    appearance: theme.appearance,
+    seeds: base.seeds,
+    ...(base.overrides ? { overrides: base.overrides } : {}),
+    ...(Object.keys(variants).length > 0 ? { variants } : {}),
+    ...(theme.collection ? { collection: theme.collection } : {}),
+    ...(theme.managed ? { managed: true } : {}),
   };
 }
 
 export function serializeThemeFile(theme: ThemeDefinition): string {
-  const canonicalTheme = canonicalizeThemeDefinition(theme);
-  const file: ThemeFile = {
-    version: THEME_FILE_VERSION,
-    id: canonicalTheme.id,
-    name: canonicalTheme.label,
-    appearance: canonicalTheme.appearance,
-    colors: canonicalTheme.colors,
-    ...(canonicalTheme.variants ? { variants: canonicalTheme.variants } : {}),
-    ...(canonicalTheme.collection ? { collection: canonicalTheme.collection } : {}),
-    ...(canonicalTheme.managed ? { managed: true } : {}),
-  };
-  return `${JSON.stringify(file, null, 2)}\n`;
+  return `${JSON.stringify(serializeThemeRecord(theme), null, 2)}\n`;
 }

@@ -8,14 +8,29 @@ import {
   getThemePreference,
 } from "../settings/theme";
 import {
+  DEFAULT_APPEARANCE_SETTINGS,
+  type AppearanceSettings,
+} from "./appearance";
+import {
   applyAppearanceChrome,
   applyUsageMonitorTheme,
   systemPrefersDark,
 } from "./apply";
-import { applyThemeColorPreview } from "./preview";
+import { applyUiPalettePreview } from "./preview";
 import { createThemePreviewCoordinator } from "./preview-session";
 
 export type { ThemePreviewSession } from "./preview-session";
+
+/**
+ * The most recently applied appearance settings. Previews are painted through
+ * the same resolver as production themes, with the same contrast/glass
+ * settings, so a draft previews the way it will look when saved.
+ */
+let lastAppliedAppearance: AppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
+
+export function getLastAppliedAppearanceSettings(): AppearanceSettings {
+  return lastAppliedAppearance;
+}
 
 export async function refreshAppliedAppearance(): Promise<void> {
   await loadCustomThemesIntoMemory();
@@ -25,10 +40,12 @@ export async function refreshAppliedAppearance(): Promise<void> {
     getThemeHalves(),
     getAppearanceSettings(),
   ]);
+  lastAppliedAppearance = appearance;
   applyUsageMonitorTheme(theme, {
     appearanceMode,
     halves,
     systemDark: systemPrefersDark(),
+    appearance,
   });
   applyAppearanceChrome(appearance);
 }
@@ -43,7 +60,10 @@ export async function refreshAppliedAppearanceAndBroadcast(): Promise<void> {
  *  and the theme editor take turns; a superseded owner can never repaint over
  *  a newer draft. */
 export const themePreview = createThemePreviewCoordinator({
-  apply: ({ colors, appearance }) => applyThemeColorPreview(colors, appearance),
+  apply: (paint) => applyUiPalettePreview(paint, {
+    appearanceContrast: lastAppliedAppearance.appearanceContrast,
+    glassOpacity: lastAppliedAppearance.glassOpacity,
+  }),
   restore: () => refreshAppliedAppearanceAndBroadcast(),
 });
 

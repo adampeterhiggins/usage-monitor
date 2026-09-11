@@ -4,10 +4,13 @@ import {
   createThemePreviewCoordinator,
   type ThemePreviewEffects,
 } from "./preview-session";
-import type { ThemeColors } from "./types";
+import type { AppModeSpec } from "./source-types";
+import type { UiPalettePaint } from "./preview";
 
-const PAINT = { colors: {} as ThemeColors, appearance: "light" as const };
-const PAINT_DARK = { colors: {} as ThemeColors, appearance: "dark" as const };
+const SOURCE: AppModeSpec = { seeds: { canvas: "#ffffff", accent: "#138af2" } };
+
+const PAINT: UiPalettePaint = { source: SOURCE, appearance: "light" };
+const PAINT_DARK: UiPalettePaint = { source: SOURCE, appearance: "dark" };
 
 function makeEffects() {
   return {

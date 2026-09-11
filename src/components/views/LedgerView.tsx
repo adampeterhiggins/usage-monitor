@@ -30,9 +30,9 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerV
 
         return (
           <section key={account.id} className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 items-center justify-between gap-3 border-b border-separator pb-1.5">
+            <div className="flex min-w-0 items-center justify-between gap-3 border-b border-ui-subtle pb-1.5">
               <div className="flex min-w-0 items-baseline gap-2">
-                <Badge color={meta.accent} size="small" className="shrink-0">
+                <Badge color={meta.tone} size="small" className="shrink-0">
                   {meta.name}
                 </Badge>
                 <Text variant="strong" className="truncate">
@@ -75,7 +75,7 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerV
             ) : (
               <div className="flex flex-col gap-2 py-1.5">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-4 w-full animate-pulse rounded-full bg-control-subtle" />
+                  <div key={i} className="h-4 w-full animate-pulse rounded-full bg-ui-control" />
                 ))}
               </div>
             )}
@@ -98,7 +98,7 @@ function LedgerWindowRow({ window }: { window: UsageWindow }) {
       <Text variant="mini" color="quaternary" className="hidden max-w-56 shrink-0 truncate text-right @lg:block">
         {caption}
       </Text>
-      <div className="min-w-8 h-1.5 flex-1 overflow-hidden rounded-full bg-control-subtle">
+      <div className="min-w-8 h-1.5 flex-1 overflow-hidden rounded-full bg-ui-control">
         <div
           className={cn("h-full rounded-full transition-[width] duration-300 ease-out", severityFillClass(pct))}
           style={{ width: pct === undefined ? "0%" : `${pct}%` }}

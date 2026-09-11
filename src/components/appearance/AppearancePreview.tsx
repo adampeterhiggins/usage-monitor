@@ -1,18 +1,9 @@
 import type { CSSProperties } from "react";
 import { RefreshCw, Settings } from "lucide-react";
-import { isThemeColor } from "../../lib/theme/colors";
-import { getThemeColorVariable } from "../../lib/theme/preview";
-import { THEME_COLOR_ROLES, type ThemeColors } from "../../lib/theme/types";
+import type { ResolvedUiPalette } from "../../lib/theme/resolve-ui-palette";
+import { paletteToCssVariables } from "../../lib/theme/ui-palette-css";
+import { severityFillClass } from "../../lib/usage/presentation";
 import { cn } from "../../lib/utils";
-
-function cssVarsForThemeColors(colors: ThemeColors): CSSProperties {
-  const vars: Record<string, string> = {};
-  for (const role of THEME_COLOR_ROLES) {
-    const value = colors[role];
-    if (isThemeColor(value)) vars[getThemeColorVariable(role)] = value;
-  }
-  return vars as CSSProperties;
-}
 
 type MockBar = {
   label: string;
@@ -54,48 +45,47 @@ const MOCK_CARDS: ReadonlyArray<MockCard> = [
 ];
 
 const PROVIDER_TONES: Record<MockCard["providerTone"], string> = {
-  orange: "bg-support-orange/10 text-support-orange",
-  blue: "bg-support-blue/10 text-support-blue",
-  green: "bg-support-green/10 text-support-green",
+  orange: "bg-ui-provider-orange text-ui-provider-orange-fg",
+  blue: "bg-ui-provider-blue text-ui-provider-blue-fg",
+  green: "bg-ui-provider-green text-ui-provider-green-fg",
 };
 
-function barFill(pct: number): string {
-  if (pct >= 90) return "var(--support-red)";
-  if (pct >= 75) return "var(--support-orange)";
-  if (pct >= 50) return "var(--support-yellow)";
-  return "var(--support-green)";
-}
-
 /**
- * Miniature usage-monitor shell. Reads live theme / font / glass CSS vars from
- * the document so Appearance tweaks show up immediately without mirroring state.
- * Pass `colors` to bind a draft palette onto this shell instead of :root.
+ * Miniature usage-monitor shell built from the same semantic utilities and
+ * surface contexts as production. Pass a resolved `palette` to bind a draft
+ * onto this shell; otherwise it reads the live document variables (which the
+ * theme layer already painted), so Appearance tweaks show up immediately.
  */
 export function UsageMonitorPreview({
   className,
-  colors,
+  palette,
 }: {
   className?: string;
-  colors?: ThemeColors;
+  palette?: ResolvedUiPalette | null;
 }) {
   return (
     <div
       aria-hidden
+      data-ui-surface="canvas"
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-[14px] shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8",
-        colors && "theme-preview-shell",
+        "flex min-h-0 flex-col overflow-hidden rounded-[14px] shadow-menu ring-1 ring-ui-subtle",
         className,
       )}
       style={{
-        background: "var(--page-plane)",
-        color: "var(--text-primary)",
+        background: "var(--ui-canvas-background)",
+        color: "var(--ui-canvas-text-primary)",
         fontFamily: "var(--font-sans)",
         fontSize: "var(--font-size-interface)",
         WebkitFontSmoothing: "inherit",
-        ...(colors ? cssVarsForThemeColors(colors) : null),
+        colorScheme: palette?.appearance,
+        ...(palette ? (paletteToCssVariables(palette) as CSSProperties) : null),
       }}
     >
-      <div className="flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2">
+      <div
+        data-ui-surface="toolbar"
+        className="flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2"
+        style={{ color: "var(--local-text-primary)" }}
+      >
         <span className="truncate text-[12px] font-medium leading-none tracking-tight">
           AI Usage
         </span>
@@ -119,7 +109,8 @@ export function UsageMonitorPreview({
         {MOCK_CARDS.map((card) => (
           <div
             key={`${card.provider}-${card.label}`}
-            className="flex min-w-0 flex-col gap-2 rounded-[12px] border border-separator bg-surface p-2"
+            data-ui-surface="card"
+            className="ui-surface flex min-w-0 flex-col gap-2 rounded-[12px] border border-ui-subtle p-2"
           >
             <div className="flex min-w-0 items-center gap-1.5">
               <span
@@ -133,7 +124,7 @@ export function UsageMonitorPreview({
               <span className="min-w-0 truncate text-[11px] font-medium leading-none">
                 {card.label}
               </span>
-              <span className="min-w-0 truncate text-[9px] leading-none text-tertiary">
+              <span className="min-w-0 truncate text-[9px] leading-none text-ui-tertiary">
                 · {card.plan}
               </span>
             </div>
@@ -142,21 +133,21 @@ export function UsageMonitorPreview({
               {card.bars.map((bar) => (
                 <div key={bar.label} className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="min-w-0 truncate text-[9px] leading-none text-secondary">
+                    <span className="min-w-0 truncate text-[9px] leading-none text-ui-secondary">
                       {bar.label}
                     </span>
                     <span className="shrink-0 text-[9px] font-medium leading-none tabular-nums">
                       {bar.pct}%
                     </span>
                   </div>
-                  <div className="h-1 w-full overflow-hidden rounded-full bg-control-subtle">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-ui-track">
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: `${bar.pct}%`, background: barFill(bar.pct) }}
+                      className={cn("h-full rounded-full", severityFillClass(bar.pct))}
+                      style={{ width: `${bar.pct}%` }}
                     />
                   </div>
                   {bar.caption ? (
-                    <span className="truncate text-[8px] leading-none text-tertiary">
+                    <span className="truncate text-[8px] leading-none text-ui-tertiary">
                       {bar.caption}
                     </span>
                   ) : null}
@@ -164,16 +155,23 @@ export function UsageMonitorPreview({
               ))}
             </div>
 
-            <span className="pt-0.5 text-[8px] leading-none text-quaternary">
+            <span className="pt-0.5 text-[8px] leading-none text-ui-placeholder">
               updated just now
             </span>
           </div>
         ))}
-        {colors ? (
-          <div className="absolute right-2 top-0 w-[92px] rounded-[8px] bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8">
+        {palette ? (
+          <div
+            data-ui-surface="menu"
+            className="ui-surface absolute right-2 top-0 w-[92px] rounded-[8px] p-1 shadow-menu ring-1 ring-ui-subtle"
+          >
             <div className="rounded-md px-1.5 py-1 text-[8px] leading-none">Appearance</div>
-            <div className="rounded-md bg-control px-1.5 py-1 text-[8px] leading-none">Layout</div>
-            <div className="rounded-md px-1.5 py-1 text-[8px] leading-none text-secondary">Quit</div>
+            <div className="rounded-md bg-ui-selection px-1.5 py-1 text-[8px] leading-none text-ui-selection-fg">
+              Layout
+            </div>
+            <div className="rounded-md px-1.5 py-1 text-[8px] leading-none text-ui-secondary">
+              Quit
+            </div>
           </div>
         ) : null}
       </div>
@@ -194,16 +192,18 @@ export function AppearancePreview({
     <aside
       aria-hidden
       className={cn(
-        "flex w-[260px] shrink-0 flex-col border-l border-separator bg-control-subtle/40 p-3",
+        "flex w-[260px] shrink-0 flex-col border-l border-ui-subtle bg-ui-control/40 p-3",
         className,
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Preview</div>
+        <div className="text-[10px] font-medium uppercase tracking-wide text-ui-tertiary">
+          Preview
+        </div>
         {loading ? (
-          <div className="text-[10px] text-tertiary">Loading…</div>
+          <div className="text-[10px] text-ui-tertiary">Loading…</div>
         ) : caption ? (
-          <div className="min-w-0 truncate text-[10px] text-tertiary" title={caption}>
+          <div className="min-w-0 truncate text-[10px] text-ui-tertiary" title={caption}>
             {caption}
           </div>
         ) : null}

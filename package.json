@@ -15,7 +15,8 @@
     "release:manifest": "node scripts/build-update-manifest.mjs",
     "check:workflows": "node scripts/lint-workflows.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "dev:mock": "vite --mode mock"
+    "dev:mock": "vite --mode mock",
+    "generate:css": "esbuild scripts/generate-ui-palette-css.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/gen-ui-css.mjs && node node_modules/.cache/gen-ui-css.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

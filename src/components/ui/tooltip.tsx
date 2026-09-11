@@ -1,49 +1,37 @@
 import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
-export function TooltipProvider({ children }: { children: React.ReactNode }) {
-  return (
-    <TooltipPrimitive.Provider delayDuration={400} skipDelayDuration={200}>
-      {children}
-    </TooltipPrimitive.Provider>
-  );
-}
+import { cn } from "../../lib/utils";
 
-export function Tooltip({
-  children,
-  label,
-  shortcut,
-  side = "bottom",
-  disabled,
-}: {
-  children: React.ReactNode;
+export const TooltipProvider = TooltipPrimitive.Provider;
+
+interface TooltipProps {
   label: string;
   shortcut?: string[];
   side?: "top" | "right" | "bottom" | "left";
   disabled?: boolean;
-}) {
+  children: React.ReactElement;
+}
+
+export function Tooltip({ label, shortcut, side = "top", disabled, children }: TooltipProps) {
+  if (disabled) return children;
+
   return (
-    <TooltipPrimitive.Root open={disabled ? false : undefined}>
+    <TooltipPrimitive.Root delayDuration={400}>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          collisionPadding={8}
-          className="z-[100] flex items-center gap-1.5 rounded-full bg-menu px-2.5 py-1 text-[12px] leading-[16px] text-ink shadow-[0_4px_16px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+          data-ui-surface="menu"
+          className={cn(
+            "ui-surface z-[100] max-w-xs rounded-lg px-2.5 py-1.5 text-[11px] shadow-menu ring-1 ring-ui-subtle",
+            "animate-in fade-in-0 zoom-in-95 duration-100",
+          )}
         >
-          {label}
-          {shortcut && shortcut.length > 0 ? (
-            <span className="flex items-center gap-0.5 text-[11px] text-secondary">
-              {shortcut.map((key) => (
-                <kbd
-                  key={key}
-                  className="inline-flex min-w-4 items-center justify-center rounded-[5px] bg-control-subtle px-1 font-sans text-[11px] font-medium text-secondary"
-                >
-                  {key}
-                </kbd>
-              ))}
-            </span>
+          <span className="text-ui-primary">{label}</span>
+          {shortcut ? (
+            <span className="ml-1.5 text-ui-tertiary">{shortcut.join(" ")}</span>
           ) : null}
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>

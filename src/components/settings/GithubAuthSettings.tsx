@@ -138,16 +138,16 @@ export function GithubAuthSettings({
   }
 
   return (
-    <div className="border-t border-separator px-3 py-2">
+    <div className="border-t border-ui-subtle px-3 py-2">
       <div className="mb-1 text-[12px] font-semibold">GitHub</div>
-      <p className="mb-2 text-[11px] text-tertiary">
+      <p className="mb-2 text-[11px] text-ui-tertiary">
         Sign in to download updates from the private repository. This asks for the{" "}
         <code className="text-[10.5px]">repo</code> scope.
       </p>
 
       {needsClientId && !pending && !signedIn ? (
         <div className="mb-2">
-          <p className="mb-2 text-[11px] text-tertiary">
+          <p className="mb-2 text-[11px] text-ui-tertiary">
             Paste the OAuth App client ID (Device Authorization Grant enabled). The client secret is
             unused.
           </p>
@@ -155,7 +155,7 @@ export function GithubAuthSettings({
             value={clientIdDraft}
             onChange={(event) => setClientIdDraft(event.target.value)}
             placeholder="OAuth client ID"
-            className="mb-2 h-8 w-full rounded-lg border border-separator bg-surface px-2 text-[12px]"
+            className="mb-2 h-8 w-full rounded-lg border border-ui-input-border bg-ui-input px-2 text-[12px] text-ui-input-fg"
           />
           <Button
             size="small"
@@ -174,8 +174,8 @@ export function GithubAuthSettings({
       ) : null}
 
       {pending ? (
-        <div className="mb-2 rounded-lg bg-control-subtle px-2.5 py-2">
-          <div className="text-[11px] text-secondary">Enter this code in the browser GitHub opened:</div>
+        <div className="mb-2 rounded-lg bg-ui-control px-2.5 py-2">
+          <div className="text-[11px] text-ui-secondary">Enter this code in the browser GitHub opened:</div>
           <div className="mt-1 font-mono text-[15px] tracking-wide">{userCode}</div>
           <div className="mt-2 flex gap-2">
             <Button size="small" variant="glass" onClick={() => void handleCopyCode()}>
@@ -203,7 +203,7 @@ export function GithubAuthSettings({
         <div className="mt-2">
           <button
             type="button"
-            className="flex items-center gap-1 text-[11px] text-tertiary"
+            className="flex items-center gap-1 text-[11px] text-ui-tertiary"
             onClick={() => setTokenOpen((open) => !open)}
           >
             <ChevronDown className={cn("size-3.5 transition-transform", tokenOpen ? "rotate-0" : "-rotate-90")} />
@@ -211,7 +211,7 @@ export function GithubAuthSettings({
           </button>
           {tokenOpen ? (
             <div className="mt-2">
-              <p className="mb-2 text-[11px] text-tertiary">
+              <p className="mb-2 text-[11px] text-ui-tertiary">
                 Import from the gh CLI or paste a PAT with repo read access — useful for a
                 single-repo fine-grained token.
               </p>
@@ -220,7 +220,7 @@ export function GithubAuthSettings({
                 value={tokenDraft}
                 onChange={(event) => setTokenDraft(event.target.value)}
                 placeholder="ghp_…"
-                className="mb-2 h-8 w-full rounded-lg border border-separator bg-surface px-2 text-[12px]"
+                className="mb-2 h-8 w-full rounded-lg border border-ui-input-border bg-ui-input px-2 text-[12px] text-ui-input-fg"
               />
               <div className="flex gap-2">
                 <Button size="small" variant="glass" onClick={() => void handleImportGh()}>

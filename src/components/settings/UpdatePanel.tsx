@@ -11,7 +11,7 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-[12px] font-semibold">Updates</div>
-          <div className="text-[11px] text-tertiary">
+          <div className="text-[11px] text-ui-tertiary">
             {state.currentVersion ? `Running ${state.currentVersion}` : "Reading version…"}
           </div>
         </div>
@@ -26,11 +26,11 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
       </div>
 
       {state.phase === "error" && state.error ? (
-        <p className="text-[11px] text-support-red">{state.error}</p>
+        <p className="text-[11px] text-ui-status-critical-text">{state.error}</p>
       ) : null}
 
       {state.phase === "up-to-date" ? (
-        <p className="text-[11px] text-secondary">
+        <p className="text-[11px] text-ui-secondary">
           Up to date.
           {state.lastCheckedAt ? ` Last checked ${new Date(state.lastCheckedAt).toLocaleString("en-GB")}.` : ""}
         </p>
@@ -45,7 +45,7 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
           {state.notes ? (
             <pre
               data-selectable
-              className="max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-control-subtle p-2 text-[11px] text-secondary"
+              className="max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-ui-control p-2 text-[11px] text-ui-secondary"
             >
               {state.notes}
             </pre>
@@ -60,20 +60,20 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
         <div>
           <div className="mb-1 flex justify-between text-[11px]">
             <span>Downloading {state.availableVersion}</span>
-            <span className="tabular-nums text-tertiary">
+            <span className="tabular-nums text-ui-tertiary">
               {pct != null ? `${pct}%` : formatBytes(state.downloadedBytes)}
               {state.totalBytes ? ` of ${formatBytes(state.totalBytes)}` : ""}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-control-subtle">
-            <div className="h-full rounded-full bg-support-blue" style={{ width: `${pct ?? 15}%` }} />
+          <div className="h-1.5 overflow-hidden rounded-full bg-ui-track">
+            <div className="h-full rounded-full bg-ui-status-info" style={{ width: `${pct ?? 15}%` }} />
           </div>
         </div>
       ) : null}
 
       {state.phase === "ready" ? (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] text-secondary">
+          <p className="text-[11px] text-ui-secondary">
             Version {state.availableVersion} is installed and takes effect after a restart.
           </p>
           <Button variant="accent" size="small" onClick={() => void state.restart()}>
@@ -82,7 +82,7 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
         </div>
       ) : null}
 
-      <p className="text-[10.5px] leading-relaxed text-quaternary">
+      <p className="text-[10.5px] leading-relaxed text-ui-placeholder">
         {hasToken
           ? "Updates come from this app's private repository, using your GitHub sign-in."
           : "Updates are served from a private repository. Sign in with GitHub to enable checks."}

@@ -18,7 +18,7 @@ import {
   type OpenVsxThemeSearchPage,
 } from "../../lib/theme/open-vsx/client";
 import { importOpenVsxThemeExtension } from "../../lib/theme/open-vsx/import";
-import { getThemeColorsForMode } from "../../lib/theme/registry";
+import { getThemeSpecForMode } from "../../lib/theme/source-types";
 import { replaceAndPersistThemeCollection } from "../../lib/settings/index";
 import type { ThemeDefinition } from "../../lib/theme/types";
 import { useAppearanceStore } from "../../state/appearance";
@@ -237,10 +237,14 @@ export function useThemeMarketplace(options: {
   function paintPreviewTheme(themeDef: ThemeDefinition) {
     const session = previewSessionRef.current;
     if (session?.isActive()) {
-      session.show({
-        colors: getThemeColorsForMode(themeDef, themeDef.appearance) ?? themeDef.colors,
-        appearance: themeDef.appearance,
-      });
+      // Paint the preferred mode when the theme has one; else its base mode.
+      const source =
+        getThemeSpecForMode(themeDef, preferredAppearance) ??
+        themeDef.modes[themeDef.appearance]!;
+      const appearance = getThemeSpecForMode(themeDef, preferredAppearance)
+        ? preferredAppearance
+        : themeDef.appearance;
+      session.show({ source, appearance });
     }
     setPreviewThemeId(themeDef.id);
   }

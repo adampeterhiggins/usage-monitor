@@ -26,8 +26,8 @@ function MetaRow({
 }) {
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 px-3 py-1.5">
-      <span className="text-[11px] text-tertiary">{label}</span>
-      <span className="text-right text-[12px] font-medium leading-[16px] break-all text-ink">{children}</span>
+      <span className="text-[11px] text-ui-tertiary">{label}</span>
+      <span className="text-right text-[12px] font-medium leading-[16px] break-all text-ui-primary">{children}</span>
     </div>
   );
 }
@@ -36,7 +36,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   return (
     <button
       type="button"
-      className="rounded-md px-1 py-0.5 -mx-1 text-ink transition-colors hover:bg-control-subtle"
+      className="rounded-md px-1 py-0.5 -mx-1 text-ui-primary transition-colors hover:bg-ui-control-hover"
       onClick={() => void copyValue(value, label)}
     >
       {value}
@@ -72,7 +72,8 @@ export function DeploymentInfoButton() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-50 w-72 overflow-hidden rounded-2xl bg-menu py-1.5 shadow-lg ring-1 ring-black/10"
+          data-ui-surface="menu"
+          className="ui-surface z-50 w-72 overflow-hidden rounded-2xl py-1.5 shadow-lg ring-1 ring-ui-subtle"
           onEscapeKeyDown={(event) => event.stopPropagation()}
         >
           <div className="px-3 pb-1 pt-1.5 text-[12px] font-semibold">This build</div>
@@ -88,7 +89,7 @@ export function DeploymentInfoButton() {
             <MetaRow label="PR">
               <button
                 type="button"
-                className="rounded-md px-1 py-0.5 -mx-1 text-support-blue transition-colors hover:bg-control-subtle"
+                className="rounded-md px-1 py-0.5 -mx-1 text-ui-accent transition-colors hover:bg-ui-control-hover"
                 onClick={() => void openExternal(info.prUrl!).catch((error) => toast.error(`Couldn't open PR: ${error}`))}
               >
                 #{info.prNumber}
@@ -99,7 +100,7 @@ export function DeploymentInfoButton() {
             <MetaRow label="Commit">
               <button
                 type="button"
-                className="rounded-md px-1 py-0.5 -mx-1 font-mono text-[12px] transition-colors hover:bg-control-subtle"
+                className="rounded-md px-1 py-0.5 -mx-1 font-mono text-[12px] transition-colors hover:bg-ui-control-hover"
                 onClick={() => {
                   if (info.commitUrl) {
                     void openExternal(info.commitUrl).catch(() => void copyValue(info.commit!, "commit"));
@@ -113,7 +114,7 @@ export function DeploymentInfoButton() {
             </MetaRow>
           ) : null}
           {!hasGitIdentity ? (
-            <p className="px-3 pb-1.5 pt-0.5 text-[11px] leading-relaxed text-quaternary">
+            <p className="px-3 pb-1.5 pt-0.5 text-[11px] leading-relaxed text-ui-placeholder">
               Branch and PR are recorded at build time. Release builds show the version and commit.
             </p>
           ) : null}

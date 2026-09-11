@@ -27,13 +27,14 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
 
   return (
     <div
+      data-ui-surface="card"
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-[18px] border border-separator bg-surface p-3.5",
-        isError && !snapshot && "border-support-red/40",
+        "ui-surface flex min-w-0 flex-col gap-3 rounded-[18px] border border-ui-subtle p-3.5",
+        isError && !snapshot && "border-ui-status-critical/60",
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <Badge color={meta.accent} className="shrink-0">
+        <Badge color={meta.tone} className="shrink-0">
           {meta.name}
         </Badge>
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
@@ -46,9 +47,9 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
             </Text>
           ) : null}
         </div>
-        {isLoading ? <LoaderCircle className="size-3.5 shrink-0 animate-spin text-tertiary" /> : null}
+        {isLoading ? <LoaderCircle className="size-3.5 shrink-0 animate-spin text-ui-tertiary" /> : null}
         {stale && !isLoading ? (
-          <TriangleAlert className="size-3.5 shrink-0 text-support-orange" aria-label="Stale data" />
+          <TriangleAlert className="size-3.5 shrink-0 text-ui-status-high-text" aria-label="Stale data" />
         ) : null}
         <AccountActionsMenu account={account} onEdit={onEdit} onRefresh={onRefresh} />
       </div>
@@ -83,8 +84,8 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
         <div className="flex flex-col gap-2.5">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex flex-col gap-1">
-              <div className="h-3 w-24 animate-pulse rounded-full bg-control-subtle" />
-              <div className="h-1.5 w-full animate-pulse rounded-full bg-control-subtle" />
+              <div className="h-3 w-24 animate-pulse rounded-full bg-ui-control" />
+              <div className="h-1.5 w-full animate-pulse rounded-full bg-ui-control" />
             </div>
           ))}
         </div>

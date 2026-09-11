@@ -57,32 +57,33 @@ function SortableAccountRow({
   return (
     <li
       ref={setNodeRef}
+      data-ui-surface="card"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
       }}
       className={cn(
-        "flex touch-none items-center gap-1 rounded-xl border border-separator/70 bg-surface px-1.5 py-1.5",
+        "ui-surface flex touch-none items-center gap-1 rounded-xl border border-ui-subtle px-1.5 py-1.5",
         isDragging ? "z-10 cursor-grabbing shadow-md" : "cursor-grab",
         account.hidden && !isDragging && "opacity-70",
       )}
       {...attributes}
       {...listeners}
     >
-      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-tertiary" aria-hidden>
+      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-ui-tertiary" aria-hidden>
         <GripVertical className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <Badge color={meta.accent} size="small">
+          <Badge color={meta.tone} size="small">
             {meta.name}
           </Badge>
-          <span className={cn("truncate text-[13px]", account.hidden ? "text-tertiary" : "text-ink")}>
+          <span className={cn("truncate text-[13px]", account.hidden ? "text-ui-tertiary" : "text-ui-primary")}>
             {account.label}
           </span>
         </div>
         {account.hidden ? (
-          <div className="mt-0.5 text-[11px] text-quaternary">Hidden from layouts</div>
+          <div className="mt-0.5 text-[11px] text-ui-placeholder">Hidden from layouts</div>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center" onPointerDown={(event) => event.stopPropagation()}>
@@ -110,7 +111,7 @@ function SortableAccountRow({
           variant="transparent"
           size="small"
           aria-label="Remove account"
-          className="text-support-red hover:text-support-red"
+          className="text-ui-status-critical-text hover:text-ui-status-critical-text"
           onClick={() => onRemove(account)}
         >
           <Trash2 className="size-3.5" />
@@ -208,12 +209,13 @@ export function AccountManagementDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 rounded-[16px] bg-black/25" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+        <Dialog.Overlay className="fixed inset-0 z-40 rounded-[16px] bg-ui-scrim" />
+        <Dialog.Content data-ui-surface="menu"
+          className="ui-surface fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(440px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl p-5 shadow-xl ring-1 ring-ui-subtle">
           <div className="flex shrink-0 items-start justify-between gap-3">
             <div>
               <Dialog.Title className="text-[16px] font-semibold">Manage Accounts</Dialog.Title>
-              <Dialog.Description className="mt-1 text-[12px] text-secondary">
+              <Dialog.Description className="mt-1 text-[12px] text-ui-secondary">
                 Add, edit, hide, remove, or drag to reorder. Order applies to Wall and Ledger layouts.
               </Dialog.Description>
             </div>
@@ -226,7 +228,7 @@ export function AccountManagementDialog({
 
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
             {ordered.length === 0 ? (
-              <div className="rounded-xl bg-control-subtle px-3 py-8 text-center">
+              <div className="rounded-xl bg-ui-control px-3 py-8 text-center">
                 <Text color="secondary">No accounts yet. Add one to get started.</Text>
               </div>
             ) : (
@@ -271,14 +273,15 @@ export function AccountManagementDialog({
             }}
           >
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-[80] rounded-[16px] bg-black/20" />
-              <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] w-[min(384px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
+              <Dialog.Overlay className="fixed inset-0 z-[80] rounded-[16px] bg-ui-scrim" />
+              <Dialog.Content data-ui-surface="menu"
+              className="ui-surface fixed left-1/2 top-1/2 z-[90] w-[min(384px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl p-4 shadow-xl ring-1 ring-ui-subtle">
                 {removeCandidate ? (
                   <>
                     <Dialog.Title className="text-[15px] font-semibold">
                       Remove {removeCandidate.label}?
                     </Dialog.Title>
-                    <Dialog.Description className="mt-1 text-[12px] text-secondary">
+                    <Dialog.Description className="mt-1 text-[12px] text-ui-secondary">
                       {PROVIDERS[removeCandidate.provider].name} · {removeCandidate.label} will be removed
                       from this monitor. Your provider login is unaffected.
                     </Dialog.Description>

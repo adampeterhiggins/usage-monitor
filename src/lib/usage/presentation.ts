@@ -1,4 +1,8 @@
-/** Severity mapping and class selection for usage percentages. */
+/** Severity mapping and class selection for usage percentages.
+ *
+ *  Severity reads resolved `status-*` roles — separate from the theme accent
+ *  and from provider identity colors. The thresholds are shared by production
+ *  views and the appearance preview so they never drift. */
 
 import type { UsageWindow } from "../../contracts/usage";
 
@@ -12,49 +16,60 @@ export function severity(pct?: number): Severity {
   return "ok";
 }
 
-export function severityColor(pct?: number): "green" | "yellow" | "orange" | "red" | "secondary" {
+/** The status tone backing a severity level. */
+export function severityStatusTone(
+  pct?: number,
+): "healthy" | "warning" | "high" | "critical" | "neutral" {
   switch (severity(pct)) {
     case "critical":
-      return "red";
+      return "critical";
     case "high":
-      return "orange";
+      return "high";
     case "warn":
-      return "yellow";
+      return "warning";
     case "ok":
-      return "green";
+      return "healthy";
     default:
-      return "secondary";
+      return "neutral";
   }
 }
 
 export function severityFillClass(pct?: number): string {
-  switch (severity(pct)) {
+  switch (severityStatusTone(pct)) {
     case "critical":
-      return "bg-support-red";
+      return "bg-ui-status-critical";
     case "high":
-      return "bg-support-orange";
-    case "warn":
-      return "bg-support-yellow";
-    case "ok":
-      return "bg-support-green";
+      return "bg-ui-status-high";
+    case "warning":
+      return "bg-ui-status-warning";
+    case "healthy":
+      return "bg-ui-status-healthy";
     default:
-      return "bg-control";
+      return "bg-ui-control";
   }
 }
 
 export function severityTextClass(pct?: number): string {
-  switch (severity(pct)) {
+  switch (severityStatusTone(pct)) {
     case "critical":
-      return "text-support-red";
+      return "text-ui-status-critical-text";
     case "high":
-      return "text-support-orange";
-    case "warn":
-      return "text-support-yellow";
-    case "ok":
-      return "text-support-green";
+      return "text-ui-status-high-text";
+    case "warning":
+      return "text-ui-status-warning-text";
+    case "healthy":
+      return "text-ui-status-healthy-text";
     default:
-      return "text-tertiary";
+      return "text-ui-tertiary";
   }
+}
+
+/** Badge color for a severity level — matches the Badge component's tones. */
+export function severityBadgeColor(
+  pct?: number,
+): "healthy" | "warning" | "high" | "critical" | "secondary" {
+  const tone = severityStatusTone(pct);
+  return tone === "neutral" ? "secondary" : tone;
 }
 
 export function worstPercent(windows: UsageWindow[]): number | undefined {

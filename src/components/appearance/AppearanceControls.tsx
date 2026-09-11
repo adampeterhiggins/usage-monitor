@@ -50,13 +50,13 @@ export function AppearanceModeControl({
             key={id}
             type="button"
             className={cn(
-              "flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] ring-1 ring-separator",
+              "flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] ring-1 ring-ui-subtle",
               mode === id ||
                 (id !== "system" &&
                   theme === id &&
                   mode === "system" &&
                   !getThemeDefinition(theme))
-                ? "bg-control"
+                ? "bg-ui-control"
                 : "bg-transparent",
             )}
             onClick={() => {
@@ -85,14 +85,14 @@ export function ThemeHalvesControl({
   const paletteOptions = [...BUILT_IN_THEMES, ...customThemes];
   return (
     <Section title="Auto mix (halves)">
-      <p className="text-[12px] text-tertiary">
+      <p className="text-[12px] text-ui-tertiary">
         When mode is Auto, use different themes for light and dark system appearance.
       </p>
       {(["light", "dark"] as const).map((half) => (
-        <label key={half} className="grid gap-1 text-[12px] text-secondary">
+        <label key={half} className="grid gap-1 text-[12px] text-ui-secondary">
           {half === "light" ? "Light half" : "Dark half"}
           <select
-            className="h-8 rounded-lg border border-separator bg-transparent px-2 text-[13px] text-ink"
+            className="h-8 rounded-lg border border-ui-input-border bg-ui-input px-2 text-[13px] text-ui-input-fg"
             value={halves?.[half] ?? ""}
             onChange={(event) => onChange(half, event.target.value)}
           >
@@ -119,7 +119,7 @@ export function AppearanceControls({
   return (
     <>
       <Section title="Contrast">
-        <div className="flex items-center justify-between text-[12px] text-secondary">
+        <div className="flex items-center justify-between text-[12px] text-ui-secondary">
           <span>Interface contrast</span>
           <span className="tabular-nums">{settings.appearanceContrast}%</span>
         </div>
@@ -132,7 +132,7 @@ export function AppearanceControls({
         />
       </Section>
       <Section title="Glass">
-        <div className="flex items-center justify-between text-[12px] text-secondary">
+        <div className="flex items-center justify-between text-[12px] text-ui-secondary">
           <span>Glass opacity</span>
           <span className="tabular-nums">{settings.glassOpacity}%</span>
         </div>
@@ -149,7 +149,7 @@ export function AppearanceControls({
           value={settings.fontFamilySans}
           onValueChange={(fontFamilySans) => onPatch({ fontFamilySans })}
         />
-        <div className="flex items-center justify-between text-[12px] text-secondary">
+        <div className="flex items-center justify-between text-[12px] text-ui-secondary">
           <span>Size</span>
           <span className="tabular-nums">{settings.fontSizeInterface}px</span>
         </div>
@@ -167,7 +167,7 @@ export function AppearanceControls({
           value={settings.fontFamilyCode}
           onValueChange={(fontFamilyCode) => onPatch({ fontFamilyCode })}
         />
-        <div className="flex items-center justify-between text-[12px] text-secondary">
+        <div className="flex items-center justify-between text-[12px] text-ui-secondary">
           <span>Size</span>
           <span className="tabular-nums">{settings.fontSizeCode}px</span>
         </div>

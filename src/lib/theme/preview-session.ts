@@ -6,12 +6,9 @@
  *  cleanup can never repaint over the newer draft. Effects are injected so the
  *  ownership logic is testable without a DOM. */
 
-import type { ThemeAppearance, ThemeColors } from "./types";
+import type { UiPalettePaint } from "./preview";
 
-export interface ThemePreviewPaint {
-  colors: ThemeColors;
-  appearance: ThemeAppearance;
-}
+export type ThemePreviewPaint = UiPalettePaint;
 
 export interface ThemePreviewEffects {
   /** Paint a draft palette onto the document. */

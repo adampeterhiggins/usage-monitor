@@ -5,6 +5,7 @@ import {
   removeCustomTheme,
   removeCustomThemes,
   replaceCustomThemeCollection,
+  updateCustomTheme,
 } from "../theme/custom-library";
 import type { ThemeDefinition } from "../theme/types";
 import { settingsStore } from "./store";
@@ -35,6 +36,16 @@ export async function replaceAndPersistThemeCollection(
   const installed = replaceCustomThemeCollection(collectionId, themes);
   await persistCustomThemesFromMemory();
   return installed;
+}
+
+export async function updateAndPersistTheme(
+  themeId: string,
+  replacement: ThemeDefinition,
+): Promise<ThemeDefinition> {
+  await loadCustomThemesIntoMemory();
+  const updated = updateCustomTheme(themeId, replacement);
+  await persistCustomThemesFromMemory();
+  return updated;
 }
 
 export async function removeAndPersistTheme(themeId: string): Promise<void> {

@@ -11,6 +11,7 @@ export const Button = React.forwardRef<
     size?: "small" | "medium" | "large";
     iconOnly?: boolean;
     className?: string;
+    style?: React.CSSProperties;
     type?: "button" | "submit";
     "aria-label"?: string;
   }
@@ -23,6 +24,7 @@ export const Button = React.forwardRef<
     size = "medium",
     iconOnly,
     className,
+    style,
     type = "button",
     "aria-label": ariaLabel,
   },
@@ -35,6 +37,7 @@ export const Button = React.forwardRef<
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={onClick}
+      style={style}
       className={cn(
         "inline-flex items-center justify-center gap-1.5 rounded-full no-drag transition-colors disabled:opacity-40",
         iconOnly && size === "large" && "size-8",
@@ -43,11 +46,16 @@ export const Button = React.forwardRef<
         !iconOnly && size === "small" && "h-7 px-2.5 text-[11px]",
         !iconOnly && size === "medium" && "h-8 px-3 text-[13px]",
         !iconOnly && size === "large" && "h-9 px-3.5 text-[13px]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-focus/40",
         variant === "glass" && "glass-button",
-        variant === "filled" && "bg-control text-ink hover:bg-control",
-        variant === "transparent" && "bg-transparent text-tertiary hover:bg-control-subtle",
-        variant === "accent" && "bg-support-blue text-white hover:opacity-90",
-        variant === "destructive" && "bg-support-red text-white hover:opacity-90",
+        variant === "filled" &&
+          "bg-ui-control text-ui-control-fg hover:bg-ui-control-hover active:bg-ui-control-pressed",
+        variant === "transparent" &&
+          "bg-transparent text-ui-tertiary hover:bg-ui-control-hover hover:text-ui-primary",
+        variant === "accent" &&
+          "bg-ui-action text-ui-action-fg hover:bg-ui-action-hover active:bg-ui-action-pressed",
+        variant === "destructive" &&
+          "bg-ui-destructive text-ui-destructive-fg hover:bg-ui-destructive-hover active:bg-ui-destructive-pressed",
         className,
       )}
     >
