@@ -4,7 +4,7 @@
 
 import { sha256 } from "@noble/hashes/sha2.js";
 
-import { fetchBytes, fetchText, header } from "../../platform/http";
+import { fetchBytes, fetchText, header } from "../../../platform/http";
 import { isRecord } from "../types";
 import {
   manifestLicenseMatches,

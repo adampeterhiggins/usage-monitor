@@ -50,7 +50,7 @@ The **public** key lives in `src-tauri/tauri.conf.json` and is committed — tha
 
 Updates are served from this private repository, so the running app needs GitHub credentials with read access. In **Settings → Updates**, use **Sign in with GitHub** (device flow). That asks for the `repo` scope. A PAT or **Import from gh** still works if you want a single-repo fine-grained token instead.
 
-The OAuth App is already registered. Enable **Device Authorization Grant** on it if that is still off. The public client ID lives in `src/lib/github-oauth.ts`; leave the client secret unused.
+The OAuth App is already registered. Enable **Device Authorization Grant** on it if that is still off. The public client ID lives in `src/lib/updates/githubAuth.ts`; leave the client secret unused.
 
 ### Cutting a release
 
@@ -91,16 +91,27 @@ So the manifest lives on the `releases` branch (a stable URL, unlike per-release
 
 ```
 src/
-  lib/
-    usage/           Claude / Codex / Cursor fetchers + TTL cache
-    accounts.ts      persisted accounts (credentials never rendered)
-    settings.ts      shortcuts, layout, theme, GitHub auth
-    github-oauth.ts  device-flow sign-in for private-repo updates
-    claude-oauth.ts  Claude Code PKCE sign-in (per-account session)
-    codex-oauth.ts   Codex device-flow sign-in (per-account session)
-    cursor-login.ts  Cursor browser PKCE sign-in + local CLI fallback
-    updates.ts       Tauri updater, private-repo auth headers
-  components/        cards, layouts, settings popover
+  AppRoot.tsx        QueryClient, window selection, global hosts
+  windows/           PanelApp + AppearanceApp — distinct lifecycles
+  state/             observable stores (accounts, usage, appearance,
+                     updates, preferences) — no rendering
+  hooks/             React/browser lifecycle (panel keys, lifecycle,
+                     updater poller, appearance refresh)
+  components/        cards, layouts (views/), dialogs, ui/ primitives
+  providers/         per-provider auth + usage translation
+                     (claude/, codex/, cursor/, shared/, registry)
+  contracts/         domain + capability shapes (no React/Tauri)
+  lib/               non-React operations: accounts persistence,
+                     usage policy/format, settings document, theme,
+                     updates service + GitHub auth, utils
+  platform/          the only layer importing @tauri-apps/* —
+                     windows, credentials, persistence, events, http,
+                     external actions, app lifecycle, updates, shortcuts
+  testing/           fixtures + platform-mock (vite --mode mock)
 src-tauri/
   src/lib.rs         tray, accessory policy, show/hide, keychain/home-file/Cursor IDE reads
 ```
+
+`npm run check` includes `check:boundaries`, which rejects imports that
+cross these lines (e.g. `@tauri-apps/*` outside `platform/`, React or
+state inside `contracts/`, `lib/`, or `providers/`).

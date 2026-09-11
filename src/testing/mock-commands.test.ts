@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseAuthJson } from "../lib/usage/codex";
-import { parseUsage } from "../lib/usage/claude";
-import { sessionCookieFromJwt } from "../lib/usage/cursor";
+import { parseAuthJson } from "../providers/codex/usage";
+import { parseUsage } from "../providers/claude/usage";
+import { sessionCookieFromJwt } from "../providers/cursor/usage";
 import { MOCK_CURSOR_SESSION_JWT } from "./fixtures";
 import { handleCommand } from "./mock-commands";
 

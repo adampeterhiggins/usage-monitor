@@ -3,9 +3,9 @@
  *  `getAccountAuth` is the only secret-bearing read and exists for the
  *  edit form and usage fetchers. */
 
-import type { Account, AccountPublic } from "../contracts/accounts";
-import { toPublic } from "../contracts/accounts";
-import type { AccountAuth } from "../contracts/auth";
+import type { Account, AccountPublic } from "../../contracts/accounts";
+import { toPublic } from "../../contracts/accounts";
+import type { AccountAuth } from "../../contracts/auth";
 import { loadAccounts } from "./document";
 
 export async function listAccounts(): Promise<AccountPublic[]> {

@@ -1,4 +1,4 @@
-import { readGithubCliToken } from "../platform/external";
+import { readGithubCliToken } from "../../platform/external";
 import { settingsStore } from "./store";
 
 export type GithubAuthSource = "oauth" | "pat" | "gh";

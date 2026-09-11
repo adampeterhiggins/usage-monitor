@@ -11,7 +11,7 @@ const { mockFetchText, mockFetchBytes } = vi.hoisted(() => ({
   mockFetchBytes: vi.fn(),
 }));
 
-vi.mock("../../platform/http", () => ({
+vi.mock("../../../platform/http", () => ({
   fetchText: mockFetchText,
   fetchBytes: mockFetchBytes,
   header: (headers: Record<string, string>, name: string) =>

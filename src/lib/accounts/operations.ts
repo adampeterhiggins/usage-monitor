@@ -4,12 +4,12 @@
  *  their own copy. Usage-cache invalidation rides along so a credential or
  *  removal never serves a stale snapshot. */
 
-import type { Account, AccountPublic } from "../contracts/accounts";
-import { toPublic } from "../contracts/accounts";
-import type { AccountAuth } from "../contracts/auth";
-import { authAllowedForProvider } from "../contracts/auth";
-import type { ProviderId } from "../contracts/providers";
-import { invalidate } from "../usage/cache";
+import type { Account, AccountPublic } from "../../contracts/accounts";
+import { toPublic } from "../../contracts/accounts";
+import type { AccountAuth } from "../../contracts/auth";
+import { authAllowedForProvider } from "../../contracts/auth";
+import type { ProviderId } from "../../contracts/providers";
+import { invalidate } from "../usage/policy";
 import { loadAccounts, persistAccounts } from "./document";
 
 export interface AccountInput {
