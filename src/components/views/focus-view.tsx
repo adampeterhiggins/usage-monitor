@@ -9,7 +9,7 @@ import {
   type ProviderId,
 } from "../../lib/usage/types";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
-import type { AccountFetchState } from "../accounts/account-card";
+import type { AccountFetchState } from "../../lib/usage/service";
 import { UsageProgress } from "../ui/usage-progress";
 import { Badge, Button, cn, Text } from "../ui";
 
@@ -19,7 +19,6 @@ interface FocusViewProps {
   selectedId: string | null;
   onSelectedIdChange: (id: string | null) => void;
   onEdit: (account: AccountPublic) => void;
-  onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
 }
 
@@ -29,7 +28,6 @@ export function FocusView({
   selectedId,
   onSelectedIdChange,
   onEdit,
-  onRemoved,
   onRefresh,
 }: FocusViewProps) {
   const flat = grouped.flatMap((g) => g.accounts);
@@ -107,7 +105,7 @@ export function FocusView({
                 </div>
                 {snapshot?.planLabel ? <Text color="tertiary">{snapshot.planLabel}</Text> : null}
               </div>
-              <AccountActionsMenu account={selected} onEdit={onEdit} onRemoved={onRemoved} onRefresh={onRefresh} />
+              <AccountActionsMenu account={selected} onEdit={onEdit} onRefresh={onRefresh} />
             </div>
 
             {snapshot ? (

@@ -9,18 +9,17 @@ import {
   type UsageWindow,
 } from "../../lib/usage/types";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
-import type { AccountFetchState } from "../accounts/account-card";
+import type { AccountFetchState } from "../../lib/usage/service";
 import { Badge, Button, cn, Text } from "../ui";
 
 interface LedgerViewProps {
   accounts: AccountPublic[];
   fetchStates: Record<string, AccountFetchState>;
   onEdit: (account: AccountPublic) => void;
-  onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
 }
 
-export function LedgerView({ accounts, fetchStates, onEdit, onRemoved, onRefresh }: LedgerViewProps) {
+export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerViewProps) {
   return (
     <div className="flex flex-col gap-5 p-4 pb-8">
       {accounts.map((account) => {
@@ -55,7 +54,7 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRemoved, onRefresh
                       ? `${stale ? "stale · " : ""}${formatFetchedAt(snapshot.fetchedAt)}`
                       : ""}
                 </Text>
-                <AccountActionsMenu account={account} onEdit={onEdit} onRemoved={onRemoved} onRefresh={onRefresh} />
+                <AccountActionsMenu account={account} onEdit={onEdit} onRefresh={onRefresh} />
               </div>
             </div>
 

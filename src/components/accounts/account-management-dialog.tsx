@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
-import { removeAccount, reorderAccounts, setAccountHidden } from "../../lib/accounts";
+import { useAccountsStore } from "../../lib/accounts";
 import { toast } from "../../lib/platform/toast";
 import { PROVIDERS, type AccountPublic } from "../../lib/usage/types";
 import { Badge, Button, cn, Text } from "../ui";
@@ -30,7 +30,6 @@ interface AccountManagementDialogProps {
   accounts: AccountPublic[];
   onAddAccount: () => void;
   onEditAccount: (account: AccountPublic) => void;
-  onAccountsChanged: () => void;
 }
 
 function SortableAccountRow({
@@ -123,7 +122,6 @@ export function AccountManagementDialog({
   accounts,
   onAddAccount,
   onEditAccount,
-  onAccountsChanged,
 }: AccountManagementDialogProps) {
   const [ordered, setOrdered] = React.useState<AccountPublic[]>([]);
   const [removeCandidate, setRemoveCandidate] = React.useState<AccountPublic | null>(null);
@@ -147,8 +145,7 @@ export function AccountManagementDialog({
     const previous = ordered;
     setOrdered(next);
     try {
-      await reorderAccounts(next.map((a) => a.id));
-      onAccountsChanged();
+      await useAccountsStore.getState().reorder(next.map((a) => a.id));
     } catch (error) {
       setOrdered(previous);
       toast.error("Couldn’t reorder accounts", {
@@ -169,8 +166,7 @@ export function AccountManagementDialog({
   async function handleToggleHidden(account: AccountPublic) {
     setBusyId(account.id);
     try {
-      await setAccountHidden(account.id, !account.hidden);
-      onAccountsChanged();
+      await useAccountsStore.getState().setHidden(account.id, !account.hidden);
     } catch (error) {
       toast.error("Couldn’t update account visibility", {
         description: error instanceof Error ? error.message : String(error),
@@ -185,9 +181,8 @@ export function AccountManagementDialog({
     const meta = PROVIDERS[removeCandidate.provider];
     setBusyId(removeCandidate.id);
     try {
-      await removeAccount(removeCandidate.id);
+      await useAccountsStore.getState().remove(removeCandidate.id);
       toast.success("Account removed", { description: `${meta.name} · ${removeCandidate.label}` });
-      onAccountsChanged();
       setRemoveCandidate(null);
     } catch (error) {
       toast.error("Couldn’t remove account", {

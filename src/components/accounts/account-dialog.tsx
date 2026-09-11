@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { addAccount, getAccountSecret, updateAccount } from "../../lib/accounts";
+import { getAccountSecret, useAccountsStore } from "../../lib/accounts";
 import {
   CURSOR_IDE_PIN,
   cursorIdeLoginMeta,
@@ -25,7 +25,6 @@ interface AccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: AccountPublic | null;
-  onSaved: () => void;
 }
 
 function inferAuthMethod(provider: ProviderId, credential: string): AuthMethod {
@@ -36,7 +35,7 @@ function inferAuthMethod(provider: ProviderId, credential: string): AuthMethod {
   return "signin";
 }
 
-export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountDialogProps) {
+export function AccountDialog({ open, onOpenChange, account }: AccountDialogProps) {
   const editing = !!account;
   const [provider, setProvider] = React.useState<ProviderId>("claude");
   const [label, setLabel] = React.useState("");
@@ -167,8 +166,9 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
     setError(null);
     try {
       const nextCredential = authMethod === "local" ? "" : credential.trim();
+      const accounts = useAccountsStore.getState();
       if (editing && account) {
-        await updateAccount({
+        await accounts.update({
           id: account.id,
           provider,
           label: label.trim(),
@@ -177,7 +177,7 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
         });
         toast.success("Account updated", { description: `${meta.name} · ${label.trim()}` });
       } else {
-        await addAccount({
+        await accounts.add({
           provider,
           label: label.trim(),
           credential: nextCredential,
@@ -185,7 +185,6 @@ export function AccountDialog({ open, onOpenChange, account, onSaved }: AccountD
         });
         toast.success("Account added", { description: `${meta.name} · ${label.trim()}` });
       }
-      onSaved();
       onOpenChange(false);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
