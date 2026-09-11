@@ -42,8 +42,8 @@ export function AppearancePanel() {
     : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-menu text-ink">
-      <div className="flex gap-1 border-b border-separator px-3 py-2">
+    <div data-ui-surface="menu" className="ui-surface flex h-full min-h-0 flex-col">
+      <div className="flex gap-1 border-b border-ui-subtle px-3 py-2">
         {(
           [
             ["themes", "Themes"],
@@ -56,7 +56,7 @@ export function AppearancePanel() {
             type="button"
             className={cn(
               "rounded-lg px-2.5 py-1 text-[12px]",
-              tab === id ? "bg-control text-ink" : "text-secondary hover:bg-control-subtle",
+              tab === id ? "bg-ui-control text-ui-primary" : "text-ui-secondary hover:bg-ui-control-hover",
             )}
             onClick={() => {
               if (tab === "openvsx" && id !== "openvsx") marketplace.dismissPreview();

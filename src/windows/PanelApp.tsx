@@ -113,7 +113,7 @@ export function PanelApp() {
       return (
         <div className="grid grid-cols-2 gap-3 p-4">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-control-subtle" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-ui-control" />
           ))}
         </div>
       );
@@ -180,7 +180,8 @@ export function PanelApp() {
     <div className="app-shell relative flex flex-col">
       <header
         ref={headerRef}
-        className="drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
+        data-ui-surface="toolbar"
+        className="ui-toolbar drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
         data-tauri-drag-region
         onMouseDown={(event) => {
           if (event.button !== 0) return;

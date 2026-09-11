@@ -197,7 +197,7 @@ describe("importOpenVsxThemeExtension", () => {
       expect(theme.collection?.id).toBe(EXTENSION.collectionId);
     }
     // Light + dark contributions of the same name family pair into one theme.
-    expect(themes.some((t) => t.variants?.dark || t.appearance === "dark")).toBe(true);
+    expect(themes.some((t) => t.modes.dark || t.appearance === "dark")).toBe(true);
   });
 
   it("rejects when the checksum does not match the package", async () => {

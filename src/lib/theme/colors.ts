@@ -1,6 +1,5 @@
 import "culori/css";
 import { converter, parse } from "culori/fn";
-import { THEME_COLOR_ROLES, type ThemeColorRole, type ThemeColors } from "./types";
 
 export function isThemeColor(value: unknown): value is string {
   return typeof value === "string" && toCanonicalThemeColor(value) !== null;
@@ -91,6 +90,31 @@ export function parseThemeRgbColor(value: string, fallback: ThemeRgbColor): Them
   return parsed ? themeOklchToRgb(parsed.color) : fallback;
 }
 
+/** Gamut-mapped sRGB (0–255) for a color, ignoring its alpha. */
+export function themeColorRgb(value: string): ThemeRgbColor | null {
+  const parsed = parseThemeColor(value);
+  return parsed ? themeOklchToRgb(parsed.color) : null;
+}
+
+/** The alpha channel of a parseable color, or null. */
+export function themeColorAlpha(value: string): number | null {
+  const parsed = parseThemeColor(value);
+  return parsed ? parsed.alpha : null;
+}
+
+/**
+ * Composite `color` over an opaque background. Returns null when either value
+ * fails to parse; the result is a concrete sRGB hex color.
+ */
+export function compositeThemeColor(color: string, opaqueBackground: string): string | null {
+  const parsed = parseThemeColor(color);
+  const background = themeColorRgb(opaqueBackground);
+  if (!parsed || !background) return null;
+  const rgb = themeOklchToRgb(parsed.color);
+  if (parsed.alpha >= 1) return themeRgbToHexColor(rgb);
+  return themeRgbToHexColor(mixThemeRgbColors(background, rgb, parsed.alpha));
+}
+
 export function themeRgbToHexColor(color: ThemeRgbColor): string {
   return `#${[color.r, color.g, color.b]
     .map((channel) =>
@@ -105,19 +129,6 @@ export function themeRgbToThemeColor(color: ThemeRgbColor): string {
   return formatOklchThemeColor(themeRgbToOklch(color));
 }
 
-export function decodeThemeColors(colors: ThemeColors): ThemeColors {
-  return Object.fromEntries(
-    THEME_COLOR_ROLES.map((role) => {
-      const color = toCanonicalThemeColor(colors[role]);
-      if (!color) {
-        throw new Error(
-          `The color for "${role}" must be a literal CSS color such as oklch(0.62 0.2 280).`,
-        );
-      }
-      return [role, color];
-    }),
-  ) as Record<ThemeColorRole, string>;
-}
 export function themeRgbToHsl(color: ThemeRgbColor): ThemeHslColor {
   const red = color.r / 255;
   const green = color.g / 255;

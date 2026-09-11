@@ -1,36 +1,39 @@
+import * as React from "react";
+
 import { cn } from "../../lib/utils";
 
-export function Text({
-  children,
-  variant = "body",
-  color = "primary",
-  className,
-}: {
+type Variant = "body" | "small" | "mini" | "strong" | "small-strong" | "large-strong";
+
+type Color = "default" | "secondary" | "tertiary" | "quaternary" | "red" | "orange";
+
+interface TextProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant?: Variant;
+  color?: Color;
   children: React.ReactNode;
-  variant?: "body" | "strong" | "small" | "small-strong" | "mini" | "large-strong";
-  color?: "primary" | "secondary" | "tertiary" | "quaternary" | "red" | "orange";
-  className?: string;
-}) {
+}
+
+export function Text({ variant = "body", color = "default", className, children, ...rest }: TextProps) {
+  const variants: Record<Variant, string> = {
+    body: "text-[13px] leading-[18px]",
+    small: "text-[11px] leading-[14px]",
+    mini: "text-[10px] leading-[13px]",
+    strong: "text-[13px] leading-[18px] font-semibold",
+    "small-strong": "text-[12px] leading-[16px] font-semibold",
+    "large-strong": "text-[15px] leading-[19px] font-semibold",
+  };
+
+  const colors: Record<Color, string> = {
+    default: "text-ui-primary",
+    secondary: "text-ui-secondary",
+    tertiary: "text-ui-tertiary",
+    quaternary: "text-ui-placeholder",
+    red: "text-ui-status-critical-text",
+    orange: "text-ui-status-high-text",
+  };
+
   return (
-    <span
-      className={cn(
-        variant === "strong" && "text-[13px] font-medium leading-[18px]",
-        variant === "small" && "text-[11px] font-normal leading-[14px]",
-        variant === "small-strong" && "text-[11px] font-medium leading-[14px]",
-        variant === "mini" && "text-[8px] font-normal leading-[10px]",
-        variant === "large-strong" && "text-[16px] font-medium leading-[22px]",
-        variant === "body" && "text-[13px] font-normal leading-[18px]",
-        color === "primary" && "text-ink",
-        color === "secondary" && "text-secondary",
-        color === "tertiary" && "text-tertiary",
-        color === "quaternary" && "text-quaternary",
-        color === "red" && "text-support-red",
-        color === "orange" && "text-support-orange",
-        className,
-      )}
-    >
+    <span className={cn(variants[variant], colors[color], className)} {...rest}>
       {children}
     </span>
   );
 }
-

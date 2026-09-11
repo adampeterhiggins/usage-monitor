@@ -26,7 +26,7 @@ export function UsageProgress({ label, usedPercent, resetsAt, detail, compact }:
         </Text>
       </div>
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-control-subtle"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-ui-track"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}

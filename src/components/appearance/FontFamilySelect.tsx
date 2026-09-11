@@ -131,17 +131,17 @@ export function FontFamilySelect({
               type="button"
               aria-label={resolvedAriaLabel}
               className={cn(
-                "flex h-8 min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-separator bg-transparent px-2 text-left text-[13px] text-ink outline-none",
-                "hover:bg-control-subtle focus-visible:ring-2 focus-visible:ring-support-blue/30",
+                "flex h-8 min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-ui-input-border bg-ui-input px-2 text-left text-[13px] text-ui-input-fg outline-none",
+                "hover:bg-ui-control-hover focus-visible:ring-2 focus-visible:ring-ui-focus/40",
               )}
             >
               <span className="min-w-0 truncate" style={{ fontFamily: selectedFamilyCss }}>
                 {selectedLabel}
                 {value.trim().length === 0 ? (
-                  <span className="ml-1.5 font-sans text-[11px] text-tertiary">default</span>
+                  <span className="ml-1.5 font-sans text-[11px] text-ui-tertiary">default</span>
                 ) : null}
               </span>
-              <ChevronDown className="size-3.5 shrink-0 text-tertiary" />
+              <ChevronDown className="size-3.5 shrink-0 text-ui-tertiary" />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
@@ -149,7 +149,8 @@ export function FontFamilySelect({
               align="start"
               sideOffset={4}
               collisionPadding={12}
-              className="z-[90] max-h-64 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto rounded-xl bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+              data-ui-surface="menu"
+              className="ui-surface z-[90] max-h-64 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto rounded-xl p-1 shadow-menu ring-1 ring-ui-subtle"
             >
               <FontOption
                 label={defaultLabel}
@@ -186,7 +187,7 @@ export function FontFamilySelect({
           size="small"
           variant="transparent"
           aria-label={kind === "mono" ? "Add monospace font" : "Add system font"}
-          className="h-8 w-8 shrink-0 rounded-lg border border-separator"
+          className="h-8 w-8 shrink-0 rounded-lg border border-ui-subtle"
           onClick={() => {
             setDraft("");
             setError(null);
@@ -208,9 +209,10 @@ export function FontFamilySelect({
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[95] bg-black/30" />
+          <Dialog.Overlay className="fixed inset-0 z-[95] bg-ui-scrim" />
           <Dialog.Content
-            className="fixed left-1/2 top-1/2 z-[100] w-[min(360px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10"
+            data-ui-surface="menu"
+            className="ui-surface fixed left-1/2 top-1/2 z-[100] w-[min(360px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl p-4 shadow-xl ring-1 ring-ui-subtle"
             onOpenAutoFocus={(event) => {
               event.preventDefault();
               inputRef.current?.focus();
@@ -226,13 +228,13 @@ export function FontFamilySelect({
                 </Button>
               </Dialog.Close>
             </div>
-            <p className="mb-3 text-[12px] text-tertiary">
+            <p className="mb-3 text-[12px] text-ui-tertiary">
               Type the exact PostScript / family name of an installed
               {kind === "mono" ? " monospace" : ""} font.
             </p>
             <input
               ref={inputRef}
-              className="h-9 w-full rounded-lg border border-separator bg-transparent px-2.5 text-[13px] outline-none"
+              className="h-9 w-full rounded-lg border border-ui-input-border bg-ui-input px-2.5 text-[13px] text-ui-input-fg outline-none"
               placeholder={kind === "mono" ? "e.g. JetBrains Mono" : "e.g. Hiragino Sans"}
               value={draft}
               onChange={(event) => {
@@ -251,7 +253,7 @@ export function FontFamilySelect({
                   : undefined,
               }}
             />
-            {error ? <p className="mt-2 text-[12px] text-support-red">{error}</p> : null}
+            {error ? <p className="mt-2 text-[12px] text-ui-status-critical-text">{error}</p> : null}
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="glass" onClick={() => setAddOpen(false)}>
                 Cancel
@@ -287,17 +289,17 @@ function FontOption({
         onSelect();
       }}
       className={cn(
-        "flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-[13px] text-ink outline-none",
-        "data-[highlighted]:bg-control-subtle",
+        "flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-[13px] text-ui-primary outline-none",
+        "data-[highlighted]:bg-ui-control-hover",
       )}
     >
       <span className="min-w-0 truncate" style={{ fontFamily: familyCss }}>
         {label}
         {badge ? (
-          <span className="ml-1.5 font-sans text-[10px] text-tertiary">{badge}</span>
+          <span className="ml-1.5 font-sans text-[10px] text-ui-tertiary">{badge}</span>
         ) : null}
       </span>
-      {selected ? <Check className="size-3.5 shrink-0 text-tertiary" /> : null}
+      {selected ? <Check className="size-3.5 shrink-0 text-ui-tertiary" /> : null}
     </DropdownMenu.Item>
   );
 }

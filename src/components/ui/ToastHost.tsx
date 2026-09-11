@@ -10,14 +10,15 @@ export function ToastHost() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`rounded-xl px-3 py-2 text-[12px] shadow-lg ring-1 ${
+          data-ui-surface="menu"
+          className={`ui-surface rounded-xl px-3 py-2 text-[12px] shadow-lg ring-1 ${
             t.tone === "error"
-              ? "bg-menu text-support-red ring-support-red/20"
-              : "bg-menu text-ink ring-black/10"
+              ? "text-ui-status-critical-text ring-ui-status-critical/40"
+              : "text-ui-primary ring-ui-subtle"
           }`}
         >
           <div className="font-semibold">{t.title}</div>
-          {t.description ? <div className="mt-0.5 text-secondary">{t.description}</div> : null}
+          {t.description ? <div className="mt-0.5 text-ui-secondary">{t.description}</div> : null}
         </div>
       ))}
     </div>

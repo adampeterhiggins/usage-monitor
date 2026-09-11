@@ -24,7 +24,7 @@ import { Input } from "../ui/input";
 type AuthMethod = "signin" | "local" | "paste";
 
 const SELECT_CLASS =
-  "h-8 rounded-lg border border-separator bg-surface px-2 text-[13px] outline-none focus:ring-2 focus:ring-support-blue/30";
+  "h-8 rounded-lg border border-ui-input-border bg-ui-input px-2 text-[13px] text-ui-input-fg outline-none focus:border-ui-input-focus focus:ring-2 focus:ring-ui-focus/40";
 
 interface AccountDialogProps {
   open: boolean;
@@ -216,22 +216,23 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] rounded-[16px] bg-black/25" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[70] max-h-[calc(100vh-2rem)] w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-menu p-5 shadow-xl ring-1 ring-black/10">
+        <Dialog.Overlay className="fixed inset-0 z-[60] rounded-[16px] bg-ui-scrim" />
+        <Dialog.Content data-ui-surface="menu"
+          className="ui-surface fixed left-1/2 top-1/2 z-[70] max-h-[calc(100vh-2rem)] w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl p-5 shadow-xl ring-1 ring-ui-subtle">
           <Dialog.Title className="text-[16px] font-semibold">
             {editing ? "Edit Account" : "Add Account"}
           </Dialog.Title>
-          <Dialog.Description className="mt-1 text-[12px] leading-[16px] text-secondary">
+          <Dialog.Description className="mt-1 text-[12px] leading-[16px] text-ui-secondary">
             Credentials stay on this Mac.
           </Dialog.Description>
 
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-secondary">Provider</span>
+                <span className="text-[12px] font-medium text-ui-secondary">Provider</span>
                 <div
                   className={cn(
-                    "grid grid-cols-3 rounded-lg bg-control-subtle p-0.5",
+                    "grid grid-cols-3 rounded-lg bg-ui-control p-0.5",
                     editing && "opacity-60",
                   )}
                 >
@@ -250,7 +251,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                       }}
                       className={cn(
                         "h-7 rounded-md text-[12px] font-medium transition-colors",
-                        provider === id ? "bg-surface text-ink shadow-sm" : "text-secondary hover:text-ink",
+                        provider === id ? "bg-ui-card text-ui-primary shadow-sm" : "text-ui-secondary hover:text-ui-primary",
                       )}
                     >
                       {PROVIDERS[id].name}
@@ -260,7 +261,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               </div>
 
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-secondary">Label</span>
+                <span className="text-[12px] font-medium text-ui-secondary">Label</span>
                 <Input
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
@@ -270,7 +271,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               </label>
 
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-secondary">Sign-in method</span>
+                <span className="text-[12px] font-medium text-ui-secondary">Sign-in method</span>
                 <select
                   value={authMethod}
                   onChange={(e) => applyAuthMethod(e.target.value as AuthMethod)}
@@ -307,7 +308,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               <div className="flex flex-col gap-1.5">
                 {showKeychainPicker ? (
                   <>
-                    <span className="text-[11px] text-tertiary">
+                    <span className="text-[11px] text-ui-tertiary">
                       {nativeOptions.length} local logins found. Pin one if Automatic picks the wrong account.
                     </span>
                     <select
@@ -336,7 +337,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                     </select>
                   </>
                 ) : (
-                  <p className="text-[12px] leading-[16px] text-secondary">
+                  <p className="text-[12px] leading-[16px] text-ui-secondary">
                     Uses the {meta.nativeLoginName} login already on this Mac.
                   </p>
                 )}
@@ -355,7 +356,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               />
             ) : null}
 
-            {error ? <span className="text-[11px] text-support-red">{error}</span> : null}
+            {error ? <span className="text-[11px] text-ui-status-critical-text">{error}</span> : null}
           </div>
 
           <div className="mt-5 flex justify-end gap-2">

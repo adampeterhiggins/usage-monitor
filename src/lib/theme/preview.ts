@@ -1,141 +1,102 @@
-import { isThemeColor } from "./colors";
-import { getThemeColorsForMode, getThemeDefinition } from "./registry";
-import {
-  legacyThemeMode,
-  type ThemeAppearance,
-  type ThemeColorRole,
-  type ThemeColors,
-  type ThemePreference,
-} from "./types";
+/** Paint resolved UI palettes onto the document.
+ *
+ *  Preview (draft) and installed themes share one mechanism: an `AppModeSpec`
+ *  + appearance is resolved into a `ResolvedUiPalette`, serialized into
+ *  `--ui-*` variables, and written onto the root element. Production uses the
+ *  same path via `applyThemePalette`, so what the editor shows is what gets
+ *  saved. */
+
+import { resolveUiPalette, type ResolveUiPaletteOptions } from "./resolve-ui-palette";
+import { paletteToCssVariables } from "./ui-palette-css";
+import { UI_PALETTE_VARIABLES } from "./ui-tokens";
+import { getThemeDefinition, getThemePreferenceMode } from "./registry";
+import { type ThemeAppearance, type ThemePreference } from "./types";
+import { getThemeSpecForMode, type AppModeSpec } from "./source-types";
+import { stockModeSpec } from "./stock-source";
 
 const themePreviewListeners = new Set<() => void>();
-let themePreviewSidebarArtwork: boolean | null = null;
-
-export function getThemePreviewSidebarArtwork(): boolean | null {
-  return themePreviewSidebarArtwork;
-}
 
 export function subscribeToThemePreview(listener: () => void): () => void {
   themePreviewListeners.add(listener);
   return () => themePreviewListeners.delete(listener);
 }
 
-function setThemePreviewSidebarArtwork(next: boolean | null): void {
-  if (themePreviewSidebarArtwork === next) return;
-  themePreviewSidebarArtwork = next;
+function notifyThemePreview(): void {
   for (const listener of themePreviewListeners) listener();
 }
 
-const APP_THEME_VARIABLES: Readonly<Record<ThemeColorRole, string>> = {
-  canvas: "--app-theme-canvas",
-  chrome: "--app-theme-chrome",
-  toolbar: "--app-theme-toolbar",
-  toolbarForeground: "--app-theme-toolbar-foreground",
-  toolbarBorder: "--app-theme-toolbar-border",
-  toolbarControl: "--app-theme-toolbar-control",
-  toolbarControlForeground: "--app-theme-toolbar-control-foreground",
-  toolbarControlHover: "--app-theme-toolbar-control-hover",
-  surface: "--app-theme-surface",
-  menu: "--app-theme-menu",
-  surfaceRaised: "--app-theme-surface-raised",
-  surfaceOverlay: "--app-theme-surface-overlay",
-  text: "--app-theme-text",
-  textMuted: "--app-theme-text-muted",
-  border: "--app-theme-border",
-  input: "--app-theme-input",
-  focus: "--app-theme-focus",
-  accent: "--app-theme-accent",
-  accentForeground: "--app-theme-accent-foreground",
-  secondary: "--app-theme-secondary",
-  secondaryForeground: "--app-theme-secondary-foreground",
-  muted: "--app-theme-muted",
-  mutedForeground: "--app-theme-muted-foreground",
-  placeholder: "--app-theme-placeholder",
-  secondaryLabel: "--app-theme-secondary-label",
-  iconMuted: "--app-theme-icon-muted",
-  error: "--app-theme-error",
-  errorForeground: "--app-theme-error-foreground",
-  errorSurface: "--app-theme-error-surface",
-  warning: "--app-theme-warning",
-  warningForeground: "--app-theme-warning-foreground",
-  warningSurface: "--app-theme-warning-surface",
-  update: "--app-theme-update",
-  updateForeground: "--app-theme-update-foreground",
-  updateSurface: "--app-theme-update-surface",
-  accentSurface: "--app-theme-accent-surface",
-  accentSurfaceForeground: "--app-theme-accent-surface-foreground",
-  messageSurface: "--app-theme-message-surface",
-  messageForeground: "--app-theme-message-foreground",
-  messageAction: "--app-theme-message-action",
-  messageActionForeground: "--app-theme-message-action-foreground",
-  messageActionHover: "--app-theme-message-action-hover",
-  codeBackground: "--app-theme-code-background",
-  codeForeground: "--app-theme-code-foreground",
-  sidebar: "--app-theme-sidebar",
-  sidebarForeground: "--app-theme-sidebar-foreground",
-  sidebarMutedForeground: "--app-theme-sidebar-muted-foreground",
-  sidebarControlSurface: "--app-theme-sidebar-control-surface",
-  sidebarRowHover: "--app-theme-sidebar-row-hover",
-  sidebarRowActive: "--app-theme-sidebar-row-active",
-  sidebarRowSelected: "--app-theme-sidebar-row-selected",
-  sidebarBorder: "--app-theme-sidebar-border",
-  terminalBackground: "--app-theme-terminal-background",
-  terminalForeground: "--app-theme-terminal-foreground",
-  terminalCursor: "--app-theme-terminal-cursor",
-  terminalSelection: "--app-theme-terminal-selection-background",
-  terminalScrollbar: "--app-theme-terminal-scrollbar",
-  terminalScrollbarHover: "--app-theme-terminal-scrollbar-hover",
-};
-
-export function getThemeColorVariable(role: ThemeColorRole): string {
-  return APP_THEME_VARIABLES[role];
+/** What a preview session paints: a mode spec plus the mode it renders. */
+export interface UiPalettePaint {
+  source: AppModeSpec;
+  appearance: ThemeAppearance;
 }
 
-/** Marks the document as wearing an unsaved draft rather than a stored theme. */
-export const THEME_PREVIEW_ID = "__preview";
+/** Write a resolved palette onto an element, then mark the appearance. */
+export function applyUiPaletteToElement(
+  element: HTMLElement,
+  palette: ReturnType<typeof resolveUiPalette>,
+): void {
+  const vars = paletteToCssVariables(palette);
+  element.setAttribute("data-ui-stock", String(palette.stock));
+  for (const name of UI_PALETTE_VARIABLES) {
+    const value = vars[name];
+    if (value !== undefined) element.style.setProperty(name, value);
+  }
+}
+
+/** Remove every `--ui-*` variable (the stylesheet's static fallbacks win). */
+export function clearUiPaletteFromElement(element: HTMLElement): void {
+  element.removeAttribute("data-ui-stock");
+  for (const name of UI_PALETTE_VARIABLES) {
+    element.style.removeProperty(name);
+  }
+}
 
 /**
- * Paint a draft palette onto the live app without installing it, so the editor
+ * Paint a draft source onto the live app without installing it, so the editor
  * can be judged against the real interface instead of a miniature. Callers
- * restore the stored theme (refreshTheme) when the draft goes away.
+ * restore the stored theme (refreshAppliedAppearance) when the draft goes away.
  */
-export function applyThemeColorPreview(colors: ThemeColors, appearance: ThemeAppearance): void {
+export function applyUiPalettePreview(
+  paint: UiPalettePaint,
+  options?: ResolveUiPaletteOptions,
+): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   if (!root?.style) return;
 
-  // Drafts become user-controlled themes when saved, so their preview keeps
-  // the fixed stage artwork hidden even when it was seeded from a built-in.
-  setThemePreviewSidebarArtwork(false);
-  root.dataset.themeId = THEME_PREVIEW_ID;
-  root.classList.toggle("dark", appearance === "dark");
-  for (const [role, value] of Object.entries(colors) as Array<[ThemeColorRole, string]>) {
-    // A half-typed hex keeps the last good value instead of blanking the role.
-    if (isThemeColor(value)) root.style.setProperty(APP_THEME_VARIABLES[role], value);
-  }
+  const palette = resolveUiPalette(paint.source, paint.appearance, options);
+  applyUiPaletteToElement(root, palette);
+  root.setAttribute("data-theme", paint.appearance);
+  root.classList.toggle("dark", paint.appearance === "dark");
+  notifyThemePreview();
 }
 
-export function applyThemePalette(theme: ThemePreference, appearance?: ThemeAppearance): void {
+/**
+ * Paint an installed theme (or the stock look) for the given appearance.
+ * `appearance` defaults to the theme's own preferred mode.
+ */
+export function applyThemePalette(
+  theme: ThemePreference,
+  appearance?: ThemeAppearance,
+  options?: ResolveUiPaletteOptions,
+): void {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
   if (!root?.style) return;
 
-  setThemePreviewSidebarArtwork(null);
   const palette = getThemeDefinition(theme);
+  const mode = appearance ?? getThemePreferenceMode(theme) ?? "light";
+  const spec = palette
+    ? (getThemeSpecForMode(palette, mode) ?? palette.modes[palette.appearance])
+    : stockModeSpec(mode);
+  const specAppearance = palette
+    ? getThemeSpecForMode(palette, mode)
+      ? mode
+      : palette.appearance
+    : mode;
 
-  if (palette) {
-    root.dataset.themeId = palette.id;
-    const mode = appearance ?? legacyThemeMode(theme) ?? palette.appearance;
-    const colors = getThemeColorsForMode(palette, mode) ?? palette.colors;
-    for (const [role, value] of Object.entries(colors) as Array<[ThemeColorRole, string]>) {
-      root.style.setProperty(APP_THEME_VARIABLES[role], value);
-    }
-    return;
-  }
-
-  delete root.dataset.themeId;
-  for (const variable of Object.values(APP_THEME_VARIABLES)) {
-    root.style.removeProperty(variable);
-  }
+  const resolved = resolveUiPalette(spec!, specAppearance, options);
+  applyUiPaletteToElement(root, resolved);
 }

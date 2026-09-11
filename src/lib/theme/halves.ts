@@ -1,4 +1,5 @@
-import { getThemeColorsForMode, getThemeDefinition } from "./registry";
+import { getThemeDefinition } from "./registry";
+import { getThemeSpecForMode } from "./source-types";
 import { isRecord, type ThemeAppearance, type ThemePreference } from "./types";
 
 /**
@@ -18,9 +19,7 @@ export function parseThemeHalves(raw: string | null): ThemeHalves | null {
       const themeId = value[appearance];
       if (typeof themeId !== "string") continue;
       const definition = getThemeDefinition(themeId);
-      if (definition && getThemeColorsForMode(definition, appearance) !== null) {
-        // Store the definition's id so legacy aliases resolve to the same
-        // value the runtime applies to the document.
+      if (definition && getThemeSpecForMode(definition, appearance) !== null) {
         halves[appearance] = definition.id;
       }
     }

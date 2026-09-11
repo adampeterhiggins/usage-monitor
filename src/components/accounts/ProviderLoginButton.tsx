@@ -15,13 +15,21 @@ import {
 import { toast } from "../ui/toast";
 import { PROVIDERS } from "../../providers/metadata";
 import type { ProviderId } from "../../contracts/providers";
-import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
-const ACCENT_CLASS = {
-  orange: "bg-support-orange",
-  green: "bg-support-green",
-  blue: "bg-support-blue",
+const PROVIDER_FILL_STYLE = {
+  orange: {
+    background: "var(--ui-canvas-provider-orange-background)",
+    color: "var(--ui-canvas-provider-orange-foreground)",
+  },
+  green: {
+    background: "var(--ui-canvas-provider-green-background)",
+    color: "var(--ui-canvas-provider-green-foreground)",
+  },
+  blue: {
+    background: "var(--ui-canvas-provider-blue-background)",
+    color: "var(--ui-canvas-provider-blue-foreground)",
+  },
 } as const;
 
 const attachedDone = new WeakSet<ProviderLoginSession>();
@@ -165,8 +173,8 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "device_code") {
     return (
-      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
-        <div className="text-[12px] text-secondary">Enter this code in the browser that opened:</div>
+      <div className="rounded-lg bg-ui-control px-3 py-2.5">
+        <div className="text-[12px] text-ui-secondary">Enter this code in the browser that opened:</div>
         <div className="mt-1 font-mono text-[15px] tracking-wide">{session.userCode}</div>
         <div className="mt-2 flex gap-2">
           <Button size="small" variant="glass" onClick={() => void handleCopyCode()}>
@@ -182,13 +190,13 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "paste_code") {
     return (
-      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
-        <div className="text-[12px] text-secondary">{session.prompt}</div>
+      <div className="rounded-lg bg-ui-control px-3 py-2.5">
+        <div className="text-[12px] text-ui-secondary">{session.prompt}</div>
         <input
           value={pasteCode}
           onChange={(event) => setPasteCode(event.target.value)}
           placeholder="Paste the full code (abc#xyz)"
-          className="mt-2 h-8 w-full rounded-lg border border-separator bg-surface px-2 text-[12px]"
+          className="mt-2 h-8 w-full rounded-lg border border-ui-input-border bg-ui-input px-2 text-[12px] text-ui-input-fg"
           autoComplete="off"
           spellCheck={false}
         />
@@ -211,8 +219,8 @@ export function ProviderLoginButton({
 
   if (pending && session.kind === "browser") {
     return (
-      <div className="rounded-lg bg-control-subtle px-3 py-2.5">
-        <div className="text-[12px] text-secondary">{session.prompt}</div>
+      <div className="rounded-lg bg-ui-control px-3 py-2.5">
+        <div className="text-[12px] text-ui-secondary">{session.prompt}</div>
         <div className="mt-2 flex gap-2">
           {session.verificationUri ? (
             <Button size="small" variant="glass" onClick={() => void openExternal(session.verificationUri!)}>
@@ -229,7 +237,7 @@ export function ProviderLoginButton({
 
   if (signedIn || hasCredential) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-xl bg-control-subtle px-3 py-2">
+      <div className="flex items-center justify-between gap-2 rounded-xl bg-ui-control px-3 py-2">
         <div className="min-w-0 text-[12px]">
           {signedIn ? `Signed in with ${PROVIDERS[provider].name}` : "Using a pasted credential"}
         </div>
@@ -252,7 +260,8 @@ export function ProviderLoginButton({
       variant="accent"
       disabled={disabled}
       onClick={() => void handleSignIn()}
-      className={cn("w-full", ACCENT_CLASS[PROVIDERS[provider].accent])}
+      className="w-full"
+      style={PROVIDER_FILL_STYLE[PROVIDERS[provider].tone]}
     >
       {signInLabel(provider)}
     </Button>

@@ -1,135 +1,192 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RotateCcw, X } from "lucide-react";
-import { themeColorToHex } from "../../lib/theme/colors";
-import { createVividThemeColors, updateThemeColorFamily } from "../../lib/theme/derive";
-import { getThemeColorsForMode, getThemeDefinition } from "../../lib/theme/registry";
-import { parseThemeFile } from "../../lib/theme/theme-file";
+import { getThemeDefinition } from "../../lib/theme/registry";
+import { getThemeSpecForMode, type AppOverrideRole } from "../../lib/theme/source-types";
 import {
-  THEME_FILE_VERSION,
-  type ThemeAppearance,
-  type ThemeColorRole,
-  type ThemeColors,
-  type ThemeDefinition,
-} from "../../lib/theme/types";
-import { installAndPersistTheme } from "../../lib/settings/index";
+  installAndPersistTheme,
+  updateAndPersistTheme,
+} from "../../lib/settings/index";
 import {
-  refreshAppliedAppearanceAndBroadcast,
+  getLastAppliedAppearanceSettings,
+  subscribeToAppearanceSettings,
   themePreview,
   type ThemePreviewSession,
 } from "../../lib/theme/controller";
+import { resolveUiPalette, type ResolvedUiPalette } from "../../lib/theme/resolve-ui-palette";
+import type { ThemeAppearance } from "../../lib/theme/types";
 import { toast } from "../ui/toast";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { UsageMonitorPreview } from "./AppearancePreview";
+import { PreviewBackdrop, UsageMonitorPreview } from "./AppearancePreview";
 import { useThemeEditorStore } from "./themeEditorStore";
+import {
+  addDraftMode,
+  colorPickerValue,
+  parseEditorColor,
+  draftModeSpec,
+  draftToTheme,
+  newThemeDraft,
+  resetDraftMode,
+  setDraftOverride,
+  setDraftSeed,
+  themeToDraft,
+  type ThemeEditorDraft,
+  type ThemeModeDraft,
+} from "./theme-draft";
 
-type ThemeDrafts = Partial<Record<ThemeAppearance, ThemeColors>>;
+type DraftField = { kind: "seed"; role: "canvas" | "accent" } | { kind: "override"; role: AppOverrideRole };
 
 const COLOR_GROUPS: ReadonlyArray<{
   title: string;
-  fields: ReadonlyArray<{ role: ThemeColorRole; label: string }>;
+  fields: ReadonlyArray<{ field: DraftField; label: string }>;
 }> = [
   {
-    title: "Surfaces",
+    title: "Seeds",
     fields: [
-      { role: "canvas", label: "Canvas" },
-      { role: "surface", label: "Cards" },
-      { role: "menu", label: "Menus" },
-      { role: "surfaceRaised", label: "Raised" },
-      { role: "surfaceOverlay", label: "Overlay" },
+      { field: { kind: "seed", role: "canvas" }, label: "Canvas" },
+      { field: { kind: "seed", role: "accent" }, label: "Accent" },
+    ],
+  },
+  {
+    title: "Backgrounds",
+    fields: [
+      { field: { kind: "override", role: "cardBackground" }, label: "Cards" },
+      { field: { kind: "override", role: "menuBackground" }, label: "Menus" },
+      { field: { kind: "override", role: "toolbarBackground" }, label: "Toolbar" },
     ],
   },
   {
     title: "Text",
     fields: [
-      { role: "text", label: "Primary" },
-      { role: "mutedForeground", label: "Muted" },
+      { field: { kind: "override", role: "textPrimary" }, label: "Primary" },
+      { field: { kind: "override", role: "textSecondary" }, label: "Secondary" },
+      { field: { kind: "override", role: "textTertiary" }, label: "Tertiary" },
+      { field: { kind: "override", role: "placeholder" }, label: "Placeholder" },
+      { field: { kind: "override", role: "cardForeground" }, label: "Cards" },
+      { field: { kind: "override", role: "menuForeground" }, label: "Menus" },
+      { field: { kind: "override", role: "toolbarForeground" }, label: "Toolbar" },
+      { field: { kind: "override", role: "accentText" }, label: "Links" },
     ],
   },
   {
-    title: "Chrome",
+    title: "Primary action",
     fields: [
-      { role: "border", label: "Border" },
-      { role: "secondary", label: "Controls" },
-      { role: "input", label: "Input" },
+      { field: { kind: "override", role: "actionBackground" }, label: "Fill" },
+      { field: { kind: "override", role: "actionForeground" }, label: "Text" },
+      { field: { kind: "override", role: "actionHoverBackground" }, label: "Hover" },
     ],
   },
   {
-    title: "Accent",
+    title: "Neutral controls",
     fields: [
-      { role: "accent", label: "Accent" },
-      { role: "accentSurface", label: "Accent fill" },
-      { role: "messageAction", label: "Action" },
+      { field: { kind: "override", role: "controlBackground" }, label: "Fill" },
+      { field: { kind: "override", role: "controlForeground" }, label: "Text" },
+      { field: { kind: "override", role: "controlHoverBackground" }, label: "Hover" },
+    ],
+  },
+  {
+    title: "Selection",
+    fields: [
+      { field: { kind: "override", role: "selectionBackground" }, label: "Fill" },
+      { field: { kind: "override", role: "selectionForeground" }, label: "Text" },
+      { field: { kind: "override", role: "selectionHoverBackground" }, label: "Hover" },
+    ],
+  },
+  {
+    title: "Inputs",
+    fields: [
+      { field: { kind: "override", role: "inputBackground" }, label: "Fill" },
+      { field: { kind: "override", role: "inputForeground" }, label: "Text" },
+      { field: { kind: "override", role: "inputPlaceholder" }, label: "Placeholder" },
+      { field: { kind: "override", role: "inputBorder" }, label: "Border" },
+    ],
+  },
+  {
+    title: "Borders & focus",
+    fields: [
+      { field: { kind: "override", role: "borderSubtle" }, label: "Subtle" },
+      { field: { kind: "override", role: "borderControl" }, label: "Controls" },
+      { field: { kind: "override", role: "focusRing" }, label: "Focus ring" },
     ],
   },
   {
     title: "Status",
     fields: [
-      { role: "update", label: "Healthy" },
-      { role: "warning", label: "Warning" },
-      { role: "error", label: "Error" },
+      { field: { kind: "override", role: "healthy" }, label: "Healthy" },
+      { field: { kind: "override", role: "warning" }, label: "Warning" },
+      { field: { kind: "override", role: "high" }, label: "High" },
+      { field: { kind: "override", role: "critical" }, label: "Error" },
+      { field: { kind: "override", role: "destructiveForeground" }, label: "Destructive action text" },
     ],
   },
 ];
 
-function defaultCanvasHex(appearance: ThemeAppearance): string {
-  return appearance === "dark" ? "#1c1c1e" : "#ffffff";
-}
-
-function opaqueHex(value: string, fallback = "#000000"): string {
-  const hex = themeColorToHex(value) ?? fallback;
-  return (hex.slice(0, 7) || fallback).toLowerCase();
-}
-
-function parseHexInput(value: string): string | null {
-  const trimmed = value.trim();
-  const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-  if (/^#[0-9a-fA-F]{3}$/.test(withHash)) {
-    const [, r, g, b] = withHash;
-    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
-  }
-  if (/^#[0-9a-fA-F]{6}$/.test(withHash)) return withHash.toLowerCase();
-  return null;
-}
-
-function paletteForMode(
-  seedTheme: ThemeDefinition | null,
-  appearance: ThemeAppearance,
-  accentHex?: string,
-): ThemeColors {
-  return (
-    (seedTheme && getThemeColorsForMode(seedTheme, appearance)) ??
-    createVividThemeColors(
-      appearance,
-      defaultCanvasHex(appearance),
-      accentHex ?? "#138af2",
-    )
-  );
-}
+/** Where each editable role's resolved value shows up — fields display the
+ *  derived value when no override is set, so every field is visibly live. */
+const RESOLVED_FIELD: Record<AppOverrideRole, (p: ResolvedUiPalette) => string> = {
+  cardBackground: (p) => p.contexts.card.background,
+  menuBackground: (p) => p.contexts.menu.background,
+  toolbarBackground: (p) => p.contexts.toolbar.background,
+  cardForeground: (p) => p.contexts.card.text.primary,
+  menuForeground: (p) => p.contexts.menu.text.primary,
+  toolbarForeground: (p) => p.contexts.toolbar.text.primary,
+  textPrimary: (p) => p.contexts.canvas.text.primary,
+  textSecondary: (p) => p.contexts.canvas.text.secondary,
+  textTertiary: (p) => p.contexts.canvas.text.tertiary,
+  placeholder: (p) => p.contexts.canvas.text.placeholder,
+  controlBackground: (p) => p.contexts.canvas.control.rest.background,
+  controlForeground: (p) => p.contexts.canvas.control.rest.foreground,
+  controlHoverBackground: (p) => p.contexts.canvas.control.hover.background,
+  actionBackground: (p) => p.contexts.canvas.action.rest.background,
+  actionForeground: (p) => p.contexts.canvas.action.rest.foreground,
+  actionHoverBackground: (p) => p.contexts.canvas.action.hover.background,
+  destructiveForeground: (p) => p.contexts.canvas.destructive.rest.foreground,
+  selectionBackground: (p) => p.contexts.canvas.selection.rest.background,
+  selectionForeground: (p) => p.contexts.canvas.selection.rest.foreground,
+  selectionHoverBackground: (p) => p.contexts.canvas.selection.hover.background,
+  accentText: (p) => p.contexts.canvas.accentText,
+  inputBackground: (p) => p.contexts.canvas.input.background,
+  inputForeground: (p) => p.contexts.canvas.input.foreground,
+  inputPlaceholder: (p) => p.contexts.canvas.input.placeholder,
+  inputBorder: (p) => p.contexts.canvas.input.border,
+  borderSubtle: (p) => p.contexts.canvas.borders.subtle,
+  borderControl: (p) => p.contexts.canvas.borders.control,
+  focusRing: (p) => p.contexts.canvas.borders.focus,
+  healthy: (p) => p.contexts.canvas.status.healthy.fill,
+  warning: (p) => p.contexts.canvas.status.warning.fill,
+  high: (p) => p.contexts.canvas.status.high.fill,
+  critical: (p) => p.contexts.canvas.status.critical.fill,
+};
 
 function ColorField({
   label,
-  value,
+  authored,
+  resolved,
   onChange,
+  onClear,
 }: {
   label: string;
-  value: string;
-  onChange: (hex: string) => void;
+  /** The authored value; null when the resolver derives this role. */
+  authored: string | null;
+  /** The resolved value shown when nothing is authored. */
+  resolved: string;
+  onChange: (color: string) => void;
+  onClear?: () => void;
 }) {
-  const hex = opaqueHex(value);
-  const [text, setText] = React.useState(hex);
+  const shown = authored ?? resolved;
+  const [text, setText] = React.useState(shown);
   const [focused, setFocused] = React.useState(false);
 
   React.useEffect(() => {
-    if (!focused) setText(hex);
-  }, [focused, hex]);
+    if (!focused) setText(shown);
+  }, [focused, shown]);
 
   function commit(next: string) {
-    const parsed = parseHexInput(next);
-    if (!parsed || parsed === hex) {
-      setText(hex);
+    const parsed = parseEditorColor(next);
+    if (!parsed || parsed === shown) {
+      setText(shown);
       return;
     }
     onChange(parsed);
@@ -137,18 +194,35 @@ function ColorField({
 
   return (
     <label className="grid min-w-0 gap-1">
-      <span className="text-[11px] text-secondary">{label}</span>
+      <span className="flex items-center justify-between gap-1 text-[11px] text-ui-secondary">
+        <span className="truncate">{label}</span>
+        {authored !== null && onClear ? (
+          <button
+            type="button"
+            className="shrink-0 text-[9px] uppercase tracking-wide text-ui-tertiary hover:text-ui-primary"
+            onClick={(event) => {
+              event.preventDefault();
+              onClear();
+            }}
+          >
+            auto
+          </button>
+        ) : null}
+      </span>
       <div className="flex min-w-0 items-center gap-1.5">
         <input
           type="color"
           aria-label={label}
-          className="h-8 w-8 shrink-0 cursor-pointer rounded-md border border-separator bg-transparent p-[3px]"
-          value={hex}
+          className="h-8 w-8 shrink-0 cursor-pointer rounded-md border border-ui-subtle bg-transparent p-[3px]"
+          value={colorPickerValue(shown)}
           onChange={(event) => onChange(event.target.value.toLowerCase())}
         />
         <Input
           spellCheck={false}
-          className="min-w-0 flex-1 font-mono text-[12px] uppercase"
+          className={cn(
+            "min-w-0 flex-1 font-mono text-[12px]",
+            authored === null && "opacity-60",
+          )}
           value={text}
           onFocus={() => setFocused(true)}
           onBlur={() => {
@@ -158,7 +232,7 @@ function ColorField({
           onChange={(event) => {
             const next = event.target.value;
             setText(next);
-            const parsed = parseHexInput(next);
+            const parsed = parseEditorColor(next);
             if (parsed) onChange(parsed);
           }}
           onKeyDown={(event) => {
@@ -179,36 +253,43 @@ export function ThemeEditorHost() {
   const editingTheme = session?.editingThemeId
     ? getThemeDefinition(session.editingThemeId)
     : null;
-  const seedTheme = session?.seedThemeId ? getThemeDefinition(session.seedThemeId) : null;
 
-  const initialAppearance = session?.preferredAppearance ?? "light";
-  const [name, setName] = React.useState(editingTheme?.label ?? "Custom theme");
-  const [appearance, setAppearance] = React.useState<ThemeAppearance>(initialAppearance);
-  const [colors, setColors] = React.useState<ThemeColors>(() =>
-    paletteForMode(seedTheme, initialAppearance),
-  );
+  const [draft, setDraft] = React.useState<ThemeEditorDraft | null>(null);
+  const [beforeRebuild, setBeforeRebuild] = React.useState<{ mode: ThemeAppearance; value: ThemeModeDraft } | null>(null);
+  const settings = React.useSyncExternalStore(subscribeToAppearanceSettings, getLastAppliedAppearanceSettings);
   const [saving, setSaving] = React.useState(false);
-  const draftsRef = React.useRef<ThemeDrafts>({});
 
   React.useEffect(() => {
-    if (!session) return;
-    const nextAppearance = session.preferredAppearance;
-    const nextSeed = session.seedThemeId ? getThemeDefinition(session.seedThemeId) : null;
-    const nextEditing = session.editingThemeId
-      ? getThemeDefinition(session.editingThemeId)
-      : null;
-    const nextColors = paletteForMode(nextSeed, nextAppearance);
-    const drafts: ThemeDrafts = {};
-    const light = nextSeed ? getThemeColorsForMode(nextSeed, "light") : null;
-    const dark = nextSeed ? getThemeColorsForMode(nextSeed, "dark") : null;
-    if (light) drafts.light = light;
-    if (dark) drafts.dark = dark;
-    drafts[nextAppearance] = nextColors;
-    draftsRef.current = drafts;
-    setName(nextEditing?.label ?? "Custom theme");
-    setAppearance(nextAppearance);
-    setColors(nextColors);
+    setBeforeRebuild(null);
+    if (!session) {
+      setDraft(null);
+      return;
+    }
+    if (session.editingThemeId) {
+      const theme = getThemeDefinition(session.editingThemeId);
+      if (theme) {
+        const next = themeToDraft(theme);
+        if (next.modes[session.preferredAppearance]) next.activeMode = session.preferredAppearance;
+        setDraft(next);
+        return;
+      }
+    }
+    const seedTheme = session.seedThemeId ? getThemeDefinition(session.seedThemeId) : null;
+    const seedMode = seedTheme && !getThemeSpecForMode(seedTheme, session.preferredAppearance)
+      ? seedTheme.appearance : session.preferredAppearance;
+    const seed = seedTheme ? getThemeSpecForMode(seedTheme, seedMode) : null;
+    setDraft(addDraftMode(newThemeDraft(seed, seedMode), session.preferredAppearance));
   }, [session]);
+
+  const activeModeDraft: ThemeModeDraft | null = draft ? (draft.modes[draft.activeMode] ?? null) : null;
+
+  const resolved = React.useMemo(() => {
+    if (!draft || !activeModeDraft) return null;
+    return resolveUiPalette(draftModeSpec(activeModeDraft), draft.activeMode, {
+      appearanceContrast: settings.appearanceContrast,
+      glassOpacity: settings.glassOpacity,
+    });
+  }, [draft, activeModeDraft, settings]);
 
   const previewRef = React.useRef<ThemePreviewSession | null>(null);
 
@@ -226,70 +307,45 @@ export function ThemeEditorHost() {
   }, [session]);
 
   React.useEffect(() => {
-    if (!session) return;
-    previewRef.current?.show({ colors, appearance });
-  }, [session, colors, appearance]);
+    if (!session || !draft || !activeModeDraft) return;
+    previewRef.current?.show({
+      source: draftModeSpec(activeModeDraft),
+      appearance: draft.activeMode,
+    });
+  }, [session, draft, activeModeDraft]);
 
-  function setFamily(role: ThemeColorRole, hex: string) {
-    setColors((current) => updateThemeColorFamily(appearance, current, role, hex));
+  function applyField(field: DraftField, hex: string) {
+    setDraft((current) => {
+      if (!current) return current;
+      return field.kind === "seed"
+        ? setDraftSeed(current, field.role, hex)
+        : setDraftOverride(current, field.role, hex);
+    });
   }
 
   function switchAppearance(next: ThemeAppearance) {
-    if (next === appearance) return;
-    draftsRef.current[appearance] = colors;
-    const existing = draftsRef.current[next];
-    const generated =
-      existing ??
-      paletteForMode(seedTheme, next, opaqueHex(colors.accent, "#138af2"));
-    draftsRef.current[next] = generated;
-    setAppearance(next);
-    setColors(generated);
-  }
-
-  function rebuildFromSeeds() {
-    setColors(
-      createVividThemeColors(
-        appearance,
-        opaqueHex(colors.canvas, defaultCanvasHex(appearance)),
-        opaqueHex(colors.accent, "#138af2"),
-      ),
-    );
+    setDraft((current) => (current ? addDraftMode(current, next) : current));
   }
 
   async function handleSave() {
+    if (!draft) return;
     setSaving(true);
     try {
-      const drafts = { ...draftsRef.current, [appearance]: colors };
-      draftsRef.current = drafts;
-      const light = drafts.light ?? (editingTheme ? getThemeColorsForMode(editingTheme, "light") : null);
-      const dark = drafts.dark ?? (editingTheme ? getThemeColorsForMode(editingTheme, "dark") : null);
-      const hasBoth = Boolean(light && dark);
-      const primary = editingTheme?.appearance ?? appearance;
-      const primaryColors = (primary === "dark" ? dark : light) ?? colors;
-
-      const theme = parseThemeFile({
-        version: THEME_FILE_VERSION,
-        ...(editingTheme ? { id: editingTheme.id } : {}),
-        name,
-        appearance: hasBoth ? primary : appearance,
-        colors: hasBoth ? primaryColors : colors,
-        ...(hasBoth && light && dark
-          ? {
-              variants: {
-                ...(editingTheme?.variants ?? {}),
-                light,
-                dark,
-              },
-            }
-          : {}),
+      const theme = draftToTheme(draft, {
+        id: editingTheme?.id,
         managed: true,
+        collection: editingTheme?.collection,
       });
-      await installAndPersistTheme(theme);
+      if (editingTheme) {
+        await updateAndPersistTheme(editingTheme.id, theme);
+      } else {
+        await installAndPersistTheme(theme);
+      }
       toast.success(editingTheme ? "Theme saved" : "Theme created", {
         description: theme.label,
       });
       closeThemeEditor();
-      await refreshAppliedAppearanceAndBroadcast();
+      // The session teardown effect restores + repaints the saved theme.
     } catch (error) {
       toast.error("Couldn’t save theme", {
         description: error instanceof Error ? error.message : String(error),
@@ -307,8 +363,11 @@ export function ThemeEditorHost() {
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[90] flex max-h-[calc(100vh-24px)] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
+        <Dialog.Overlay className="fixed inset-0 z-[80] bg-ui-scrim" />
+        <Dialog.Content
+          data-ui-surface="menu"
+          className="ui-surface fixed left-1/2 top-1/2 z-[90] flex max-h-[calc(100vh-24px)] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl p-4 shadow-xl ring-1 ring-ui-subtle"
+        >
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <Dialog.Title className="text-[14px] font-medium">
               {editingTheme ? "Edit theme" : "Create theme"}
@@ -321,67 +380,134 @@ export function ThemeEditorHost() {
           </div>
           <div className="grid min-h-0 flex-1 gap-4 overflow-hidden sm:grid-cols-[minmax(0,1fr)_240px]">
             <div className="grid min-h-0 content-start gap-3 overflow-y-auto pr-1">
-              <label className="grid gap-1 text-[12px] text-secondary">
+              <label className="grid gap-1 text-[12px] text-ui-secondary">
                 Name
                 <Input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  value={draft?.name ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current ? { ...current, name: event.target.value } : current,
+                    )
+                  }
                 />
               </label>
               <div className="flex gap-2">
-                {(["light", "dark"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={cn(
-                      "h-8 flex-1 rounded-lg text-[12px] ring-1 ring-separator",
-                      appearance === mode ? "bg-control" : "bg-transparent",
-                    )}
-                    onClick={() => switchAppearance(mode)}
-                  >
-                    {mode === "light" ? "Light" : "Dark"}
-                  </button>
-                ))}
+                {(["light", "dark"] as const).map((mode) => {
+                  const has = draft ? draft.modes[mode] !== undefined : false;
+                  const active = draft?.activeMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={cn(
+                        "h-8 flex-1 rounded-lg text-[12px] ring-1 ring-ui-subtle",
+                        active ? "bg-ui-control" : "bg-transparent",
+                      )}
+                      onClick={() => switchAppearance(mode)}
+                    >
+                      {mode === "light" ? "Light" : "Dark"}
+                      {!has ? " · add" : ""}
+                    </button>
+                  );
+                })}
               </div>
               <Button
                 variant="transparent"
                 size="small"
                 className="justify-center"
-                onClick={rebuildFromSeeds}
+                onClick={() => {
+                  if (draft && activeModeDraft) setBeforeRebuild({ mode: draft.activeMode, value: activeModeDraft });
+                  setDraft((current) => (current ? resetDraftMode(current) : current));
+                }}
               >
                 <RotateCcw className="size-3.5" />
                 Rebuild from Canvas & Accent
               </Button>
+              {beforeRebuild && (
+                <Button
+                  variant="transparent"
+                  size="small"
+                  onClick={() => {
+                    setDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            modes: { ...current.modes, [beforeRebuild.mode]: beforeRebuild.value },
+                          }
+                        : current,
+                    );
+                    setBeforeRebuild(null);
+                  }}
+                >
+                  Undo rebuild
+                </Button>
+              )}
               {COLOR_GROUPS.map((group) => (
                 <section key={group.title} className="grid gap-2">
-                  <h3 className="text-[11px] font-medium uppercase tracking-wide text-tertiary">
+                  <h3 className="text-[11px] font-medium uppercase tracking-wide text-ui-tertiary">
                     {group.title}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {group.fields.map((field) => (
-                      <ColorField
-                        key={field.role}
-                        label={field.label}
-                        value={colors[field.role]}
-                        onChange={(hex) => setFamily(field.role, hex)}
-                      />
-                    ))}
+                    {group.fields.map(({ field, label }) => {
+                      const authored =
+                        field.kind === "seed"
+                          ? (activeModeDraft?.seeds[field.role] ?? null)
+                          : (activeModeDraft?.overrides[field.role] ?? null);
+                      const resolvedValue = resolved
+                        ? field.kind === "seed"
+                          ? field.role === "canvas"
+                            ? resolved.canvas
+                            : resolved.contexts.canvas.action.rest.background
+                          : RESOLVED_FIELD[field.role](resolved)
+                        : "#000000";
+                      return (
+                        <ColorField
+                          key={`${field.kind}-${field.role}`}
+                          label={label}
+                          authored={authored}
+                          resolved={resolvedValue}
+                          onChange={(hex) => applyField(field, hex)}
+                          onClear={field.kind === "override" ? () => {
+                            setDraft((current) =>
+                              current ? setDraftOverride(current, field.role, null) : current,
+                            );
+                          } : undefined}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               ))}
             </div>
             <div className="flex min-h-0 flex-col gap-2">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-tertiary">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-ui-tertiary">
                 Preview
               </div>
-              <UsageMonitorPreview className="min-h-0 flex-1" colors={colors} />
+              <PreviewBackdrop className="min-h-0 flex-1">
+                <UsageMonitorPreview className="min-h-0 flex-1" palette={resolved} />
+              </PreviewBackdrop>
+              {!!resolved?.diagnostics.length && (
+                <details className="max-h-40 overflow-y-auto text-[11px] text-ui-secondary">
+                  <summary className="cursor-pointer">Readability adjustments ({resolved.diagnostics.length})</summary>
+                  <p className="my-2">Saved colours stay editable. The preview shows adjustments made to keep text readable.</p>
+                  <ul className="grid gap-1">
+                    {resolved.diagnostics.map((diagnostic, index) => (
+                      <li key={index}>{diagnostic.context}: {diagnostic.role} — {diagnostic.detail}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           </div>
           <div className="mt-3 flex shrink-0 justify-end gap-2">
             <Button variant="transparent" size="small" onClick={closeThemeEditor}>
               Cancel
             </Button>
-            <Button size="small" disabled={saving || name.trim().length === 0} onClick={() => void handleSave()}>
+            <Button
+              size="small"
+              disabled={saving || !draft || draft.name.trim().length === 0}
+              onClick={() => void handleSave()}
+            >
               {saving ? "Saving…" : "Save theme"}
             </Button>
           </div>

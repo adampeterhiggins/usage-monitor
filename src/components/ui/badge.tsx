@@ -1,35 +1,58 @@
+import * as React from "react";
+
 import { cn } from "../../lib/utils";
 
-export function Badge({
-  children,
-  color,
-  size = "medium",
-  className,
-}: {
+export type BadgeColor =
+  | "orange"
+  | "green"
+  | "blue"
+  | "red"
+  | "secondary"
+  | "healthy"
+  | "warning"
+  | "high"
+  | "critical";
+
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  color?: BadgeColor;
+  size?: "medium" | "small";
   children: React.ReactNode;
-  color: "orange" | "green" | "blue" | "red" | "yellow" | "secondary";
-  size?: "small" | "medium";
-  className?: string;
-}) {
-  const tones: Record<string, string> = {
-    orange: "text-support-orange bg-support-orange/10",
-    green: "text-support-green bg-support-green/10",
-    blue: "text-support-blue bg-support-blue/10",
-    red: "text-support-red bg-support-red/10",
-    yellow: "text-support-yellow bg-support-yellow/10",
-    secondary: "text-secondary bg-control-subtle",
+}
+
+/**
+ * Provider tones (orange/green/blue) read the resolved provider identity
+ * palette — they stay stable regardless of the theme accent and never carry
+ * usage meaning. Severity tones (healthy/warning/high/critical) read the
+ * status palette's soft badge pairs.
+ */
+export function Badge({ color = "secondary", size = "medium", className, children, ...rest }: BadgeProps) {
+  const colors: Record<BadgeColor, string> = {
+    orange: "bg-ui-provider-orange text-ui-provider-orange-fg",
+    green: "bg-ui-provider-green text-ui-provider-green-fg",
+    blue: "bg-ui-provider-blue text-ui-provider-blue-fg",
+    red: "bg-ui-status-critical-soft text-ui-status-critical-soft-fg",
+    secondary: "bg-ui-status-neutral-soft text-ui-status-neutral-soft-fg",
+    healthy: "bg-ui-status-healthy-soft text-ui-status-healthy-soft-fg",
+    warning: "bg-ui-status-warning-soft text-ui-status-warning-soft-fg",
+    high: "bg-ui-status-high-soft text-ui-status-high-soft-fg",
+    critical: "bg-ui-status-critical-soft text-ui-status-critical-soft-fg",
   };
+  const sizes: Record<"medium" | "small", string> = {
+    medium: "h-5 rounded-[6px] px-1.5 text-[11px]",
+    small: "h-[18px] rounded-[5px] px-1 text-[10px]",
+  };
+
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium",
-        size === "small" ? "px-1.5 py-px text-[10px]" : "px-2 py-0.5 text-[11px] leading-[14px]",
-        tones[color],
+        "inline-flex shrink-0 items-center justify-center gap-0.5 font-medium leading-none",
+        sizes[size],
+        colors[color],
         className,
       )}
+      {...rest}
     >
       {children}
     </span>
   );
 }
-

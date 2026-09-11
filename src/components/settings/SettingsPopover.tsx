@@ -220,7 +220,8 @@ export function SettingsPopover({
           ref={contentRef}
           align="end"
           sideOffset={6}
-          className="z-50 w-80 overflow-hidden rounded-2xl bg-menu p-0 shadow-lg ring-1 ring-black/10"
+          data-ui-surface="menu"
+          className="ui-surface z-50 w-80 overflow-hidden rounded-2xl p-0 shadow-lg ring-1 ring-ui-subtle"
           onEscapeKeyDown={(event) => {
             event.stopPropagation();
             if (page !== "root") {
@@ -244,11 +245,11 @@ export function SettingsPopover({
                 placeholder="Search for actions…"
                 value={query}
                 onValueChange={setQuery}
-                className="h-9 border-b border-separator bg-transparent px-3 text-[13px] outline-none placeholder:text-quaternary"
+                className="h-9 border-b border-ui-subtle bg-transparent px-3 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
               />
             ) : null}
             <Command.List className="h-auto max-h-[320px] overflow-y-auto p-1">
-              <Command.Empty className="px-3 py-6 text-center text-[12px] text-tertiary">
+              <Command.Empty className="px-3 py-6 text-center text-[12px] text-ui-tertiary">
                 No actions found.
               </Command.Empty>
               {page === "root" && (
@@ -327,7 +328,7 @@ export function SettingsPopover({
 }
 
 const itemClass =
-  "flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-control-subtle";
+  "flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-ui-control-hover";
 
 function Item({
   icon: Icon,
@@ -344,9 +345,9 @@ function Item({
 }) {
   return (
     <Command.Item disabled={disabled} onSelect={onSelect} className={cn(itemClass, disabled && "opacity-40")}>
-      <Icon className="size-4 text-secondary" />
+      <Icon className="size-4 text-ui-secondary" />
       <span className="flex-1">{label}</span>
-      {accessory ? <span className="text-[11px] text-tertiary">{accessory}</span> : null}
+      {accessory ? <span className="text-[11px] text-ui-tertiary">{accessory}</span> : null}
     </Command.Item>
   );
 }

@@ -74,13 +74,13 @@ export function AppearancePresets({
 
   return (
     <Section title="Configurations">
-      <p className="text-[12px] text-tertiary">
+      <p className="text-[12px] text-ui-tertiary">
         Save the current theme, mode, and control settings, then click a name to restore
         it later.
       </p>
       <div className="flex gap-1.5">
         <input
-          className="h-8 min-w-0 flex-1 rounded-lg border border-separator bg-transparent px-2 text-[13px] outline-none"
+          className="h-8 min-w-0 flex-1 rounded-lg border border-ui-input-border bg-ui-input px-2 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
           placeholder="Configuration name…"
           value={presetName}
           onChange={(event) => setPresetName(event.target.value)}
@@ -97,7 +97,7 @@ export function AppearancePresets({
         </Button>
       </div>
       {presets.length === 0 ? (
-        <p className="text-[12px] text-tertiary">No saved configurations yet.</p>
+        <p className="text-[12px] text-ui-tertiary">No saved configurations yet.</p>
       ) : (
         <div className="grid gap-1">
           {presets.map((preset) => {
@@ -110,8 +110,8 @@ export function AppearancePresets({
               <div
                 key={preset.id}
                 className={cn(
-                  "flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-control-subtle",
-                  active && "bg-control",
+                  "flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-ui-control-hover",
+                  active && "bg-ui-control",
                 )}
               >
                 <button
@@ -121,7 +121,7 @@ export function AppearancePresets({
                 >
                   {preset.name}
                   {active ? (
-                    <span className="ml-1.5 text-[11px] text-tertiary">active</span>
+                    <span className="ml-1.5 text-[11px] text-ui-tertiary">active</span>
                   ) : null}
                 </button>
                 <Button

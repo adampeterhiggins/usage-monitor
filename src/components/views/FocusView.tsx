@@ -4,7 +4,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { formatFetchedAt } from "../../lib/usage/format";
-import { severityColor, worstPercent } from "../../lib/usage/presentation";
+import { severityBadgeColor, worstPercent } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/AccountActionsMenu";
 import type { AccountFetchState } from "../../state/usage";
 import { UsageProgress } from "../ui/UsageProgress";
@@ -45,7 +45,7 @@ export function FocusView({
 
   return (
     <div className="flex h-full min-h-0">
-      <div className="w-52 shrink-0 overflow-y-auto border-r border-separator p-2">
+      <div className="w-52 shrink-0 overflow-y-auto border-r border-ui-subtle p-2">
         {grouped.map((group) => (
           <div key={group.id} className="mb-3">
             <Text variant="mini" color="quaternary" className="px-2 py-1">
@@ -63,7 +63,7 @@ export function FocusView({
                   onClick={() => onSelectedIdChange(account.id)}
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left",
-                    active ? "bg-control" : "hover:bg-control-subtle",
+                    active ? "bg-ui-selection text-ui-selection-fg" : "hover:bg-ui-control-hover",
                   )}
                 >
                   <span className="truncate text-[13px] font-medium">{account.label}</span>
@@ -72,7 +72,7 @@ export function FocusView({
                       error
                     </Badge>
                   ) : worst !== undefined ? (
-                    <Badge size="small" color={severityColor(worst)}>
+                    <Badge size="small" color={severityBadgeColor(worst)}>
                       {Math.round(worst)}%
                     </Badge>
                   ) : null}
@@ -92,15 +92,15 @@ export function FocusView({
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex min-w-0 items-center gap-2">
-                  <Badge color={meta!.accent}>{meta!.name}</Badge>
+                  <Badge color={meta!.tone}>{meta!.name}</Badge>
                   <Text variant="large-strong" className="truncate">
                     {selected.label}
                   </Text>
                   {state?.status === "loading" ? (
-                    <LoaderCircle className="size-4 shrink-0 animate-spin text-tertiary" />
+                    <LoaderCircle className="size-4 shrink-0 animate-spin text-ui-tertiary" />
                   ) : null}
                   {stale ? (
-                    <TriangleAlert className="size-4 shrink-0 text-support-orange" aria-label="Stale data" />
+                    <TriangleAlert className="size-4 shrink-0 text-ui-status-high-text" aria-label="Stale data" />
                   ) : null}
                 </div>
                 {snapshot?.planLabel ? <Text color="tertiary">{snapshot.planLabel}</Text> : null}
@@ -109,7 +109,7 @@ export function FocusView({
             </div>
 
             {snapshot ? (
-              <div className="flex flex-col gap-4 border-t border-separator pt-3">
+              <div className="flex flex-col gap-4 border-t border-ui-subtle pt-3">
                 {snapshot.windows.map((w) => (
                   <UsageProgress
                     key={w.label}
@@ -126,7 +126,7 @@ export function FocusView({
                 </Text>
               </div>
             ) : state?.status === "error" ? (
-              <div className="flex flex-col gap-2 border-t border-separator pt-3">
+              <div className="flex flex-col gap-2 border-t border-ui-subtle pt-3">
                 <Text variant="small-strong" color="red">
                   Couldn’t load usage
                 </Text>
@@ -140,9 +140,9 @@ export function FocusView({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 border-t border-separator pt-3">
+              <div className="flex flex-col gap-3 border-t border-ui-subtle pt-3">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-8 animate-pulse rounded-xl bg-control-subtle" />
+                  <div key={i} className="h-8 animate-pulse rounded-xl bg-ui-control" />
                 ))}
               </div>
             )}

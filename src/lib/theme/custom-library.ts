@@ -1,8 +1,19 @@
+/** The custom theme library: in-memory normalized themes plus the raw stored
+ *  rows they came from.
+ *
+ *  Storage keeps every row verbatim — including rows with fields this build
+ *  doesn't know — so forward compatibility is preserved. Parsing is
+ *  permissive: unknown roles and malformed values are dropped rather than
+ *  failing the row. Rows that don't parse are preserved on disk but hidden
+ *  from the library. */
+
+import { toCanonicalThemeColor } from "./colors";
+import { parseThemeFile, serializeThemeRecord } from "./theme-file";
 import {
-  canonicalizeThemeDefinition,
-  getDefaultThemeColors,
-} from "./derive";
-import { isThemeColor, toCanonicalThemeColor } from "./colors";
+  APP_OVERRIDE_ROLE_SET,
+  type AppModeSpec,
+  type AppOverrideRole,
+} from "./source-types";
 import {
   isRecord,
   isThemeAppearance,
@@ -10,73 +21,80 @@ import {
   isThemeLabel,
   parseThemeCollection,
   RESERVED_THEME_IDS,
-  THEME_COLOR_ROLE_SET,
   type ThemeAppearance,
-  type ThemeColorRole,
-  type ThemeColors,
   type ThemeDefinition,
-  type ThemeVariants,
 } from "./types";
 import { BUILT_IN_THEMES } from "./themePalettes";
 
-function parseStoredThemeColors(value: unknown, appearance: ThemeAppearance): ThemeColors | null {
-  if (!isRecord(value)) return null;
+// ---------------------------------------------------------------------------
+// Permissive stored-row parsing
 
-  const colors: Partial<Record<ThemeColorRole, string>> = {
-    ...getDefaultThemeColors(appearance),
-  };
-  // Tolerate unknown roles and malformed values so themes saved by other
-  // builds (for example one that adds a new role) keep their remaining colors.
-  for (const [role, color] of Object.entries(value)) {
-    const normalized = toCanonicalThemeColor(color);
-    if (THEME_COLOR_ROLE_SET.has(role) && normalized) {
-      colors[role as ThemeColorRole] = normalized;
-    }
-  }
-  // Themes saved before `menu` existed used `surface` for both cards and
-  // settings chrome. Keep that pairing unless the file set menu itself.
-  if (!isThemeColor(value.menu) && colors.surface) {
-    colors.menu = colors.surface;
-  }
-  return colors as ThemeColors;
+function parseStoredSeeds(value: unknown): AppModeSpec["seeds"] | null {
+  if (!isRecord(value)) return null;
+  const canvas = toCanonicalThemeColor(value.canvas);
+  const accent = toCanonicalThemeColor(value.accent);
+  return canvas && accent ? { canvas, accent } : null;
 }
 
-function parseStoredThemeVariants(
-  value: unknown,
-  baseAppearance: ThemeAppearance,
-): ThemeVariants | null | undefined {
-  if (value === undefined) return undefined;
-  if (!isRecord(value)) return null;
-
-  const variants: Partial<Record<ThemeAppearance, ThemeColors>> = {};
-  for (const [appearance, colors] of Object.entries(value)) {
-    if (!isThemeAppearance(appearance)) return null;
-    // A variant matching the base appearance would be shadowed by the base
-    // colors; drop it so the theme round-trips through parseThemeFile.
-    if (appearance === baseAppearance) continue;
-    const parsedColors = parseStoredThemeColors(colors, appearance);
-    if (!parsedColors) return null;
-    variants[appearance] = parsedColors;
+function parseStoredOverrides(value: unknown): AppModeSpec["overrides"] {
+  if (!isRecord(value)) return undefined;
+  const overrides: Partial<Record<AppOverrideRole, string>> = {};
+  for (const [role, color] of Object.entries(value)) {
+    const normalized = toCanonicalThemeColor(color);
+    if (APP_OVERRIDE_ROLE_SET.has(role) && normalized) {
+      overrides[role as AppOverrideRole] = normalized;
+    }
   }
-  return Object.keys(variants).length > 0 ? variants : undefined;
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function parseStoredAppSpec(value: unknown): AppModeSpec | null {
+  if (!isRecord(value)) return null;
+  const seeds = parseStoredSeeds(value.seeds);
+  if (!seeds) return null;
+  const overrides = parseStoredOverrides(value.overrides);
+  const panelOpacity = value.panelOpacity;
+  return {
+    seeds,
+    ...(overrides ? { overrides } : {}),
+    ...(typeof panelOpacity === "number" && Number.isFinite(panelOpacity)
+      ? { panelOpacity }
+      : {}),
+  };
+}
+
+function parseStoredMode(
+  row: Record<string, unknown>,
+  mode: ThemeAppearance,
+): AppModeSpec | null {
+  if (row.version !== 2) return null;
+  const raw = mode === (row.appearance as string)
+    ? row
+    : (row.variants as Record<string, unknown> | undefined)?.[mode];
+  return raw ? parseStoredAppSpec(raw) : null;
 }
 
 function parseStoredTheme(value: unknown): ThemeDefinition | null {
   if (!isRecord(value)) return null;
   if (!isThemeId(value.id) || RESERVED_THEME_IDS.has(value.id)) return null;
-  if (!isThemeLabel(value.label) || !isThemeAppearance(value.appearance)) return null;
-  const colors = parseStoredThemeColors(value.colors, value.appearance);
-  if (!colors) return null;
-  const variants = parseStoredThemeVariants(value.variants, value.appearance);
-  if (value.variants !== undefined && variants === null) return null;
-  const collection = parseThemeCollection(value.collection);
+  const label = value.label ?? value.name;
+  if (!isThemeLabel(label) || !isThemeAppearance(value.appearance)) return null;
+  const appearance = value.appearance;
 
+  const modes: Partial<Record<ThemeAppearance, AppModeSpec>> = {};
+  const base = parseStoredMode(value, appearance);
+  if (!base) return null;
+  modes[appearance] = base;
+  const other: ThemeAppearance = appearance === "light" ? "dark" : "light";
+  const otherMode = parseStoredMode(value, other);
+  if (otherMode) modes[other] = otherMode;
+
+  const collection = parseThemeCollection(value.collection);
   return {
     id: value.id,
-    label: value.label.trim(),
-    appearance: value.appearance,
-    colors,
-    ...(variants ? { variants } : {}),
+    label: label.trim(),
+    appearance,
+    modes,
     ...(collection ? { collection } : {}),
     ...(value.managed === true ? { managed: true } : {}),
   };
@@ -171,6 +189,13 @@ function storedThemeHasCollectionId(storedTheme: unknown, collectionId: string):
   );
 }
 
+/** The row a theme is written as — a file-shaped record preserving format. */
+function storedRowFor(theme: ThemeDefinition): Record<string, unknown> {
+  const record = serializeThemeRecord(theme);
+  // Stored rows historically used `label`; keep both readable.
+  return { ...record, label: theme.label };
+}
+
 export function installCustomTheme(theme: ThemeDefinition): ThemeDefinition {
   if (RESERVED_THEME_IDS.has(theme.id)) {
     throw new Error(`The theme id "${theme.id}" is reserved.`);
@@ -182,10 +207,69 @@ export function installCustomTheme(theme: ThemeDefinition): ThemeDefinition {
   ) {
     throw new Error(`A theme named "${theme.label}" is already installed.`);
   }
-  const canonicalTheme = canonicalizeThemeDefinition(theme);
-  const themes = [...library.themes, canonicalTheme];
-  setCustomThemeLibrary([...library.storedThemes, canonicalTheme], themes);
-  return canonicalTheme;
+  theme = parseThemeFile(serializeThemeRecord(theme));
+  const row = storedRowFor(theme);
+  const themes = [...library.themes, theme];
+  setCustomThemeLibrary([...library.storedThemes, row], themes);
+  return theme;
+}
+
+/** Preserve fields owned by newer versions while replacing all known editable roles.
+ * In particular, clearing an override must not resurrect its old stored value. */
+function mergeStoredTheme(previous: Record<string, unknown>, next: Record<string, unknown>): Record<string, unknown> {
+  const object = (value: unknown): Record<string, unknown> => isRecord(value) ? value : {};
+  const mergeMode = (old: Record<string, unknown>, fresh: Record<string, unknown>) => {
+    const { seeds: _seeds, overrides: _overrides, panelOpacity: _opacity, ...metadata } = old;
+    const unknownOverrides = Object.fromEntries(Object.entries(object(old.overrides))
+      .filter(([role]) => !APP_OVERRIDE_ROLE_SET.has(role)));
+    return { ...metadata, ...fresh,
+      seeds: { ...object(old.seeds), ...object(fresh.seeds) },
+      overrides: { ...unknownOverrides, ...object(fresh.overrides) },
+    };
+  };
+  const { variants: _variants, collection: _collection, managed: _managed,
+    seeds: _seeds, overrides: _overrides, panelOpacity: _opacity, ...metadata } = previous;
+  const modeFrom = (row: Record<string, unknown>, mode: string) =>
+    mode === row.appearance ? row : object(object(row.variants)[mode]);
+  const result: Record<string, unknown> = { ...metadata, ...mergeMode(modeFrom(previous, String(next.appearance)), next) };
+  // Top-level metadata is retained; known optional fields can be explicitly removed.
+  delete result.variants;
+  delete result.collection;
+  delete result.managed;
+  if (next.collection) result.collection = { ...object(previous.collection), ...object(next.collection) };
+  if (next.managed) result.managed = next.managed;
+  const variants = Object.fromEntries(Object.entries(object(previous.variants))
+    .filter(([mode]) => mode !== "light" && mode !== "dark"));
+  for (const [mode, spec] of Object.entries(object(next.variants))) {
+    const oldMode = { ...modeFrom(previous, mode) };
+    if (mode === previous.appearance) {
+      for (const key of ["version", "id", "name", "label", "appearance", "variants", "collection", "managed"]) delete oldMode[key];
+    }
+    variants[mode] = mergeMode(oldMode, object(spec));
+  }
+  if (Object.keys(variants).length) result.variants = variants;
+  return result;
+}
+
+/** Replace an installed theme in place. */
+export function updateCustomTheme(themeId: string, replacement: ThemeDefinition): ThemeDefinition {
+  const library = requireCustomThemeLibrary();
+  const index = library.storedThemes.findIndex((row) => storedThemeHasId(row, themeId));
+  if (index < 0) {
+    throw new Error(`Theme "${themeId}" is not installed.`);
+  }
+  if (replacement.id !== themeId || !library.themes.some((theme) => theme.id === themeId)) {
+    throw new Error("An edited theme must retain its installed id.");
+  }
+  const next = parseThemeFile(serializeThemeRecord(replacement));
+  const previous = library.storedThemes[index] as Record<string, unknown>;
+  const row = mergeStoredTheme(previous, storedRowFor(next));
+
+  const nextStoredThemes = [...library.storedThemes];
+  nextStoredThemes[index] = row;
+  const nextThemes = library.themes.map((theme) => (theme.id === themeId ? next : theme));
+  setCustomThemeLibrary(nextStoredThemes, nextThemes);
+  return next;
 }
 
 export function replaceCustomThemeCollection(
@@ -195,7 +279,7 @@ export function replaceCustomThemeCollection(
 ): ReadonlyArray<ThemeDefinition> {
   if (themes.length === 0) throw new Error("A theme collection cannot be empty.");
 
-  const validated = themes.map((theme) => parseStoredTheme(theme));
+  const validated = themes.map((theme) => parseStoredTheme(storedRowFor(theme)));
   if (
     validated.some((theme) => theme === null || theme.collection?.id !== collectionId) ||
     new Set(validated.map((theme) => theme?.id)).size !== validated.length
@@ -235,11 +319,11 @@ export function replaceCustomThemeCollection(
     if (!storedThemeHasCollectionId(storedTheme, collectionId)) {
       nextStoredThemes.push(storedTheme);
     } else if (!insertedReplacement) {
-      nextStoredThemes.push(...replacement);
+      nextStoredThemes.push(...replacement.map(storedRowFor));
       insertedReplacement = true;
     }
   }
-  if (!insertedReplacement) nextStoredThemes.push(...replacement);
+  if (!insertedReplacement) nextStoredThemes.push(...replacement.map(storedRowFor));
 
   setCustomThemeLibrary(nextStoredThemes, parseStoredThemes(nextStoredThemes));
   return replacement;

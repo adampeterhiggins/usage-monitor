@@ -31,9 +31,9 @@ export function ThemeMarketplace({ marketplace }: { marketplace: ThemeMarketplac
     <div className="grid min-w-0 gap-3 overflow-x-hidden">
       <div className="flex min-w-0 items-center gap-1.5">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-tertiary" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ui-tertiary" />
           <input
-            className="h-9 w-full min-w-0 rounded-lg border border-separator bg-transparent pl-8 pr-3 text-[13px] outline-none"
+            className="h-9 w-full min-w-0 rounded-lg border border-ui-input-border bg-ui-input pl-8 pr-3 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
             placeholder="Search Open VSX themes…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -56,7 +56,7 @@ export function ThemeMarketplace({ marketplace }: { marketplace: ThemeMarketplac
           <button
             key={suggestion}
             type="button"
-            className="rounded-full bg-control-subtle px-2.5 py-1 text-[11px] text-secondary"
+            className="rounded-full bg-ui-control px-2.5 py-1 text-[11px] text-ui-secondary"
             onClick={() => setQuery(suggestion)}
           >
             {suggestion}
@@ -64,10 +64,10 @@ export function ThemeMarketplace({ marketplace }: { marketplace: ThemeMarketplac
         ))}
       </div>
       {previewThemes.length > 1 ? (
-        <label className="grid min-w-0 gap-1 text-[12px] text-secondary">
+        <label className="grid min-w-0 gap-1 text-[12px] text-ui-secondary">
           Preview variant
           <select
-            className="h-8 w-full min-w-0 rounded-lg border border-separator bg-transparent px-2 text-[13px] text-ink"
+            className="h-8 w-full min-w-0 rounded-lg border border-ui-input-border bg-ui-input px-2 text-[13px] text-ui-input-fg"
             value={previewThemeId ?? ""}
             onChange={(event) => marketplace.selectPreviewVariant(event.target.value)}
           >
@@ -81,11 +81,11 @@ export function ThemeMarketplace({ marketplace }: { marketplace: ThemeMarketplac
         </label>
       ) : null}
       {items.length === 0 && (results === null || (searching && !loadingMore)) ? (
-        <p className="text-[12px] text-tertiary">
+        <p className="text-[12px] text-ui-tertiary">
           {query.trim() ? "Searching…" : "Loading themes…"}
         </p>
       ) : items.length === 0 ? (
-        <p className="text-[12px] text-tertiary">No themes found.</p>
+        <p className="text-[12px] text-ui-tertiary">No themes found.</p>
       ) : (
         <div className="grid min-w-0 gap-1">
           {items.map((extension) => {
@@ -96,15 +96,15 @@ export function ThemeMarketplace({ marketplace }: { marketplace: ThemeMarketplac
               <div
                 key={extension.id}
                 className={cn(
-                  "flex min-w-0 items-start justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-control-subtle",
-                  isActivePreview && "bg-control",
+                  "flex min-w-0 items-start justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-ui-control-hover",
+                  isActivePreview && "bg-ui-control",
                 )}
               >
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <div className="break-words text-[13px] font-medium [overflow-wrap:anywhere]">
                     {extension.name}
                   </div>
-                  <div className="break-words text-[11px] text-tertiary [overflow-wrap:anywhere]">
+                  <div className="break-words text-[11px] text-ui-tertiary [overflow-wrap:anywhere]">
                     {extension.publisher} · {extension.downloadCount.toLocaleString()}{" "}
                     downloads
                     {extension.description ? ` · ${extension.description}` : ""}

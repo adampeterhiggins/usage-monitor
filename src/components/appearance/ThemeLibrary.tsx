@@ -7,12 +7,11 @@ import { parse as parseJsonc } from "jsonc-parser";
 
 import { toast } from "../ui/toast";
 import { installAndPersistTheme, removeAndPersistTheme } from "../../lib/settings/index";
-import { getThemeColorsForMode, getThemeDefinition } from "../../lib/theme/registry";
+import { getThemeDefinition } from "../../lib/theme/registry";
+import { resolveUiPalette } from "../../lib/theme/resolve-ui-palette";
 import { parseThemeFile } from "../../lib/theme/theme-file";
-import {
-  BUILT_IN_THEMES,
-  type ThemeDefinition,
-} from "../../lib/theme/themePalettes";
+import { BUILT_IN_THEMES } from "../../lib/theme/themePalettes";
+import type { ThemeDefinition } from "../../lib/theme/types";
 import type { ThemePreference, ThemePreferenceMode } from "../../lib/theme/types";
 import {
   isVsCodeThemeFile,
@@ -27,13 +26,21 @@ import { Section } from "./Section";
 import { useThemeEditorStore } from "./themeEditorStore";
 
 function ThemeSwatches({ theme }: { theme: ThemeDefinition }) {
-  const colors = getThemeColorsForMode(theme, theme.appearance) ?? theme.colors;
+  const source = theme.modes[theme.appearance];
+  if (!source) return null;
+  const palette = resolveUiPalette(source, theme.appearance);
+  const dots = [
+    palette.canvas,
+    palette.contexts.card.background,
+    palette.contexts.canvas.action.rest.background,
+    palette.contexts.canvas.text.primary,
+  ];
   return (
     <span className="flex items-center gap-0.5">
-      {[colors.canvas, colors.surface, colors.accent, colors.text].map((color, index) => (
+      {dots.map((color, index) => (
         <span
           key={`${theme.id}-${index}`}
-          className="size-2.5 rounded-full ring-1 ring-black/10"
+          className="size-2.5 rounded-full ring-1 ring-ui-subtle"
           style={{ background: color }}
         />
       ))}
@@ -97,8 +104,8 @@ export function ThemeLibrary({
           <button
             type="button"
             className={cn(
-              "flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-control-subtle",
-              !getThemeDefinition(theme) && "bg-control",
+              "flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-ui-control-hover",
+              !getThemeDefinition(theme) && "bg-ui-control",
             )}
             onClick={() => {
               const next = mode === "light" || mode === "dark" ? mode : "system";
@@ -110,7 +117,7 @@ export function ThemeLibrary({
                 {["#ffffff", "#fcfcfc", "#138af2", "#000000"].map((color) => (
                   <span
                     key={color}
-                    className="size-2.5 rounded-full ring-1 ring-black/10"
+                    className="size-2.5 rounded-full ring-1 ring-ui-subtle"
                     style={{ background: color }}
                   />
                 ))}
@@ -119,18 +126,21 @@ export function ThemeLibrary({
             </span>
             {!getThemeDefinition(theme) ? "✓" : null}
           </button>
-          {BUILT_IN_THEMES.map((builtIn) => (
+          {BUILT_IN_THEMES.map((builtIn: ThemeDefinition) => (
             <button
               key={builtIn.id}
               type="button"
               className={cn(
-                "flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-control-subtle",
-                theme === builtIn.id && "bg-control",
+                "flex items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-ui-control-hover",
+                theme === builtIn.id && "bg-ui-control",
               )}
               onClick={() => onSelectTheme(builtIn.id)}
             >
               <span className="flex items-center gap-2">
-                <ThemeSwatches theme={builtIn} />
+                {(() => {
+                const definition = getThemeDefinition(builtIn.id);
+                return definition ? <ThemeSwatches theme={definition} /> : null;
+              })()}
                 {builtIn.label}
               </span>
               {theme === builtIn.id ? "✓" : null}
@@ -166,15 +176,15 @@ export function ThemeLibrary({
           />
         </div>
         {customThemes.length === 0 ? (
-          <p className="text-[12px] text-tertiary">No custom themes yet.</p>
+          <p className="text-[12px] text-ui-tertiary">No custom themes yet.</p>
         ) : (
           <div className="grid gap-1">
             {customThemes.map((custom) => (
               <div
                 key={custom.id}
                 className={cn(
-                  "flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-control-subtle",
-                  theme === custom.id && "bg-control",
+                  "flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-ui-control-hover",
+                  theme === custom.id && "bg-ui-control",
                 )}
               >
                 <button

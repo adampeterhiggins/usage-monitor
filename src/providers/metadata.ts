@@ -6,7 +6,7 @@ import type { ProviderId } from "../contracts/providers";
 export interface ProviderMeta {
   id: ProviderId;
   name: string;
-  accent: "orange" | "green" | "blue";
+  tone: "orange" | "green" | "blue";
   credentialTitle: string;
   credentialHelp: string;
   credentialOptional: boolean;
@@ -21,7 +21,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   claude: {
     id: "claude",
     name: "Claude",
-    accent: "orange",
+    tone: "orange",
     credentialTitle: "Session Key",
     credentialHelp:
       "Sign in to give this account its own Claude session, or paste a claude.ai sessionKey (sk-ant-sid01-…). Leave blank to use your Claude Code login from the macOS Keychain.",
@@ -33,7 +33,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   codex: {
     id: "codex",
     name: "Codex",
-    accent: "green",
+    tone: "green",
     credentialTitle: "Auth JSON / Access Token",
     credentialHelp:
       "Sign in to give this account its own Codex session, or paste ~/.codex/auth.json (or its access token). Leave blank to use your Codex CLI login from the macOS Keychain or ~/.codex/auth.json.",
@@ -45,7 +45,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   cursor: {
     id: "cursor",
     name: "Cursor",
-    accent: "blue",
+    tone: "blue",
     credentialTitle: "Session Cookie",
     credentialHelp:
       "Sign in to give this account its own Cursor session, or paste the WorkosCursorSessionToken cookie. Leave blank to use your Cursor app or cursor-agent login.",

@@ -54,7 +54,7 @@ export function AccountActionsMenu({
             variant="transparent"
             size={triggerSize}
             aria-label="Account actions"
-            className={open ? "bg-control-subtle" : undefined}
+            className={open ? "bg-ui-control" : undefined}
           >
             <Ellipsis className="size-4" />
           </Button>
@@ -66,7 +66,8 @@ export function AccountActionsMenu({
             sideOffset={4}
             collisionPadding={8}
             onOpenAutoFocus={(event) => event.preventDefault()}
-            className="z-[80] min-w-[176px] rounded-[12px] bg-menu p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ring-1 ring-black/8"
+            data-ui-surface="menu"
+            className="ui-surface z-[80] min-w-[176px] rounded-[12px] p-1 shadow-menu ring-1 ring-ui-subtle"
           >
             <MenuItem
               icon={RefreshCw}
@@ -99,7 +100,7 @@ export function AccountActionsMenu({
             >
               Open Dashboard
             </MenuItem>
-            <div className="mx-1.5 my-1 h-px bg-separator" />
+            <div className="mx-1.5 my-1 h-px bg-ui-subtle" />
             <MenuItem
               icon={Trash2}
               danger
@@ -115,10 +116,11 @@ export function AccountActionsMenu({
       </Popover.Root>
 
       {confirmRemove ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-black/20 p-6">
-          <div className="w-full max-w-sm rounded-2xl bg-menu p-4 shadow-xl ring-1 ring-black/10">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-ui-scrim p-6">
+          <div data-ui-surface="menu"
+            className="ui-surface w-full max-w-sm rounded-2xl p-4 shadow-xl ring-1 ring-ui-subtle">
             <div className="text-[15px] font-semibold">Remove {account.label}?</div>
-            <p className="mt-1 text-[12px] text-secondary">
+            <p className="mt-1 text-[12px] text-ui-secondary">
               {meta.name} · {account.label} will be removed from this monitor. Your provider login is
               unaffected.
             </p>
@@ -153,8 +155,8 @@ function MenuItem({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full cursor-default items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-control-subtle",
-        danger ? "text-support-red" : "text-ink",
+        "flex w-full cursor-default items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-ui-control-hover",
+        danger ? "text-ui-status-critical-text" : "text-ui-primary",
       )}
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />

@@ -3,7 +3,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { formatPercent, shortLabel } from "../../lib/usage/format";
-import { severityColor } from "../../lib/usage/presentation";
+import { severityBadgeColor } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/AccountActionsMenu";
 import type { AccountFetchState } from "../../state/usage";
 import { Badge } from "../ui/badge";
@@ -35,25 +35,25 @@ export function StripView({ grouped, fetchStates, onEdit, onRefresh }: StripView
             return (
               <div
                 key={account.id}
-                className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-control-subtle"
+                className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-ui-control-hover"
               >
                 <div className="min-w-0">
                   <Text variant="strong" className="truncate">
                     {account.label}
                   </Text>
-                  <div className="truncate text-[11px] text-tertiary">
+                  <div className="truncate text-[11px] text-ui-tertiary">
                     {isErrorOnly ? state.message : (snapshot?.planLabel ?? "Loading…")}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {stale ? <Clock className="size-3.5 text-support-orange" aria-label="Stale data" /> : null}
+                  {stale ? <Clock className="size-3.5 text-ui-status-high-text" aria-label="Stale data" /> : null}
                   {isErrorOnly ? (
                     <Badge size="small" color="red">
                       error
                     </Badge>
                   ) : (
                     windows.map((w) => (
-                      <Badge key={w.label} size="small" color={severityColor(w.usedPercent)}>
+                      <Badge key={w.label} size="small" color={severityBadgeColor(w.usedPercent)}>
                         {shortLabel(w.label)} {formatPercent(w.usedPercent)}
                       </Badge>
                     ))
