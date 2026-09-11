@@ -6,7 +6,7 @@ import {
 } from "./appearance";
 import { applyAppearanceContrast } from "./contrast";
 import { applyAppearanceFontVariables } from "./fonts";
-import { parseThemeHalves, type ThemeHalves } from "./halves";
+import type { ThemeHalves } from "./halves";
 import { applyThemePalette } from "./preview";
 import { getThemeDefinition } from "./registry";
 import { resolveThemeAppearance } from "./resolve";
@@ -78,18 +78,6 @@ export function applyFullAppearance(state: ThemeBootState): void {
     halves: state.themeHalves,
   });
   applyAppearanceChrome(state.appearance);
-}
-
-export function parseStoredHalves(raw: unknown): ThemeHalves | null {
-  if (typeof raw === "string") return parseThemeHalves(raw);
-  if (raw && typeof raw === "object") {
-    try {
-      return parseThemeHalves(JSON.stringify(raw));
-    } catch {
-      return null;
-    }
-  }
-  return null;
 }
 
 export { DEFAULT_APPEARANCE_SETTINGS };
