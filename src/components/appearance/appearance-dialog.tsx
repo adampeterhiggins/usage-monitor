@@ -26,8 +26,7 @@ export function AppearancePanel() {
   });
 
   React.useEffect(() => {
-    void appearance.hydrate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once
+    void useAppearanceStore.getState().hydrate();
   }, []);
 
   const previewCaption = marketplace.previewThemeId
