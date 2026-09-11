@@ -1,6 +1,6 @@
 [package]
 name = "usage-monitor"
-version = "0.1.29"
+version = "0.1.30"
 description = "Unified LLM usage limit tracker"
 authors = ["Adam Higgins"]
 edition = "2021"
