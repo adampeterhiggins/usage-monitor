@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { readHomeFile } from "../platform/credentials";
 import {
   isClaudeOauthJson,
   parseClaudeOauthCredentials,
@@ -163,7 +163,7 @@ async function readClaudeCodeToken(keychainAccount?: string): Promise<ClaudeCode
 
   let raw: string | undefined;
   try {
-    raw = await invoke<string>("read_home_file", { relPath: ".claude/.credentials.json" });
+    raw = await readHomeFile(".claude/.credentials.json");
   } catch {
     raw = undefined;
   }

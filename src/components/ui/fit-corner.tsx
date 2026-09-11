@@ -1,17 +1,5 @@
 import * as React from "react";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
-
-const MIN_WIDTH = 560;
-const MIN_HEIGHT = 280;
-
-export async function fitWindowToContent(content: HTMLElement, header: HTMLElement | null) {
-  const win = getCurrentWindow();
-  const factor = await win.scaleFactor();
-  const inner = await win.innerSize();
-  const width = Math.max(MIN_WIDTH, Math.round(inner.width / factor));
-  const height = Math.max(MIN_HEIGHT, Math.round((header?.offsetHeight ?? 0) + content.scrollHeight));
-  await win.setSize(new LogicalSize(width, height));
-}
+import { fitPanelToContent } from "../../lib/platform/windows";
 
 export function FitCorner({
   contentRef,
@@ -29,7 +17,7 @@ export function FitCorner({
       onClick={() => {
         const content = contentRef.current;
         if (!content) return;
-        void fitWindowToContent(content, headerRef.current);
+        void fitPanelToContent(content, headerRef.current);
       }}
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

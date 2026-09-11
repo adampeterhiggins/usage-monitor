@@ -1,11 +1,5 @@
-import { Command } from "@tauri-apps/plugin-shell";
+import { readGithubCliToken } from "../platform/external";
 import { settingsStore } from "./store";
-
-const GH_SCOPE_NAMES = [
-  "gh-token-homebrew-arm",
-  "gh-token-homebrew-intel",
-  "gh-token-path",
-] as const;
 
 export type GithubAuthSource = "oauth" | "pat" | "gh";
 
@@ -59,15 +53,6 @@ export async function clearGithubToken(): Promise<void> {
   await clearGithubCredentials();
 }
 
-export async function importTokenFromGhCli(): Promise<string | null> {
-  for (const name of GH_SCOPE_NAMES) {
-    try {
-      const out = await Command.create(name, ["auth", "token"]).execute();
-      const token = out.stdout.trim();
-      if (out.code === 0 && token) return token;
-    } catch {
-      // This candidate path does not exist; try the next.
-    }
-  }
-  return null;
+export function importTokenFromGhCli(): Promise<string | null> {
+  return readGithubCliToken();
 }

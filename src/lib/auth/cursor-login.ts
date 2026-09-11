@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../platform/external";
 import { fetchJson, fetchText } from "../platform/http";
 import type { ProviderLoginResult } from "../contracts/auth";
 import {
@@ -118,7 +118,7 @@ export async function startCursorLogin(): Promise<ProviderLoginSession> {
   loginUrl.searchParams.set("mode", "login");
   loginUrl.searchParams.set("redirectTarget", "cli");
 
-  void openUrl(loginUrl.toString()).catch(() => {
+  void openExternal(loginUrl.toString()).catch(() => {
     // The account dialog still shows a way to reopen the browser.
   });
 

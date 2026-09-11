@@ -1,6 +1,6 @@
-import { check, type Update } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { getVersion } from "@tauri-apps/api/app";
+import type { PendingUpdate } from "../contracts/platform";
+import { appVersion, restartApp } from "../platform/app";
+import { checkNativeUpdate } from "../platform/updates";
 
 export type UpdatePhase =
   | "idle"
@@ -39,7 +39,7 @@ export const initialUpdateState: UpdateState = {
 };
 
 export async function currentVersion(): Promise<string> {
-  return getVersion();
+  return appVersion();
 }
 
 function authHeaders(token: string | null): Record<string, string> | undefined {
@@ -47,7 +47,7 @@ function authHeaders(token: string | null): Record<string, string> | undefined {
 }
 
 export interface CheckOutcome {
-  update: Update | null;
+  update: PendingUpdate | null;
   state: Partial<UpdateState>;
 }
 
@@ -55,7 +55,7 @@ export async function checkForUpdate(token: string | null): Promise<CheckOutcome
   const version = await currentVersion();
   const headers = authHeaders(token);
 
-  const update = await check({ headers, timeout: 30_000 });
+  const update = await checkNativeUpdate(headers);
   const lastCheckedAt = new Date().toISOString();
 
   if (!update) {
@@ -78,8 +78,8 @@ export async function checkForUpdate(token: string | null): Promise<CheckOutcome
       phase: "available",
       currentVersion: update.currentVersion ?? version,
       availableVersion: update.version,
-      notes: update.body ?? null,
-      publishedAt: update.date ?? null,
+      notes: update.notes,
+      publishedAt: update.publishedAt,
       error: null,
       lastCheckedAt,
     },
@@ -87,7 +87,7 @@ export async function checkForUpdate(token: string | null): Promise<CheckOutcome
 }
 
 export async function installUpdate(
-  update: Update,
+  update: PendingUpdate,
   token: string | null,
   onProgress: (patch: Partial<UpdateState>) => void,
 ): Promise<void> {
@@ -96,33 +96,30 @@ export async function installUpdate(
 
   onProgress({ phase: "downloading", downloadedBytes: 0, totalBytes: null, progress: null });
 
-  await update.downloadAndInstall(
-    (event) => {
-      switch (event.event) {
-        case "Started":
-          total = event.data.contentLength ?? null;
-          onProgress({ totalBytes: total, downloadedBytes: 0, progress: total ? 0 : null });
-          break;
-        case "Progress":
-          downloaded += event.data.chunkLength;
-          onProgress({
-            downloadedBytes: downloaded,
-            progress: total ? Math.min(1, downloaded / total) : null,
-          });
-          break;
-        case "Finished":
-          onProgress({ phase: "ready", progress: 1 });
-          break;
-      }
-    },
-    { headers: authHeaders(token) },
-  );
+  await update.downloadAndInstall((event) => {
+    switch (event.type) {
+      case "started":
+        total = event.contentLength ?? null;
+        onProgress({ totalBytes: total, downloadedBytes: 0, progress: total ? 0 : null });
+        break;
+      case "progress":
+        downloaded += event.chunkLength;
+        onProgress({
+          downloadedBytes: downloaded,
+          progress: total ? Math.min(1, downloaded / total) : null,
+        });
+        break;
+      case "finished":
+        onProgress({ phase: "ready", progress: 1 });
+        break;
+    }
+  }, authHeaders(token));
 
   onProgress({ phase: "ready", progress: 1 });
 }
 
 export async function restartToApply(): Promise<void> {
-  await relaunch();
+  await restartApp();
 }
 
 export function formatPublished(raw: string | null): string | null {

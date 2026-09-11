@@ -1,5 +1,5 @@
 import * as React from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../../lib/platform/external";
 import {
   cancelProviderLogin,
   credentialLooksLikeSession,
@@ -214,7 +214,7 @@ export function ProviderLoginButton({
         <div className="text-[12px] text-secondary">{session.prompt}</div>
         <div className="mt-2 flex gap-2">
           {session.verificationUri ? (
-            <Button size="small" variant="glass" onClick={() => void openUrl(session.verificationUri!)}>
+            <Button size="small" variant="glass" onClick={() => void openExternal(session.verificationUri!)}>
               Open browser again
             </Button>
           ) : null}

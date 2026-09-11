@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Update } from "@tauri-apps/plugin-updater";
+import type { PendingUpdate } from "../contracts/platform";
 import {
   checkForUpdate,
   currentVersion,
@@ -10,7 +10,7 @@ import {
   type UpdateState,
 } from "./api";
 
-let pendingUpdate: Update | null = null;
+let pendingUpdate: PendingUpdate | null = null;
 
 const STARTUP_DELAY_MS = 15_000;
 const POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;

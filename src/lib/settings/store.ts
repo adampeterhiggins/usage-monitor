@@ -1,3 +1,3 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
+import { openDocumentStore } from "../platform/persistence";
 
-export const settingsStore = new LazyStore("settings.json");
+export const settingsStore = openDocumentStore("settings.json");

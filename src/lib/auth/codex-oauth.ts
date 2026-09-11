@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../platform/external";
 import { fetchText } from "../platform/http";
 import type { ProviderLoginResult } from "../contracts/auth";
 import {
@@ -199,8 +199,8 @@ export async function startCodexLogin(): Promise<ProviderLoginSession> {
     typeof intervalRaw === "string" ? Number(intervalRaw.trim()) : typeof intervalRaw === "number" ? intervalRaw : 5;
   const interval = Number.isFinite(intervalSeconds) && intervalSeconds > 0 ? intervalSeconds : 5;
 
-  void openUrl(`${DEVICE_VERIFICATION_URI}?user_code=${encodeURIComponent(userCode)}`).catch(() => {
-    void openUrl(DEVICE_VERIFICATION_URI).catch(() => {
+  void openExternal(`${DEVICE_VERIFICATION_URI}?user_code=${encodeURIComponent(userCode)}`).catch(() => {
+    void openExternal(DEVICE_VERIFICATION_URI).catch(() => {
       // The account dialog still shows the code if the browser cannot be opened.
     });
   });

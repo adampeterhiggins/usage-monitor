@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../../lib/platform/external";
 import { CircleHelp } from "lucide-react";
 import { mergeDeploymentInfo } from "../../lib/platform/deployment";
 import { toast } from "../../lib/platform/toast";
@@ -89,7 +89,7 @@ export function DeploymentInfoButton() {
               <button
                 type="button"
                 className="rounded-md px-1 py-0.5 -mx-1 text-support-blue transition-colors hover:bg-control-subtle"
-                onClick={() => void openUrl(info.prUrl!).catch((error) => toast.error(`Couldn't open PR: ${error}`))}
+                onClick={() => void openExternal(info.prUrl!).catch((error) => toast.error(`Couldn't open PR: ${error}`))}
               >
                 #{info.prNumber}
               </button>
@@ -102,7 +102,7 @@ export function DeploymentInfoButton() {
                 className="rounded-md px-1 py-0.5 -mx-1 font-mono text-[12px] transition-colors hover:bg-control-subtle"
                 onClick={() => {
                   if (info.commitUrl) {
-                    void openUrl(info.commitUrl).catch(() => void copyValue(info.commit!, "commit"));
+                    void openExternal(info.commitUrl).catch(() => void copyValue(info.commit!, "commit"));
                     return;
                   }
                   void copyValue(info.commit!, "commit");

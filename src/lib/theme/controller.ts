@@ -1,4 +1,4 @@
-import { emit } from "@tauri-apps/api/event";
+import { emitEvent } from "../platform/events";
 import { APPEARANCE_CHANGED_EVENT } from "../platform/appearance-window";
 import { getAppearanceSettings } from "../settings/appearance";
 import { loadCustomThemesIntoMemory } from "../settings/custom-themes";
@@ -36,7 +36,7 @@ export async function refreshAppliedAppearance(): Promise<void> {
 /** Apply locally, then notify other windows (e.g. main panel ↔ Appearance). */
 export async function refreshAppliedAppearanceAndBroadcast(): Promise<void> {
   await refreshAppliedAppearance();
-  await emit(APPEARANCE_CHANGED_EVENT, null);
+  await emitEvent(APPEARANCE_CHANGED_EVENT);
 }
 
 /** Single owner of live draft previews in this window. Marketplace previews

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { readHomeFile } from "../platform/credentials";
 import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../auth/codex-oauth";
 import { fetchJson } from "../platform/http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
@@ -37,7 +37,7 @@ const AUTH_FILE = ".codex/auth.json";
 async function readAuthFile(rel: string): Promise<CodexCreds | null> {
   let raw: string;
   try {
-    raw = await invoke<string>("read_home_file", { relPath: rel });
+    raw = await readHomeFile(rel);
   } catch {
     return null;
   }

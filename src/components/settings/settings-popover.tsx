@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
-import { listen } from "@tauri-apps/api/event";
+import { OPEN_SETTINGS_EVENT, WINDOW_SHOWN_EVENT } from "../../lib/contracts/platform";
+import { subscribe } from "../../lib/platform/events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Contrast,
@@ -36,14 +37,12 @@ import {
 import { registerToggleShortcut } from "../../lib/platform/global-shortcut";
 import { toast } from "../../lib/platform/toast";
 import { type Layout } from "../../lib/settings/layout";
-import { exit } from "@tauri-apps/plugin-process";
+import { exitApp } from "../../lib/platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { GithubAuthSettings } from "./github-auth-settings";
 import { UpdatePanel } from "./update-panel";
 import { Button, cn } from "../ui";
 
-const OPEN_SETTINGS_EVENT = "settings:openPopover";
-const WINDOW_SHOWN_EVENT = "window:shown";
 
 type Page = "root" | "layout" | "updates";
 
@@ -114,22 +113,10 @@ export function SettingsPopover({
   const recordingAny = recordingShortcut || recordingRefreshShortcut;
 
   React.useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen(OPEN_SETTINGS_EVENT, () => setOpen(true)).then((fn) => {
-      unlisten = fn;
-    });
-    return () => unlisten?.();
+    return subscribe(OPEN_SETTINGS_EVENT, () => setOpen(true));
   }, []);
 
-  React.useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen(WINDOW_SHOWN_EVENT, () => {
-      setOpen(false);
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    return () => unlisten?.();
-  }, []);
+  React.useEffect(() => subscribe(WINDOW_SHOWN_EVENT, () => setOpen(false)), []);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -306,7 +293,7 @@ export function SettingsPopover({
                     icon={Power}
                     label="Quit"
                     onSelect={() => {
-                      void exit(0);
+                      void exitApp();
                     }}
                   />
                 </Command.Group>

@@ -2,12 +2,11 @@
  *  Stored rows are decoded/encoded through the codec — this module knows
  *  nothing about credential semantics. */
 
-import { LazyStore } from "@tauri-apps/plugin-store";
-
 import type { Account } from "../contracts/accounts";
+import { openDocumentStore } from "../platform/persistence";
 import { decodeStoredAccount, encodeAccount } from "./codec";
 
-const store = new LazyStore("accounts.json");
+const store = openDocumentStore("accounts.json");
 const ACCOUNTS_KEY = "accounts";
 
 export async function loadAccounts(): Promise<Account[]> {

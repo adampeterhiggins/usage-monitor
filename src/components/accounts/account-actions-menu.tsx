@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../../lib/platform/external";
 import { useAccountsStore } from "../../lib/accounts";
 import { toast } from "../../lib/platform/toast";
 import { PROVIDERS } from "../../lib/auth/provider-meta";
@@ -89,7 +89,7 @@ export function AccountActionsMenu({
               icon={Compass}
               onSelect={() => {
                 setOpen(false);
-                void openUrl(DASHBOARD_URLS[account.provider]).catch((e) =>
+                void openExternal(DASHBOARD_URLS[account.provider]).catch((e) =>
                   toast.error("Couldn’t open dashboard", {
                     description: e instanceof Error ? e.message : String(e),
                   }),

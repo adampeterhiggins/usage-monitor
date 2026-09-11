@@ -1,6 +1,6 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { notifyAppearanceClosed } from "./lib/platform/appearance-window";
+import { currentWindowLabel, startPanelDragging } from "./lib/platform/windows";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
 import { AccountCard } from "./components/accounts/account-card";
@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
-  const label = getCurrentWindow().label;
+  const label = currentWindowLabel();
   const isAppearanceWindow = label === "appearance";
 
   React.useEffect(() => {
@@ -60,7 +60,7 @@ function AppearanceWindowApp() {
 
   React.useEffect(() => {
     return () => {
-      void invoke("appearance_window_closed");
+      void notifyAppearanceClosed();
     };
   }, []);
 
@@ -295,7 +295,7 @@ function Shell() {
           if (event.button !== 0) return;
           const target = event.target as HTMLElement | null;
           if (target?.closest(".no-drag")) return;
-          void getCurrentWindow().startDragging();
+          startPanelDragging();
         }}
       >
         <div data-tauri-drag-region className="min-w-0 flex-1">
