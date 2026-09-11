@@ -1,7 +1,7 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
 import { AccountCard } from "./components/accounts/account-card";
 import { AccountDialog } from "./components/accounts/account-dialog";
@@ -28,16 +28,14 @@ import {
   useWindowShownRefresh,
 } from "./hooks/panel";
 import { useGithubToken, useUpdaterPoller } from "./hooks/updater";
-import { useUsageFetch } from "./hooks/usage-fetch";
-import { listAccounts } from "./lib/accounts";
+import { useAccountsStore } from "./lib/accounts";
 import { acceleratorGlyphs } from "./lib/platform/shortcut";
+import { useUsageStore } from "./lib/usage/service";
 import { PROVIDER_ORDER, PROVIDERS, type AccountPublic } from "./lib/usage/types";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
 });
-
-const ACCOUNTS_KEY = ["usage", "accounts"] as const;
 
 export default function App() {
   const label = getCurrentWindow().label;
@@ -69,7 +67,6 @@ function AppearanceWindowApp() {
 }
 
 function Shell() {
-  const client = useQueryClient();
   const [focusSelectedId, setFocusSelectedId] = React.useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [manageOpen, setManageOpen] = React.useState(false);
@@ -80,8 +77,10 @@ function Shell() {
   const headerRef = React.useRef<HTMLElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
-  const accountsQuery = useQuery({ queryKey: ACCOUNTS_KEY, queryFn: listAccounts });
-  const accounts = accountsQuery.data ?? [];
+  const accounts = useAccountsStore((s) => s.accounts);
+  const accountsLoaded = useAccountsStore((s) => s.loaded);
+  const fetchStates = useUsageStore((s) => s.states);
+  const refreshingAll = useUsageStore((s) => s.refreshingAll);
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
 
   const [layout, changeLayout] = useLayout();
@@ -93,8 +92,22 @@ function Shell() {
   useModalOpenBridge(accountModalOpen);
   useIntervalTick(30_000);
 
-  const { fetchStates, loadOne, refreshAll, refreshingAll, resetFetchStates } =
-    useUsageFetch(visibleAccounts);
+  React.useEffect(() => {
+    void useAccountsStore.getState().refresh();
+  }, []);
+
+  React.useEffect(() => {
+    useUsageStore.getState().ensureLoaded(visibleAccounts);
+  }, [visibleAccounts]);
+
+  const loadOne = React.useCallback(
+    (account: AccountPublic) => useUsageStore.getState().load(account.id, true),
+    [],
+  );
+  const refreshAll = React.useCallback(
+    (force: boolean) => useUsageStore.getState().refreshAll(visibleAccounts, force),
+    [visibleAccounts],
+  );
 
   usePanelKeys({
     refreshShortcut,
@@ -112,16 +125,6 @@ function Shell() {
       setFocusSelectedId(null);
     }
   }, [visibleAccounts, focusSelectedId]);
-
-  function handleSaved() {
-    void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
-    resetFetchStates();
-  }
-
-  function handleRemoved(accountId: string) {
-    void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
-    if (focusSelectedId === accountId) setFocusSelectedId(null);
-  }
 
   function openAdd() {
     setEditing(null);
@@ -147,11 +150,11 @@ function Shell() {
 
   // Wall / Ledger follow persisted account order; provider-grouped layouts keep storage order within each provider.
   const orderedAccounts = visibleAccounts;
-  const isEmpty = !accountsQuery.isLoading && accounts.length === 0;
-  const allHidden = !isEmpty && !accountsQuery.isLoading && visibleAccounts.length === 0;
+  const isEmpty = accountsLoaded && accounts.length === 0;
+  const allHidden = !isEmpty && accountsLoaded && visibleAccounts.length === 0;
 
   function renderBody() {
-    if (accountsQuery.isLoading) {
+    if (!accountsLoaded) {
       return (
         <div className="grid grid-cols-2 gap-3 p-4">
           {[0, 1, 2].map((i) => (
@@ -195,8 +198,7 @@ function Shell() {
             accounts={orderedAccounts}
             fetchStates={fetchStates}
             onEdit={openEdit}
-            onRemoved={handleRemoved}
-            onRefresh={(a) => void loadOne(a, true)}
+            onRefresh={loadOne}
           />
         );
       case "strip":
@@ -205,8 +207,7 @@ function Shell() {
             grouped={grouped}
             fetchStates={fetchStates}
             onEdit={openEdit}
-            onRemoved={handleRemoved}
-            onRefresh={(a) => void loadOne(a, true)}
+            onRefresh={loadOne}
           />
         );
       case "focus":
@@ -217,8 +218,7 @@ function Shell() {
             selectedId={focusSelectedId}
             onSelectedIdChange={setFocusSelectedId}
             onEdit={openEdit}
-            onRemoved={handleRemoved}
-            onRefresh={(a) => void loadOne(a, true)}
+            onRefresh={loadOne}
           />
         );
       case "grouped":
@@ -242,8 +242,7 @@ function Shell() {
                       account={account}
                       state={fetchStates[account.id] ?? { status: "loading" }}
                       onEdit={openEdit}
-                      onRemoved={handleRemoved}
-                      onRefresh={(a) => void loadOne(a, true)}
+                                onRefresh={loadOne}
                     />
                   ))}
                 </div>
@@ -261,8 +260,7 @@ function Shell() {
                 account={account}
                 state={fetchStates[account.id] ?? { status: "loading" }}
                 onEdit={openEdit}
-                onRemoved={handleRemoved}
-                onRefresh={(a) => void loadOne(a, true)}
+                    onRefresh={loadOne}
               />
             ))}
           </div>
@@ -276,7 +274,7 @@ function Shell() {
       <div ref={contentRef} className="h-full">
         {body}
       </div>
-    ) : layout === "focus" && !accountsQuery.isLoading ? (
+    ) : layout === "focus" && accountsLoaded ? (
       <div ref={contentRef} className="h-full">
         {body}
       </div>
@@ -340,11 +338,8 @@ function Shell() {
         accounts={accounts}
         onAddAccount={openAdd}
         onEditAccount={openEdit}
-        onAccountsChanged={() => {
-          void client.invalidateQueries({ queryKey: ACCOUNTS_KEY });
-        }}
       />
-      <AccountDialog open={dialogOpen} onOpenChange={setDialogOpen} account={editing} onSaved={handleSaved} />
+      <AccountDialog open={dialogOpen} onOpenChange={setDialogOpen} account={editing} />
     </div>
   );
 }

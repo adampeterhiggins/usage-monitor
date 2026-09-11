@@ -8,18 +8,17 @@ import {
   type ProviderId,
 } from "../../lib/usage/types";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
-import type { AccountFetchState } from "../accounts/account-card";
+import type { AccountFetchState } from "../../lib/usage/service";
 import { Badge, Text } from "../ui";
 
 interface StripViewProps {
   grouped: Array<{ id: ProviderId; accounts: AccountPublic[] }>;
   fetchStates: Record<string, AccountFetchState>;
   onEdit: (account: AccountPublic) => void;
-  onRemoved: (accountId: string) => void;
   onRefresh: (account: AccountPublic) => void;
 }
 
-export function StripView({ grouped, fetchStates, onEdit, onRemoved, onRefresh }: StripViewProps) {
+export function StripView({ grouped, fetchStates, onEdit, onRefresh }: StripViewProps) {
   return (
     <div className="flex flex-col gap-4 p-3 pb-8">
       {grouped.map((group) => (
@@ -61,7 +60,7 @@ export function StripView({ grouped, fetchStates, onEdit, onRemoved, onRefresh }
                       </Badge>
                     ))
                   )}
-                  <AccountActionsMenu account={account} onEdit={onEdit} onRemoved={onRemoved} onRefresh={onRefresh} />
+                  <AccountActionsMenu account={account} onEdit={onEdit} onRefresh={onRefresh} />
                 </div>
               </div>
             );
