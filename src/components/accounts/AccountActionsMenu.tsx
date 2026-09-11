@@ -2,7 +2,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
 import { openExternal } from "../../platform/external";
-import { useAccountsStore } from "../../lib/accounts/index";
+import { useAccountsStore } from "../../state/accounts";
 import { toast } from "../ui/toast";
 import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";

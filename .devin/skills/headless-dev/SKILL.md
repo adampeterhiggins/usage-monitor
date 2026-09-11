@@ -7,7 +7,7 @@ description: Run and test usage-monitor-native headlessly in a browser with mock
 
 `npm run dev:mock` runs `vite --mode mock`, which serves the frontend at
 http://localhost:1427 with every `@tauri-apps/*` import aliased to
-`src/testing/tauri-mock/`. The whole UI is drivable with browser automation
+`src/testing/platform-mock/`. The whole UI is drivable with browser automation
 (Playwright, agent-browser, or the Devin browser preview) — no native build,
 no real keychain, no real network.
 
@@ -21,7 +21,7 @@ assert on it to confirm you are not talking to a real build.
 
 ## Driving it
 
-`window.__TAURI_MOCK__` is installed by `src/testing/tauri-mock/runtime.ts`:
+`window.__TAURI_MOCK__` is installed by `src/testing/platform-mock/runtime.ts`:
 
 - `__TAURI_MOCK__.emit("window:shown")` — simulate the tray panel being shown
 - `__TAURI_MOCK__.invokeLog` — every `invoke` call with args, for assertions

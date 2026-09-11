@@ -1,75 +1,37 @@
+/** The tray panel window — accounts, usage, layouts, and the panel
+ *  lifecycle (toggle shortcut, modal bridge, shown refresh, ticking
+ *  timestamps, updater polling). */
+
 import * as React from "react";
-import { notifyAppearanceClosed } from "./platform/appearance-window";
-import { currentWindowLabel, startPanelDragging } from "./platform/windows";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
-import { AccountCard } from "./components/accounts/AccountCard";
-import { AccountDialog } from "./components/accounts/AccountDialog";
-import { AccountManagementDialog } from "./components/accounts/AccountManagementDialog";
-import { FitCorner } from "./components/ui/FitCorner";
-import { FocusView } from "./components/views/FocusView";
-import { LedgerView } from "./components/views/LedgerView";
-import { DeploymentInfoButton } from "./components/settings/DeploymentInfo";
-import { SettingsPopover } from "./components/settings/SettingsPopover";
-import { StripView } from "./components/views/StripView";
-import { ToastHost } from "./components/ui/ToastHost";
-import { Tooltip } from "./components/ui/tooltip";
-import { Button } from "./components/ui/button";
-import { EmptyState } from "./components/ui/empty-state";
-import { Text } from "./components/ui/text";
-import { ThemeEditorHost } from "./components/appearance/ThemeEditorHost";
-import { AppearancePanel } from "./components/appearance/AppearancePanel";
-import { useAppearanceRefresh } from "./hooks/useAppearanceRefresh";
+
+import { AccountDialog } from "../components/accounts/AccountDialog";
+import { AccountManagementDialog } from "../components/accounts/AccountManagementDialog";
+import { DeploymentInfoButton } from "../components/settings/DeploymentInfo";
+import { SettingsPopover } from "../components/settings/SettingsPopover";
+import { FitCorner } from "../components/ui/FitCorner";
+import { Tooltip } from "../components/ui/tooltip";
+import { Button } from "../components/ui/button";
+import { EmptyState } from "../components/ui/empty-state";
+import { groupByProvider } from "../components/views/accountGrouping";
+import { UsageLayout } from "../components/views/UsageLayout";
+import type { AccountPublic } from "../contracts/accounts";
+import { useAppearanceRefresh } from "../hooks/useAppearanceRefresh";
 import {
   useIntervalTick,
-  useLayout,
   useModalOpenBridge,
-  usePanelKeys,
-  useRefreshShortcut,
   useToggleShortcut,
   useWindowShownRefresh,
-} from "./hooks/panel";
-import { useGithubToken, useUpdaterPoller } from "./hooks/useUpdaterPoller";
-import { useAccountsStore } from "./lib/accounts/index";
-import { acceleratorGlyphs } from "./lib/settings/shortcuts";
-import { useUsageStore } from "./state/usage";
-import type { AccountPublic } from "./contracts/accounts";
-import { PROVIDER_ORDER, PROVIDERS } from "./providers/metadata";
+} from "../hooks/usePanelLifecycle";
+import { usePanelKeys } from "../hooks/usePanelKeys";
+import { useUpdaterPoller } from "../hooks/useUpdaterPoller";
+import { useAccountsStore } from "../state/accounts";
+import { acceleratorGlyphs } from "../lib/settings/shortcuts";
+import { startPanelDragging } from "../platform/windows";
+import { useGithubToken, useLayout, useRefreshShortcut } from "../state/preferences";
+import { useUsageStore } from "../state/usage";
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
-});
-
-export default function App() {
-  const label = currentWindowLabel();
-  const isAppearanceWindow = label === "appearance";
-
-  React.useEffect(() => {
-    document.documentElement.dataset.window = label;
-  }, [label]);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      {isAppearanceWindow ? <AppearanceWindowApp /> : <Shell />}
-      <ToastHost />
-      {isAppearanceWindow ? <ThemeEditorHost /> : null}
-    </QueryClientProvider>
-  );
-}
-
-function AppearanceWindowApp() {
-  useAppearanceRefresh({ listenForExternalChanges: false });
-
-  React.useEffect(() => {
-    return () => {
-      void notifyAppearanceClosed();
-    };
-  }, []);
-
-  return <AppearancePanel />;
-}
-
-function Shell() {
+export function PanelApp() {
   const [focusSelectedId, setFocusSelectedId] = React.useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [manageOpen, setManageOpen] = React.useState(false);
@@ -140,19 +102,9 @@ function Shell() {
     setDialogOpen(true);
   }
 
-  const grouped = React.useMemo(() => {
-    const map = new Map<string, AccountPublic[]>();
-    for (const id of PROVIDER_ORDER) map.set(id, []);
-    for (const account of visibleAccounts) {
-      const list = map.get(account.provider) ?? [];
-      list.push(account);
-      map.set(account.provider, list);
-    }
-    return PROVIDER_ORDER.map((id) => ({ id, accounts: map.get(id) ?? [] })).filter((g) => g.accounts.length > 0);
-  }, [visibleAccounts]);
+  const grouped = React.useMemo(() => groupByProvider(visibleAccounts), [visibleAccounts]);
 
   // Wall / Ledger follow persisted account order; provider-grouped layouts keep storage order within each provider.
-  const orderedAccounts = visibleAccounts;
   const isEmpty = accountsLoaded && accounts.length === 0;
   const allHidden = !isEmpty && accountsLoaded && visibleAccounts.length === 0;
 
@@ -194,81 +146,18 @@ function Shell() {
       );
     }
 
-    switch (layout) {
-      case "ledger":
-        return (
-          <LedgerView
-            accounts={orderedAccounts}
-            fetchStates={fetchStates}
-            onEdit={openEdit}
-            onRefresh={loadOne}
-          />
-        );
-      case "strip":
-        return (
-          <StripView
-            grouped={grouped}
-            fetchStates={fetchStates}
-            onEdit={openEdit}
-            onRefresh={loadOne}
-          />
-        );
-      case "focus":
-        return (
-          <FocusView
-            grouped={grouped}
-            fetchStates={fetchStates}
-            selectedId={focusSelectedId}
-            onSelectedIdChange={setFocusSelectedId}
-            onEdit={openEdit}
-            onRefresh={loadOne}
-          />
-        );
-      case "grouped":
-      case "stacked":
-        return (
-          <div className="flex flex-col gap-5 p-4 pb-8">
-            {grouped.map((group) => (
-              <section key={group.id} className="flex flex-col gap-2.5">
-                <div className="flex items-baseline justify-between px-0.5">
-                  <Text variant="small-strong" color="secondary">
-                    {PROVIDERS[group.id].name}
-                  </Text>
-                  <Text variant="mini" color="quaternary">
-                    {group.accounts.length}
-                  </Text>
-                </div>
-                <div className={layout === "stacked" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
-                  {group.accounts.map((account) => (
-                    <AccountCard
-                      key={account.id}
-                      account={account}
-                      state={fetchStates[account.id] ?? { status: "loading" }}
-                      onEdit={openEdit}
-                                onRefresh={loadOne}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        );
-      case "wall":
-      default:
-        return (
-          <div className="grid grid-cols-2 gap-3 p-4">
-            {orderedAccounts.map((account) => (
-              <AccountCard
-                key={account.id}
-                account={account}
-                state={fetchStates[account.id] ?? { status: "loading" }}
-                onEdit={openEdit}
-                    onRefresh={loadOne}
-              />
-            ))}
-          </div>
-        );
-    }
+    return (
+      <UsageLayout
+        layout={layout}
+        accounts={visibleAccounts}
+        grouped={grouped}
+        fetchStates={fetchStates}
+        focusSelectedId={focusSelectedId}
+        onFocusSelectedIdChange={setFocusSelectedId}
+        onEdit={openEdit}
+        onRefresh={loadOne}
+      />
+    );
   }
 
   const body = renderBody();

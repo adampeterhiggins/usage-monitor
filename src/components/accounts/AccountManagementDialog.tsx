@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useAccountsStore } from "../../lib/accounts/index";
+import { useAccountsStore } from "../../state/accounts";
 import { toast } from "../ui/toast";
 import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";

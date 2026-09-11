@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { getAccountAuth, useAccountsStore } from "../../lib/accounts/index";
+import { getAccountAuth } from "../../lib/accounts/index";
+import { useAccountsStore } from "../../state/accounts";
 import {
   cursorIdeLoginMeta,
   describeKeychainEntry,

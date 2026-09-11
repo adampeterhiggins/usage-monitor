@@ -1,9 +1,7 @@
 import type { Account } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import type { UsageFetchHooks, UsageResult, UsageSnapshot } from "../../contracts/usage";
-import { fetchClaudeUsage } from "../../providers/claude/usage";
-import { fetchCodexUsage } from "../../providers/codex/usage";
-import { fetchCursorUsage } from "../../providers/cursor/usage";
+import { fetchProviderUsage } from "../../providers/registry";
 import { HttpError } from "../../platform/http";
 
 const TTL_MS: Record<ProviderId, number> = {
@@ -16,16 +14,7 @@ const LAPSE_PROBE_MS = 60_000;
 const STALE_TTL_MULTIPLE = 2;
 const MAX_ENTRIES = 200;
 
-function rawFetch(account: Account, hooks: UsageFetchHooks): Promise<UsageSnapshot> {
-  switch (account.provider) {
-    case "claude":
-      return fetchClaudeUsage(account, hooks);
-    case "codex":
-      return fetchCodexUsage(account, hooks);
-    case "cursor":
-      return fetchCursorUsage(account);
-  }
-}
+const rawFetch = fetchProviderUsage;
 
 const snapshots = new Map<string, UsageSnapshot>();
 const backoffUntil = new Map<string, number>();
