@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { toPublic, type Account } from "../contracts/accounts";
-import type { AccountAuth } from "../contracts/auth";
+import { toPublic, type Account } from "../../contracts/accounts";
+import type { AccountAuth } from "../../contracts/auth";
 import {
   authFromLegacy,
   decodeStoredAccount,

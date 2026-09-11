@@ -1,5 +1,5 @@
-import { emitEvent } from "../platform/events";
-import { APPEARANCE_CHANGED_EVENT } from "../platform/appearance-window";
+import { emitEvent } from "../../platform/events";
+import { APPEARANCE_CHANGED_EVENT } from "../../platform/appearance-window";
 import { getAppearanceSettings } from "../settings/appearance";
 import { loadCustomThemesIntoMemory } from "../settings/custom-themes";
 import {

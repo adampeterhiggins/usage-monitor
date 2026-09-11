@@ -1,23 +1,25 @@
 import * as React from "react";
-import { notifyAppearanceClosed } from "./lib/platform/appearance-window";
-import { currentWindowLabel, startPanelDragging } from "./lib/platform/windows";
+import { notifyAppearanceClosed } from "./platform/appearance-window";
+import { currentWindowLabel, startPanelDragging } from "./platform/windows";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
-import { AccountCard } from "./components/accounts/account-card";
-import { AccountDialog } from "./components/accounts/account-dialog";
-import { AccountManagementDialog } from "./components/accounts/account-management-dialog";
-import { FitCorner } from "./components/ui/fit-corner";
-import { FocusView } from "./components/views/focus-view";
-import { LedgerView } from "./components/views/ledger-view";
-import { DeploymentInfoButton } from "./components/settings/deployment-info";
-import { SettingsPopover } from "./components/settings/settings-popover";
-import { StripView } from "./components/views/strip-view";
-import { ToastHost } from "./components/ui/toast-host";
+import { AccountCard } from "./components/accounts/AccountCard";
+import { AccountDialog } from "./components/accounts/AccountDialog";
+import { AccountManagementDialog } from "./components/accounts/AccountManagementDialog";
+import { FitCorner } from "./components/ui/FitCorner";
+import { FocusView } from "./components/views/FocusView";
+import { LedgerView } from "./components/views/LedgerView";
+import { DeploymentInfoButton } from "./components/settings/DeploymentInfo";
+import { SettingsPopover } from "./components/settings/SettingsPopover";
+import { StripView } from "./components/views/StripView";
+import { ToastHost } from "./components/ui/ToastHost";
 import { Tooltip } from "./components/ui/tooltip";
-import { Button, EmptyState, Text } from "./components/ui";
-import { ThemeEditorHost } from "./components/appearance/theme-editor-host";
-import { AppearancePanel } from "./components/appearance/appearance-dialog";
-import { useAppearanceRefresh } from "./hooks/appearance";
+import { Button } from "./components/ui/button";
+import { EmptyState } from "./components/ui/empty-state";
+import { Text } from "./components/ui/text";
+import { ThemeEditorHost } from "./components/appearance/ThemeEditorHost";
+import { AppearancePanel } from "./components/appearance/AppearancePanel";
+import { useAppearanceRefresh } from "./hooks/useAppearanceRefresh";
 import {
   useIntervalTick,
   useLayout,
@@ -27,12 +29,12 @@ import {
   useToggleShortcut,
   useWindowShownRefresh,
 } from "./hooks/panel";
-import { useGithubToken, useUpdaterPoller } from "./hooks/updater";
-import { useAccountsStore } from "./lib/accounts";
-import { acceleratorGlyphs } from "./lib/platform/shortcut";
-import { useUsageStore } from "./lib/usage/service";
-import type { AccountPublic } from "./lib/contracts/accounts";
-import { PROVIDER_ORDER, PROVIDERS } from "./lib/auth/provider-meta";
+import { useGithubToken, useUpdaterPoller } from "./hooks/useUpdaterPoller";
+import { useAccountsStore } from "./lib/accounts/index";
+import { acceleratorGlyphs } from "./lib/settings/shortcuts";
+import { useUsageStore } from "./state/usage";
+import type { AccountPublic } from "./contracts/accounts";
+import { PROVIDER_ORDER, PROVIDERS } from "./providers/metadata";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },

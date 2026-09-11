@@ -1,6 +1,6 @@
 /** Severity mapping and class selection for usage percentages. */
 
-import type { UsageWindow } from "../contracts/usage";
+import type { UsageWindow } from "../../contracts/usage";
 
 export type Severity = "ok" | "warn" | "high" | "critical" | "neutral";
 

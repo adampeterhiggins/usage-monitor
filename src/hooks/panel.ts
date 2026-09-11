@@ -3,20 +3,20 @@ import {
   hidePanel,
   onPanelShown,
   setAccountModalOpen,
-} from "../lib/platform/windows";
+} from "../platform/windows";
 import { useQuery } from "@tanstack/react-query";
-import { initToggleShortcut } from "../lib/platform/global-shortcut";
+import { initToggleShortcut } from "../platform/global-shortcut";
 import {
   acceleratorFromKeyDown,
   DEFAULT_REFRESH_SHORTCUT,
-} from "../lib/platform/shortcut";
+} from "../lib/settings/shortcuts";
 import {
   getLayout,
   getRefreshShortcut,
   getToggleShortcut,
   REFRESH_SHORTCUT_QUERY_KEY,
   setLayout as persistLayout,
-} from "../lib/settings";
+} from "../lib/settings/index";
 import type { Layout } from "../lib/settings/layout";
 
 /** Persisted panel layout with a write-through setter. */

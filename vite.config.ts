@@ -9,7 +9,7 @@ const host = process.env.TAURI_DEV_HOST;
 
 /**
  * `vite --mode mock` serves the frontend in a plain browser with every
- * @tauri-apps specifier aliased to src/testing/tauri-mock/. Agents (and humans
+ * @tauri-apps specifier aliased to src/testing/platform-mock/. Agents (and humans
  * without a signed-in desktop) get a fully drivable app on localhost:1420.
  */
 const TAURI_MOCK_ALIASES: Record<string, string> = {
@@ -37,7 +37,7 @@ export default defineConfig(async ({ mode }) => {
           alias: Object.fromEntries(
             Object.entries(TAURI_MOCK_ALIASES).map(([specifier, file]) => [
               specifier,
-              fileURLToPath(new URL(`./src/testing/tauri-mock/${file}.ts`, import.meta.url)),
+              fileURLToPath(new URL(`./src/testing/platform-mock/${file}.ts`, import.meta.url)),
             ]),
           ),
         }

@@ -14,13 +14,13 @@
  *  displayed sign-in method. Unknown credential text is preserved verbatim.
  */
 
-import type { Account } from "../contracts/accounts";
+import type { Account } from "../../contracts/accounts";
 import {
   CURSOR_IDE_SELECTOR,
   type AccountAuth,
-} from "../contracts/auth";
-import type { ProviderId } from "../contracts/providers";
-import { credentialLooksLikeSession } from "../auth/provider-login";
+} from "../../contracts/auth";
+import type { ProviderId } from "../../contracts/providers";
+import { credentialLooksLikeSession } from "../../providers/shared/providerLogin";
 
 export interface StoredAccountRow {
   id: string;

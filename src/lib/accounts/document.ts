@@ -2,8 +2,8 @@
  *  Stored rows are decoded/encoded through the codec — this module knows
  *  nothing about credential semantics. */
 
-import type { Account } from "../contracts/accounts";
-import { openDocumentStore } from "../platform/persistence";
+import type { Account } from "../../contracts/accounts";
+import { openDocumentStore } from "../../platform/persistence";
 import { decodeStoredAccount, encodeAccount } from "./codec";
 
 const store = openDocumentStore("accounts.json");
