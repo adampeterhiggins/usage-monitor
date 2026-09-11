@@ -1,6 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
 import type { ProviderId } from "../contracts/providers";
 import { CURSOR_IDE_SELECTOR } from "../contracts/auth";
+import {
+  cursorIdeLoginMeta as readCursorIdeLoginMeta,
+  listKeychainAccounts,
+  readKeychainPassword,
+  type CursorIdeLogin,
+  type KeychainEntry,
+} from "../platform/credentials";
 
 /** Keychain service name Claude Code stores its OAuth login under. */
 export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
@@ -10,6 +16,8 @@ export const CODEX_KEYCHAIN_SERVICE = "Codex Auth";
 export const CURSOR_ACCESS_TOKEN_SERVICE = "cursor-access-token";
 /** Stored `extra` value pinning a Cursor account to the desktop app's `state.vscdb` login. */
 export const CURSOR_IDE_PIN = CURSOR_IDE_SELECTOR;
+
+export type { CursorIdeLogin, KeychainEntry } from "../platform/credentials";
 
 export interface KeychainLogin {
   service: string;
@@ -24,34 +32,13 @@ export const KEYCHAIN_LOGINS: Partial<Record<ProviderId, KeychainLogin>> = {
   cursor: { service: CURSOR_ACCESS_TOKEN_SERVICE, noun: "cursor-agent login" },
 };
 
-export interface CursorIdeLogin {
-  email?: string | null;
-  membership?: string | null;
-}
-
 /** Picker metadata for the Cursor IDE login. Does not read the access token. */
 export async function cursorIdeLoginMeta(): Promise<CursorIdeLogin | null> {
   try {
-    return await invoke<CursorIdeLogin | null>("cursor_ide_login_meta");
+    return await readCursorIdeLoginMeta();
   } catch {
     return null;
   }
-}
-
-export interface KeychainEntry {
-  account: string;
-  /** Keychain modification stamp, e.g. `20260909084709Z`. */
-  modified?: string | null;
-}
-
-/** List Keychain accounts under a service, newest first. Reads attributes only, never secrets. */
-export async function listKeychainAccounts(service: string): Promise<KeychainEntry[]> {
-  return invoke<KeychainEntry[]>("list_keychain_accounts", { service });
-}
-
-/** Read one Keychain password, optionally pinned to a specific account. */
-export async function readKeychainPassword(service: string, account?: string): Promise<string> {
-  return invoke<string>("read_keychain_password", { service, account: account ?? null });
 }
 
 /** Parse a `YYYYMMDDHHMMSSZ` Keychain stamp into epoch ms. */

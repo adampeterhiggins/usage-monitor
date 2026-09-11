@@ -1,6 +1,9 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import {
+  hidePanel,
+  onPanelShown,
+  setAccountModalOpen,
+} from "../lib/platform/windows";
 import { useQuery } from "@tanstack/react-query";
 import { initToggleShortcut } from "../lib/platform/global-shortcut";
 import {
@@ -54,14 +57,14 @@ export function useModalOpenBridge(open: boolean): void {
     // Do not send `open: false` from this effect's cleanup — React Strict Mode
     // remounts immediately and that race left the panel hidden / accessory
     // while the modal was still open.
-    void invoke("set_account_modal_open", { open }).catch(() => {
+    void setAccountModalOpen(open).catch(() => {
       // Older native builds without the command keep tray hide-on-blur.
     });
   }, [open]);
 
   React.useEffect(() => {
     return () => {
-      void invoke("set_account_modal_open", { open: false }).catch(() => {});
+      void setAccountModalOpen(false).catch(() => {});
     };
   }, []);
 }
@@ -88,7 +91,7 @@ export function usePanelKeys(options: {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         if (blockingOverlay) return;
-        void invoke("hide_window");
+        void hidePanel();
         return;
       }
       const accelerator = acceleratorFromKeyDown(e, { allowBareKey: true });
@@ -109,18 +112,16 @@ export function useWindowShownRefresh(options: {
 }): void {
   const { skip, onShown } = options;
 
-  React.useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen("window:shown", () => {
-      // Make sure the document owns keyboard focus so Escape works without a click first.
-      window.focus();
-      if (skip) return;
-      // Respect TTL / backoff. A forced refresh here re-hit Claude's OAuth
-      // token endpoint on every tray open and burned the sign-in rate limit.
-      onShown();
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    return () => unlisten?.();
-  }, [skip, onShown]);
+  React.useEffect(
+    () =>
+      onPanelShown(() => {
+        // Make sure the document owns keyboard focus so Escape works without a click first.
+        window.focus();
+        if (skip) return;
+        // Respect TTL / backoff. A forced refresh here re-hit Claude's OAuth
+        // token endpoint on every tray open and burned the sign-in rate limit.
+        onShown();
+      }),
+    [skip, onShown],
+  );
 }

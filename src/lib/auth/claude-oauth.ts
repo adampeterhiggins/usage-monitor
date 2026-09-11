@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../platform/external";
 import { fetchJson, fetchText, header, HttpError } from "../platform/http";
 import type { ProviderLoginResult } from "../contracts/auth";
 import {
@@ -233,7 +233,7 @@ export async function startClaudeLogin(): Promise<ProviderLoginSession> {
   // Anthropic's Claude Code authorize endpoint requires state === the PKCE verifier.
   url.searchParams.set("state", verifier);
 
-  void openUrl(url.toString()).catch(() => {
+  void openExternal(url.toString()).catch(() => {
     // The account dialog still shows paste instructions if the browser cannot open.
   });
 

@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../platform/external";
 import { fetchJson, fetchText } from "../platform/http";
 
 /**
@@ -229,7 +229,7 @@ export async function startGithubDeviceFlow(
     device.verification_uri_complete?.trim() ||
     `${verificationUri}?user_code=${encodeURIComponent(userCode)}`;
   const expiresAt = Date.now() + (device.expires_in ?? 900) * 1000;
-  void openUrl(verificationUriComplete).catch(() => {
+  void openExternal(verificationUriComplete).catch(() => {
     // The settings UI still shows the code if the browser cannot be opened.
   });
   const done = pollAccessToken(

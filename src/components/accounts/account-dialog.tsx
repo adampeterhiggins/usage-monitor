@@ -5,10 +5,10 @@ import {
   cursorIdeLoginMeta,
   describeKeychainEntry,
   KEYCHAIN_LOGINS,
-  listKeychainAccounts,
   type CursorIdeLogin,
   type KeychainEntry,
 } from "../../lib/auth/keychain";
+import { listKeychainAccounts } from "../../lib/platform/credentials";
 import { CURSOR_IDE_SELECTOR, type AccountAuth } from "../../lib/contracts/auth";
 import type { AccountPublic } from "../../lib/contracts/accounts";
 import type { ProviderId } from "../../lib/contracts/providers";

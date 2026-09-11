@@ -4,7 +4,7 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { toast } from "./toast";
 
 export const APPEARANCE_WINDOW_LABEL = "appearance";
-export const APPEARANCE_CHANGED_EVENT = "appearance:changed";
+export { APPEARANCE_CHANGED_EVENT } from "../contracts/platform";
 
 const APPEARANCE_WINDOW_WIDTH = 760;
 const APPEARANCE_WINDOW_HEIGHT = 820;
@@ -25,9 +25,14 @@ const APPEARANCE_WINDOW_OPTIONS = {
   skipTaskbar: false,
 } as const;
 
+/** The Appearance window's unmount signals the native side it closed. */
+export async function notifyAppearanceClosed(): Promise<void> {
+  await invoke("appearance_window_closed");
+}
+
 function watchAppearanceLifecycle(window: WebviewWindow): void {
   void window.once("tauri://destroyed", () => {
-    void invoke("appearance_window_closed");
+    void notifyAppearanceClosed();
   });
 }
 
@@ -54,7 +59,7 @@ export async function openAppearanceWindow(): Promise<void> {
       toast.error("Couldn’t open Appearance", {
         description: error instanceof Error ? error.message : String(error),
       });
-      void invoke("appearance_window_closed");
+      void notifyAppearanceClosed();
     }
     return;
   }
@@ -62,7 +67,7 @@ export async function openAppearanceWindow(): Promise<void> {
   const window = new WebviewWindow(APPEARANCE_WINDOW_LABEL, { ...APPEARANCE_WINDOW_OPTIONS });
   watchAppearanceLifecycle(window);
   window.once("tauri://error", (event) => {
-    void invoke("appearance_window_closed");
+    void notifyAppearanceClosed();
     toast.error("Couldn’t open Appearance", {
       description: typeof event.payload === "string" ? event.payload : String(event.payload),
     });

@@ -1,12 +1,8 @@
 import { isRegistered, register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { invoke } from "@tauri-apps/api/core";
 import { DEFAULT_TOGGLE_SHORTCUT, toGlobalShortcut } from "./shortcut";
+import { togglePanel } from "./windows";
 
 let current: string | null = null;
-
-async function togglePanel() {
-  await invoke("toggle_window");
-}
 
 export async function registerToggleShortcut(accelerator: string): Promise<boolean> {
   const next = toGlobalShortcut(accelerator);

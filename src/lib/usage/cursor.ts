@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { readCursorIdeAccessToken, readHomeFile } from "../platform/credentials";
 import { fetchJson } from "../platform/http";
 import { CURSOR_IDE_PIN, KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
 import type { Account } from "../contracts/accounts";
@@ -177,12 +177,12 @@ export function cookieFromPasted(raw: string): string {
 }
 
 async function cookieFromIde(): Promise<string> {
-  const jwt = await invoke<string>("read_cursor_ide_access_token");
+  const jwt = await readCursorIdeAccessToken();
   return sessionCookieFromJwt(jwt, "Cursor IDE login");
 }
 
 async function cookieFromAuthFile(): Promise<string> {
-  const raw = await invoke<string>("read_home_file", { relPath: ".cursor/auth.json" });
+  const raw = await readHomeFile(".cursor/auth.json");
   return sessionCookieFromJwt(raw, "~/.cursor/auth.json");
 }
 

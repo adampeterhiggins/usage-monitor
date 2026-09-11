@@ -1,5 +1,5 @@
 import * as React from "react";
-import { listen } from "@tauri-apps/api/event";
+import { subscribe } from "../lib/platform/events";
 import { APPEARANCE_CHANGED_EVENT } from "../lib/platform/appearance-window";
 import {
   refreshAppliedAppearance,
@@ -30,12 +30,8 @@ export function useAppearanceRefresh(options: { listenForExternalChanges?: boole
 
   React.useEffect(() => {
     if (!listenForExternalChanges) return;
-    let unlisten: (() => void) | undefined;
-    void listen(APPEARANCE_CHANGED_EVENT, () => {
+    return subscribe(APPEARANCE_CHANGED_EVENT, () => {
       void refreshAppearanceRespectingPreview();
-    }).then((fn) => {
-      unlisten = fn;
     });
-    return () => unlisten?.();
   }, [listenForExternalChanges]);
 }
