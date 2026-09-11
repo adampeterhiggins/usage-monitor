@@ -37,6 +37,7 @@ export function applyUiPaletteToElement(
   palette: ReturnType<typeof resolveUiPalette>,
 ): void {
   const vars = paletteToCssVariables(palette);
+  element.setAttribute("data-ui-stock", String(palette.stock));
   for (const name of UI_PALETTE_VARIABLES) {
     const value = vars[name];
     if (value !== undefined) element.style.setProperty(name, value);
@@ -45,6 +46,7 @@ export function applyUiPaletteToElement(
 
 /** Remove every `--ui-*` variable (the stylesheet's static fallbacks win). */
 export function clearUiPaletteFromElement(element: HTMLElement): void {
+  element.removeAttribute("data-ui-stock");
   for (const name of UI_PALETTE_VARIABLES) {
     element.style.removeProperty(name);
   }

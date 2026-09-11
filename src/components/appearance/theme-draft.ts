@@ -12,6 +12,7 @@ import {
   type ThemeDefinition,
 } from "../../lib/theme/source-types";
 import type { ThemeAppearance } from "../../lib/theme/types";
+import { parseThemeColor, themeColorToHex, themeOklchToThemeColor } from "../../lib/theme/colors";
 
 export interface ThemeModeDraft {
   seeds: { canvas: string; accent: string };
@@ -21,6 +22,7 @@ export interface ThemeModeDraft {
 
 export interface ThemeEditorDraft {
   name: string;
+  baseAppearance: ThemeAppearance;
   activeMode: ThemeAppearance;
   modes: Partial<Record<ThemeAppearance, ThemeModeDraft>>;
   origin: { kind: "new" | "edit" | "copy"; themeId?: string };
@@ -42,6 +44,7 @@ export function themeToDraft(theme: ThemeDefinition): ThemeEditorDraft {
   }
   return {
     name: theme.label,
+    baseAppearance: theme.appearance,
     activeMode: theme.appearance,
     modes,
     origin: { kind: "edit", themeId: theme.id },
@@ -63,6 +66,7 @@ export function newThemeDraft(
     : { seeds: { ...DEFAULT_SEEDS[mode] }, overrides: {} };
   return {
     name: "Custom theme",
+    baseAppearance: mode,
     activeMode: mode,
     modes: { [mode]: modeDraft },
     origin: { kind: seed ? "copy" : "new" },
@@ -82,20 +86,29 @@ export function draftThemeHasMode(draft: ThemeEditorDraft, mode: ThemeAppearance
   return draft.modes[mode] !== undefined;
 }
 
-/** Start a mode draft seeded from the other mode's authored values. */
+/** Add an independent appearance, retaining the palette's hue without copying
+ * incompatible light/dark surfaces or foreground overrides. */
 export function addDraftMode(draft: ThemeEditorDraft, mode: ThemeAppearance): ThemeEditorDraft {
   if (draft.modes[mode]) return { ...draft, activeMode: mode };
   const other = mode === "light" ? "dark" : "light";
   const seedFrom = draft.modes[other];
-  const seeded: ThemeModeDraft = seedFrom
-    ? {
-        seeds: { ...seedFrom.seeds },
-        overrides: { ...seedFrom.overrides },
-        ...(seedFrom.panelOpacity !== undefined
-          ? { panelOpacity: seedFrom.panelOpacity }
-          : {}),
-      }
-    : { seeds: { canvas: "#ffffff", accent: "#138af2" }, overrides: {} };
+  const defaults = DEFAULT_SEEDS[mode];
+  const canvas = parseThemeColor(seedFrom?.seeds.canvas);
+  const accent = parseThemeColor(seedFrom?.seeds.accent);
+  const seeded: ThemeModeDraft = {
+    seeds: {
+      canvas: canvas ? themeOklchToThemeColor({
+        ...canvas.color,
+        L: parseThemeColor(defaults.canvas)!.color.L,
+        C: Math.min(canvas.color.C, 0.025),
+      }) : defaults.canvas,
+      accent: accent ? themeOklchToThemeColor({
+        ...accent.color,
+        L: mode === "dark" ? Math.max(accent.color.L, 0.65) : Math.min(accent.color.L, 0.55),
+      }) : defaults.accent,
+    },
+    overrides: {},
+  };
   return {
     ...draft,
     activeMode: mode,
@@ -145,12 +158,12 @@ export function resetDraftMode(draft: ThemeEditorDraft): ThemeEditorDraft {
     ...draft,
     modes: {
       ...draft.modes,
-      [mode]: { seeds: current.seeds, overrides: {} },
+      [mode]: { ...current, overrides: {} },
     },
   };
 }
 
-/** The saved definition. The base appearance is the draft's active mode. */
+/** Switching the preview mode does not change the theme's base appearance. */
 export function draftToTheme(
   draft: ThemeEditorDraft,
   options?: { id?: string; managed?: boolean; collection?: ThemeDefinition["collection"] },
@@ -164,9 +177,20 @@ export function draftToTheme(
   return createThemeDefinition({
     id,
     label: draft.name.trim() || "Custom theme",
-    appearance: draft.modes[draft.activeMode] ? draft.activeMode : "light",
+    appearance: draft.baseAppearance,
     modes,
     managed: options?.managed ?? true,
     ...(options?.collection ? { collection: options.collection } : {}),
   });
+}
+
+/** The picker needs opaque hex; this display conversion never changes source data. */
+export function colorPickerValue(value: string): string {
+  return themeColorToHex(value)?.slice(0, 7) ?? "#000000";
+}
+
+export function parseEditorColor(value: string): string | null {
+  const trimmed = value.trim();
+  const candidate = /^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(trimmed) ? `#${trimmed}` : trimmed;
+  return parseThemeColor(candidate) ? candidate : null;
 }

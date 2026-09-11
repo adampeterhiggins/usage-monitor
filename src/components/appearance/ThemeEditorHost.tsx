@@ -8,11 +8,12 @@ import {
   updateAndPersistTheme,
 } from "../../lib/settings/index";
 import {
+  getLastAppliedAppearanceSettings,
+  subscribeToAppearanceSettings,
   themePreview,
   type ThemePreviewSession,
 } from "../../lib/theme/controller";
 import { resolveUiPalette, type ResolvedUiPalette } from "../../lib/theme/resolve-ui-palette";
-import { getLastAppliedAppearanceSettings } from "../../lib/theme/controller";
 import type { ThemeAppearance } from "../../lib/theme/types";
 import { toast } from "../ui/toast";
 import { cn } from "../../lib/utils";
@@ -22,6 +23,8 @@ import { UsageMonitorPreview } from "./AppearancePreview";
 import { useThemeEditorStore } from "./themeEditorStore";
 import {
   addDraftMode,
+  colorPickerValue,
+  parseEditorColor,
   draftModeSpec,
   draftToTheme,
   newThemeDraft,
@@ -61,7 +64,10 @@ const COLOR_GROUPS: ReadonlyArray<{
       { field: { kind: "override", role: "textSecondary" }, label: "Secondary" },
       { field: { kind: "override", role: "textTertiary" }, label: "Tertiary" },
       { field: { kind: "override", role: "placeholder" }, label: "Placeholder" },
+      { field: { kind: "override", role: "cardForeground" }, label: "Cards" },
+      { field: { kind: "override", role: "menuForeground" }, label: "Menus" },
       { field: { kind: "override", role: "toolbarForeground" }, label: "Toolbar" },
+      { field: { kind: "override", role: "accentText" }, label: "Links" },
     ],
   },
   {
@@ -85,6 +91,7 @@ const COLOR_GROUPS: ReadonlyArray<{
     fields: [
       { field: { kind: "override", role: "selectionBackground" }, label: "Fill" },
       { field: { kind: "override", role: "selectionForeground" }, label: "Text" },
+      { field: { kind: "override", role: "selectionHoverBackground" }, label: "Hover" },
     ],
   },
   {
@@ -111,6 +118,7 @@ const COLOR_GROUPS: ReadonlyArray<{
       { field: { kind: "override", role: "warning" }, label: "Warning" },
       { field: { kind: "override", role: "high" }, label: "High" },
       { field: { kind: "override", role: "critical" }, label: "Error" },
+      { field: { kind: "override", role: "destructiveForeground" }, label: "Destructive action text" },
     ],
   },
 ];
@@ -152,17 +160,6 @@ const RESOLVED_FIELD: Record<AppOverrideRole, (p: ResolvedUiPalette) => string> 
   critical: (p) => p.contexts.canvas.status.critical.fill,
 };
 
-function parseHexInput(value: string): string | null {
-  const trimmed = value.trim();
-  const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-  if (/^#[0-9a-fA-F]{3}$/.test(withHash)) {
-    const [, r, g, b] = withHash;
-    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
-  }
-  if (/^#[0-9a-fA-F]{6}$/.test(withHash)) return withHash.toLowerCase();
-  return null;
-}
-
 function ColorField({
   label,
   authored,
@@ -175,8 +172,8 @@ function ColorField({
   authored: string | null;
   /** The resolved value shown when nothing is authored. */
   resolved: string;
-  onChange: (hex: string) => void;
-  onClear: () => void;
+  onChange: (color: string) => void;
+  onClear?: () => void;
 }) {
   const shown = authored ?? resolved;
   const [text, setText] = React.useState(shown);
@@ -187,7 +184,7 @@ function ColorField({
   }, [focused, shown]);
 
   function commit(next: string) {
-    const parsed = parseHexInput(next);
+    const parsed = parseEditorColor(next);
     if (!parsed || parsed === shown) {
       setText(shown);
       return;
@@ -199,7 +196,7 @@ function ColorField({
     <label className="grid min-w-0 gap-1">
       <span className="flex items-center justify-between gap-1 text-[11px] text-ui-secondary">
         <span className="truncate">{label}</span>
-        {authored !== null ? (
+        {authored !== null && onClear ? (
           <button
             type="button"
             className="shrink-0 text-[9px] uppercase tracking-wide text-ui-tertiary hover:text-ui-primary"
@@ -217,13 +214,13 @@ function ColorField({
           type="color"
           aria-label={label}
           className="h-8 w-8 shrink-0 cursor-pointer rounded-md border border-ui-subtle bg-transparent p-[3px]"
-          value={/^#[0-9a-fA-F]{6}$/.test(shown) ? shown : "#000000"}
+          value={colorPickerValue(shown)}
           onChange={(event) => onChange(event.target.value.toLowerCase())}
         />
         <Input
           spellCheck={false}
           className={cn(
-            "min-w-0 flex-1 font-mono text-[12px] uppercase",
+            "min-w-0 flex-1 font-mono text-[12px]",
             authored === null && "opacity-60",
           )}
           value={text}
@@ -235,7 +232,7 @@ function ColorField({
           onChange={(event) => {
             const next = event.target.value;
             setText(next);
-            const parsed = parseHexInput(next);
+            const parsed = parseEditorColor(next);
             if (parsed) onChange(parsed);
           }}
           onKeyDown={(event) => {
@@ -258,9 +255,12 @@ export function ThemeEditorHost() {
     : null;
 
   const [draft, setDraft] = React.useState<ThemeEditorDraft | null>(null);
+  const [beforeRebuild, setBeforeRebuild] = React.useState<{ mode: ThemeAppearance; value: ThemeModeDraft } | null>(null);
+  const settings = React.useSyncExternalStore(subscribeToAppearanceSettings, getLastAppliedAppearanceSettings);
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
+    setBeforeRebuild(null);
     if (!session) {
       setDraft(null);
       return;
@@ -268,30 +268,28 @@ export function ThemeEditorHost() {
     if (session.editingThemeId) {
       const theme = getThemeDefinition(session.editingThemeId);
       if (theme) {
-        setDraft(themeToDraft(theme));
+        const next = themeToDraft(theme);
+        if (next.modes[session.preferredAppearance]) next.activeMode = session.preferredAppearance;
+        setDraft(next);
         return;
       }
     }
-    const seed = session.seedThemeId
-      ? (getThemeSpecForMode(getThemeDefinition(session.seedThemeId)!, session.preferredAppearance) ??
-        getThemeDefinition(session.seedThemeId)!.modes[
-          getThemeDefinition(session.seedThemeId)!.appearance
-        ] ??
-        null)
-      : null;
-    setDraft(newThemeDraft(seed, session.preferredAppearance));
+    const seedTheme = session.seedThemeId ? getThemeDefinition(session.seedThemeId) : null;
+    const seedMode = seedTheme && !getThemeSpecForMode(seedTheme, session.preferredAppearance)
+      ? seedTheme.appearance : session.preferredAppearance;
+    const seed = seedTheme ? getThemeSpecForMode(seedTheme, seedMode) : null;
+    setDraft(addDraftMode(newThemeDraft(seed, seedMode), session.preferredAppearance));
   }, [session]);
 
   const activeModeDraft: ThemeModeDraft | null = draft ? (draft.modes[draft.activeMode] ?? null) : null;
 
   const resolved = React.useMemo(() => {
     if (!draft || !activeModeDraft) return null;
-    const settings = getLastAppliedAppearanceSettings();
     return resolveUiPalette(draftModeSpec(activeModeDraft), draft.activeMode, {
       appearanceContrast: settings.appearanceContrast,
       glassOpacity: settings.glassOpacity,
     });
-  }, [draft, activeModeDraft]);
+  }, [draft, activeModeDraft, settings]);
 
   const previewRef = React.useRef<ThemePreviewSession | null>(null);
 
@@ -417,11 +415,22 @@ export function ThemeEditorHost() {
                 variant="transparent"
                 size="small"
                 className="justify-center"
-                onClick={() => setDraft((current) => (current ? resetDraftMode(current) : current))}
+                onClick={() => {
+                  if (draft && activeModeDraft) setBeforeRebuild({ mode: draft.activeMode, value: activeModeDraft });
+                  setDraft((current) => (current ? resetDraftMode(current) : current));
+                }}
               >
                 <RotateCcw className="size-3.5" />
                 Rebuild from Canvas & Accent
               </Button>
+              {beforeRebuild && (
+                <Button variant="transparent" size="small" onClick={() => {
+                  setDraft(current => current ? {
+                    ...current, modes: { ...current.modes, [beforeRebuild.mode]: beforeRebuild.value },
+                  } : current);
+                  setBeforeRebuild(null);
+                }}>Undo rebuild</Button>
+              )}
               {COLOR_GROUPS.map((group) => (
                 <section key={group.title} className="grid gap-2">
                   <h3 className="text-[11px] font-medium uppercase tracking-wide text-ui-tertiary">
@@ -447,13 +456,11 @@ export function ThemeEditorHost() {
                           authored={authored}
                           resolved={resolvedValue}
                           onChange={(hex) => applyField(field, hex)}
-                          onClear={() => {
-                            if (field.kind === "override") {
-                              setDraft((current) =>
-                                current ? setDraftOverride(current, field.role, null) : current,
-                              );
-                            }
-                          }}
+                          onClear={field.kind === "override" ? () => {
+                            setDraft((current) =>
+                              current ? setDraftOverride(current, field.role, null) : current,
+                            );
+                          } : undefined}
                         />
                       );
                     })}
@@ -466,6 +473,17 @@ export function ThemeEditorHost() {
                 Preview
               </div>
               <UsageMonitorPreview className="min-h-0 flex-1" palette={resolved} />
+              {!!resolved?.diagnostics.length && (
+                <details className="max-h-40 overflow-y-auto text-[11px] text-ui-secondary">
+                  <summary className="cursor-pointer">Readability adjustments ({resolved.diagnostics.length})</summary>
+                  <p className="my-2">Saved colours stay editable. The preview shows adjustments made to keep text readable.</p>
+                  <ul className="grid gap-1">
+                    {resolved.diagnostics.map((diagnostic, index) => (
+                      <li key={index}>{diagnostic.context}: {diagnostic.role} — {diagnostic.detail}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           </div>
           <div className="mt-3 flex shrink-0 justify-end gap-2">

@@ -21,41 +21,47 @@ export async function persistCustomThemesFromMemory(): Promise<void> {
   await settingsStore.save();
 }
 
-export async function installAndPersistTheme(theme: ThemeDefinition): Promise<ThemeDefinition> {
-  await loadCustomThemesIntoMemory();
-  const installed = installCustomTheme(theme);
-  await persistCustomThemesFromMemory();
-  return installed;
+// Serialize mutations so a failed save cannot roll back another local edit.
+let pendingMutation: Promise<unknown> = Promise.resolve();
+function mutateAndPersist<T>(mutate: () => T): Promise<T> {
+  const operation = pendingMutation.then(async () => {
+    const previous = await settingsStore.get<unknown>(CUSTOM_THEMES_KEY);
+    hydrateCustomThemeLibrary(previous);
+    try {
+      const result = mutate();
+      await persistCustomThemesFromMemory();
+      return result;
+    } catch (error) {
+      hydrateCustomThemeLibrary(previous);
+      // LazyStore also caches set() before save(): restore that cache as well.
+      if (previous === undefined) await settingsStore.delete(CUSTOM_THEMES_KEY);
+      else await settingsStore.set(CUSTOM_THEMES_KEY, previous);
+      throw error;
+    }
+  });
+  pendingMutation = operation.catch(() => undefined);
+  return operation;
 }
 
-export async function replaceAndPersistThemeCollection(
+export function installAndPersistTheme(theme: ThemeDefinition): Promise<ThemeDefinition> {
+  return mutateAndPersist(() => installCustomTheme(theme));
+}
+
+export function replaceAndPersistThemeCollection(
   collectionId: string,
   themes: ReadonlyArray<ThemeDefinition>,
 ): Promise<ReadonlyArray<ThemeDefinition>> {
-  await loadCustomThemesIntoMemory();
-  const installed = replaceCustomThemeCollection(collectionId, themes);
-  await persistCustomThemesFromMemory();
-  return installed;
+  return mutateAndPersist(() => replaceCustomThemeCollection(collectionId, themes));
 }
 
-export async function updateAndPersistTheme(
-  themeId: string,
-  replacement: ThemeDefinition,
-): Promise<ThemeDefinition> {
-  await loadCustomThemesIntoMemory();
-  const updated = updateCustomTheme(themeId, replacement);
-  await persistCustomThemesFromMemory();
-  return updated;
+export function updateAndPersistTheme(themeId: string, replacement: ThemeDefinition): Promise<ThemeDefinition> {
+  return mutateAndPersist(() => updateCustomTheme(themeId, replacement));
 }
 
-export async function removeAndPersistTheme(themeId: string): Promise<void> {
-  await loadCustomThemesIntoMemory();
-  removeCustomTheme(themeId);
-  await persistCustomThemesFromMemory();
+export function removeAndPersistTheme(themeId: string): Promise<void> {
+  return mutateAndPersist(() => removeCustomTheme(themeId));
 }
 
-export async function removeAndPersistThemes(themeIds: ReadonlyArray<string>): Promise<void> {
-  await loadCustomThemesIntoMemory();
-  removeCustomThemes(themeIds);
-  await persistCustomThemesFromMemory();
+export function removeAndPersistThemes(themeIds: ReadonlyArray<string>): Promise<void> {
+  return mutateAndPersist(() => removeCustomThemes(themeIds));
 }

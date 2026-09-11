@@ -25,6 +25,7 @@ import {
 } from "./colors";
 import type { ThemeAppearance } from "./themePalettes";
 import type { AppModeSpec } from "./source-types";
+import { isStockModeSpec } from "./stock-source";
 import {
   BOUNDARY_TARGET,
   CONTRAST_FLOOR,
@@ -143,6 +144,8 @@ export interface PaletteDiagnostic {
 }
 
 export interface ResolvedUiPalette {
+  /** App-owned Default only; never accepted from theme-file input. */
+  stock: boolean;
   appearance: ThemeAppearance;
   canvas: string;
   contexts: Record<UiSurfaceContext, UiContextPalette>;
@@ -319,6 +322,7 @@ type Ctx = UiSurfaceContext;
 type Diag = PaletteDiagnostic;
 
 interface ResolveEnv {
+  stock: boolean;
   appearance: ThemeAppearance;
   spec: AppModeSpec;
   diagnostics: Diag[];
@@ -343,6 +347,7 @@ export function resolveUiPalette(
   const contrast = normalizeContrastPreference(options?.appearanceContrast ?? 100);
   const glassOpacity = normalizeGlassOpacity(options?.glassOpacity ?? 80);
   const env: ResolveEnv = {
+    stock: isStockModeSpec(spec),
     appearance,
     spec,
     diagnostics,
@@ -366,9 +371,9 @@ export function resolveUiPalette(
     contexts[context] = resolveContext(env, context, backgrounds[context]);
   }
 
-  const material = resolveMaterial(env, contexts.toolbar, glassOpacity);
+  const material = resolveMaterial(env, contexts, glassOpacity);
 
-  return { appearance, canvas: env.canvas, contexts, material, diagnostics };
+  return { stock: env.stock, appearance, canvas: env.canvas, contexts, material, diagnostics };
 }
 
 function pushDiag(
@@ -573,7 +578,7 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
       env,
       context,
       "inputForeground",
-      compositeOverride(env, context, "inputForeground", background),
+      compositeOverride(env, context, "inputForeground", inputBackground),
       inputBackground,
       text.primary,
     );
@@ -585,8 +590,9 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
     inputBackground,
     text.placeholder,
   );
-  const inputBorder =
+  let inputBorder =
     compositeOverride(env, context, "inputBorder", inputBackground) ?? borderControl;
+  if (!env.stock) inputBorder = solveBorder(env, context, "inputBorder", inputBorder, background);
   const inputFocus = borderFocus;
   const input: UiInputPalette = {
     background: inputBackground,
@@ -617,7 +623,7 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
 
   // -- Accent as text -----------------------------------------------------------
   const accentText = compositeOverride(env, context, "accentText", background);
-  if (accentText && hexRatio(accentText, background) < CONTRAST_FLOOR) {
+  if (env.stock && accentText && hexRatio(accentText, background) < CONTRAST_FLOOR) {
     pushDiag(
       env,
       context,
@@ -626,10 +632,11 @@ function resolveContext(env: ResolveEnv, context: Ctx, background: string): UiCo
       `"accentText" stays authored at ${hexRatio(accentText, background).toFixed(2)}:1, below ${CONTRAST_FLOOR}:1`,
     );
   }
-  const accentTextColor =
-    accentText ?? solveForeground(env.accent, [background], CONTRAST_FLOOR).color;
+  const accentTextColor = env.stock
+    ? accentText ?? solveForeground(env.accent, [background], CONTRAST_FLOOR).color
+    : solveToFloor(env, context, "accentText", accentText, background, env.accent);
 
-  const track = shiftSurface(background, dir * OFFSET_TRACK * scale);
+  const track = shiftSurface(background, dir * (env.stock ? OFFSET_TRACK : 0.03) * scale);
 
   // -- Status + provider tones -----------------------------------------------------
   const status = {} as Record<UiStatusTone, UiTonePalette>;
@@ -677,7 +684,7 @@ function resolveControlForeground(
   const authored = explicit
     ? (compositeThemeColor(explicit, surface) ?? explicit)
     : undefined;
-  if (authored) {
+  if (authored && env.stock) {
     const worst = Math.min(
       hexRatio(authored, bgs.rest),
       hexRatio(authored, bgs.hover),
@@ -693,6 +700,13 @@ function resolveControlForeground(
       );
     }
     return { rest: authored, hover: authored, pressed: authored };
+  }
+  if (explicit && !env.stock) {
+    return {
+      rest: solveToFloor(env, context, "controlForeground", compositeThemeColor(explicit, bgs.rest), bgs.rest, strongestPole(bgs.rest)),
+      hover: solveToFloor(env, context, "controlForeground", compositeThemeColor(explicit, bgs.hover), bgs.hover, strongestPole(bgs.hover)),
+      pressed: solveToFloor(env, context, "controlForeground", compositeThemeColor(explicit, bgs.pressed), bgs.pressed, strongestPole(bgs.pressed)),
+    };
   }
   const shared = solveForeground(null, [bgs.rest, bgs.hover, bgs.pressed], CONTRAST_FLOOR);
   if (shared.reached) return { rest: shared.color, hover: shared.color, pressed: shared.color };
@@ -737,7 +751,7 @@ function resolveActionPair(
 
   const fgOverride = compositeOverride(env, context, `${family}Foreground`, restBg);
   let fg: { rest: string; hover: string; pressed: string };
-  if (fgOverride) {
+  if (fgOverride && env.stock) {
     const worst = Math.min(
       hexRatio(fgOverride, restBg),
       hexRatio(fgOverride, hoverBg),
@@ -753,6 +767,13 @@ function resolveActionPair(
       );
     }
     fg = { rest: fgOverride, hover: fgOverride, pressed: fgOverride };
+  } else if (fgOverride) {
+    const raw = overrideColor(env, `${family}Foreground`)!;
+    fg = {
+      rest: solveToFloor(env, context, `${family}Foreground`, fgOverride, restBg, strongestPole(restBg)),
+      hover: solveToFloor(env, context, `${family}Foreground`, compositeThemeColor(raw, hoverBg), hoverBg, strongestPole(hoverBg)),
+      pressed: solveToFloor(env, context, `${family}Foreground`, compositeThemeColor(raw, pressedBg), pressedBg, strongestPole(pressedBg)),
+    };
   } else {
     const shared = solveForeground(null, [restBg, hoverBg, pressedBg], CONTRAST_FLOOR);
     fg = { rest: shared.color, hover: shared.color, pressed: shared.color };
@@ -777,8 +798,8 @@ function resolveActionPair(
   };
 }
 
-/** Authored values are kept verbatim (diagnostic when below the floor);
- *  only derived fallbacks are solved up to it. */
+/** Preserve source intent, repairing only the rendered foreground. Default
+ * keeps its existing authored treatment as an explicit product exception. */
 function solveToFloor(
   env: ResolveEnv,
   context: Ctx,
@@ -787,7 +808,7 @@ function solveToFloor(
   surface: string,
   fallback: string,
 ): string {
-  if (candidate) {
+  if (candidate && env.stock) {
     const measured = hexRatio(candidate, surface);
     if (measured < CONTRAST_FLOOR) {
       pushDiag(
@@ -800,7 +821,10 @@ function solveToFloor(
     }
     return candidate;
   }
-  const solved = solveForeground(fallback, [surface], CONTRAST_FLOOR);
+  const solved = solveForeground(candidate ?? fallback, [surface], CONTRAST_FLOOR);
+  if (candidate && candidate !== solved.color) {
+    pushDiag(env, context, role, "adjusted", `${role} adjusted for readable text on its surface`);
+  }
   if (!solved.reached) {
     pushDiag(env, context, role, "target-unreachable", `"${role}" cannot reach ${CONTRAST_FLOOR}:1`);
   }
@@ -816,6 +840,7 @@ function keepAuthored(
   surface: string,
   target: number,
 ): string {
+  if (!env.stock) return solveBorder(env, context, role, color, surface);
   const measured = hexRatio(color, surface);
   if (measured < target) {
     pushDiag(
@@ -832,6 +857,11 @@ function keepAuthored(
 /** A derived border/boundary color raised to `BOUNDARY_TARGET` separation. */
 function solveBorder(env: ResolveEnv, context: Ctx, role: string, color: string, surface: string): string {
   if (hexRatio(color, surface) >= BOUNDARY_TARGET) return color;
+  if (!env.stock) {
+    const solved = solveForeground(color, [surface], BOUNDARY_TARGET);
+    pushDiag(env, context, role, solved.reached ? "adjusted" : "target-unreachable", `${role} adjusted for visible separation`);
+    return solved.color;
+  }
   const base = oklchOf(color);
   const bg = rgb(surface) ?? BLACK;
   const direction = isDarkSurface(surface) ? "lighter" : "darker";
@@ -877,7 +907,7 @@ function resolveTextLevels(
       Math.max(nominalTarget + adjust * x, CONTRAST_FLOOR),
       Math.min(cap, headroom),
     );
-    if (authored) {
+    if (env.stock && authored) {
       // Authored text stays verbatim; flag it when it sits below the floor.
       const ratio = hexRatio(authored, surface);
       if (ratio < CONTRAST_FLOOR) {
@@ -890,6 +920,22 @@ function resolveTextLevels(
         );
       }
       return { color: authored, ratio };
+    }
+    if (!env.stock) {
+      const measured = authored ? hexRatio(authored, surface) : nominalTarget;
+      const baseTarget = measured > cap ? nominalTarget : measured;
+      const target = Math.min(headroom, cap, Math.max(CONTRAST_FLOOR, baseTarget + adjust * x));
+      // A stronger subordinate colour is toned down; a dim candidate is
+      // repaired before capping. This also handles opposite-polarity menus.
+      const solved = solveForeground(authored ?? fallbackFrom, [surface], target);
+      const ceiling = fallbackFrom === null ? headroom : Math.min(cap, target);
+      let color = reduceToCap(solved.color, surface, ceiling);
+      // Hex rounding may land just below 4.5; retain the solved value if so.
+      if (hexRatio(color, surface) < Math.min(4.5, headroom)) color = solved.color;
+      if (authored && authored !== color) {
+        pushDiag(env, context, "text", measured > cap ? "ordered" : "adjusted", "Text adjusted for local readability and emphasis");
+      }
+      return { color, ratio: hexRatio(color, surface) };
     }
     if (fallbackFrom === null) {
       // Generated primary: the strongest available pole.
@@ -963,7 +1009,7 @@ function resolveStatusTone(
     return {
       fill: borderControl,
       text: text.tertiary,
-      soft: { background: track, foreground: text.secondary },
+      soft: { background: track, foreground: env.stock ? text.secondary : solveForeground(text.secondary, [track], CONTRAST_FLOOR).color },
     };
   }
   if (tone === "info") {
@@ -993,7 +1039,7 @@ function statusToneFromSeed(
   seed: string,
   authored: boolean,
 ): UiTonePalette {
-  if (authored) {
+  if (authored && env.stock) {
     // Authored tones stay verbatim everywhere they are consumed; flag the
     // ones that sit below the floors a derived tone would have been held to.
     if (hexRatio(seed, track) < BOUNDARY_TARGET) {
@@ -1010,6 +1056,9 @@ function statusToneFromSeed(
   // The fill rides on `track`; make sure it separates from it.
   let fill = seed;
   if (hexRatio(fill, track) < BOUNDARY_TARGET) {
+    if (!env.stock) {
+      fill = solveForeground(fill, [track], BOUNDARY_TARGET).color;
+    } else {
     const solved = solveOklchLightness(
       oklchOf(fill),
       rgb(track) ?? BLACK,
@@ -1019,6 +1068,7 @@ function statusToneFromSeed(
         : "darker",
     );
     fill = hexOf(themeOklchToRgb(solved));
+    }
     pushDiag(env, context, `status.${tone}.fill`, "adjusted", `fill raised to ${BOUNDARY_TARGET}:1 on track`);
   }
   const text = solveForeground(seed, [surface], CONTRAST_FLOOR).color;
@@ -1041,16 +1091,17 @@ function resolveProviderTone(
 /** The window material: translucent panel tint, glass controls, shadow, scrim. */
 function resolveMaterial(
   env: ResolveEnv,
-  toolbar: UiContextPalette,
+  contexts: Record<Ctx, UiContextPalette>,
   glassOpacity: number,
 ): UiMaterialPalette {
+  const toolbar = contexts.toolbar;
   // The translucent panel must keep primary text readable when the OS shows
-  // pure black or pure white behind the window. An authored panelOpacity is
-  // honored verbatim — with a diagnostic when it can't guarantee that.
+  // pure black or pure white behind the window. Only Default retains its
+  // historical authored opacity; custom themes must clear the text floor.
   const primary = rgb(toolbar.text.primary) ?? BLACK;
   const authoredOpacity = env.spec.panelOpacity;
   let panelOpacity: number;
-  if (authoredOpacity !== undefined && Number.isFinite(authoredOpacity)) {
+  if (env.stock && authoredOpacity !== undefined && Number.isFinite(authoredOpacity)) {
     panelOpacity = Math.min(1, Math.max(0, authoredOpacity));
     const overBlack = mixThemeRgbColors(BLACK, rgb(env.canvas) ?? BLACK, panelOpacity);
     const overWhite = mixThemeRgbColors(WHITE, rgb(env.canvas) ?? BLACK, panelOpacity);
@@ -1066,10 +1117,17 @@ function resolveMaterial(
     }
   } else {
     panelOpacity = PANEL_OPACITY_STEPS[PANEL_OPACITY_STEPS.length - 1]!;
-    for (const opacity of PANEL_OPACITY_STEPS) {
+    const candidates = !env.stock && authoredOpacity !== undefined
+      ? [...new Set([Math.min(1, Math.max(0, authoredOpacity)), ...PANEL_OPACITY_STEPS])].filter(value => value >= authoredOpacity).sort((a, b) => a - b)
+      : PANEL_OPACITY_STEPS;
+    const foregrounds = env.stock ? [primary] : [
+      contexts.canvas.text.primary, contexts.canvas.text.secondary,
+      contexts.canvas.text.tertiary, contexts.canvas.text.placeholder,
+    ].map(value => rgb(value)!);
+    for (const opacity of candidates) {
       const overBlack = mixThemeRgbColors(BLACK, rgb(env.canvas) ?? BLACK, opacity);
       const overWhite = mixThemeRgbColors(WHITE, rgb(env.canvas) ?? BLACK, opacity);
-      if (Math.min(ratio(primary, overBlack), ratio(primary, overWhite)) >= CONTRAST_FLOOR) {
+      if (foregrounds.every(fg => Math.min(ratio(fg, overBlack), ratio(fg, overWhite)) >= 4.5)) {
         panelOpacity = opacity;
         break;
       }
@@ -1102,8 +1160,8 @@ function resolveMaterial(
     panelOpacity,
     glass: {
       rest: { background: glassRest, foreground: glassFg },
-      hover: { background: glassHover, foreground: glassFg },
-      pressed: { background: glassPressed, foreground: glassFg },
+      hover: { background: glassHover, foreground: env.stock ? glassFg : solveForeground(glassFg, [glassHover], CONTRAST_FLOOR).color },
+      pressed: { background: glassPressed, foreground: env.stock ? glassFg : solveForeground(glassFg, [glassPressed], CONTRAST_FLOOR).color },
       disabled: {
         background: glassDisabled,
         foreground: mixHex(glassFg, glassDisabled, DISABLED_MIX),

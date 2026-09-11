@@ -181,7 +181,7 @@ export function PanelApp() {
       <header
         ref={headerRef}
         data-ui-surface="toolbar"
-        className="drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
+        className="ui-toolbar drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
         data-tauri-drag-region
         onMouseDown={(event) => {
           if (event.button !== 0) return;

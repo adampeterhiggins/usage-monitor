@@ -67,12 +67,13 @@ export function UsageMonitorPreview({
     <div
       aria-hidden
       data-ui-surface="canvas"
+      data-ui-stock={palette ? String(palette.stock) : undefined}
       className={cn(
         "flex min-h-0 flex-col overflow-hidden rounded-[14px] shadow-menu ring-1 ring-ui-subtle",
         className,
       )}
       style={{
-        background: "var(--ui-canvas-background)",
+        background: "color-mix(in srgb, var(--ui-panel-tint) calc(var(--ui-panel-opacity) * 100%), transparent)",
         color: "var(--ui-canvas-text-primary)",
         fontFamily: "var(--font-sans)",
         fontSize: "var(--font-size-interface)",
@@ -83,7 +84,7 @@ export function UsageMonitorPreview({
     >
       <div
         data-ui-surface="toolbar"
-        className="flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2"
+        className="ui-toolbar flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2"
         style={{ color: "var(--local-text-primary)" }}
       >
         <span className="truncate text-[12px] font-medium leading-none tracking-tight">

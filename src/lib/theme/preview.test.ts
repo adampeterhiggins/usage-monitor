@@ -27,7 +27,10 @@ describe("paletteToCssVariables", () => {
 describe("applyUiPaletteToElement", () => {
   it("writes the whole resolved palette onto the element", () => {
     const written = new Map<string, string>();
+    const attributes = new Map<string, string>();
     const element = {
+      setAttribute: (name: string, value: string) => attributes.set(name, value),
+      removeAttribute: (name: string) => attributes.delete(name),
       style: {
         setProperty: (name: string, value: string) => written.set(name, value),
         removeProperty: (name: string) => written.delete(name),
@@ -35,6 +38,7 @@ describe("applyUiPaletteToElement", () => {
     } as unknown as HTMLElement;
 
     applyUiPaletteToElement(element, resolveUiPalette(stockModeSpec("light"), "light"));
+    expect(attributes.get("data-ui-stock")).toBe("true");
     expect(written.size).toBe(UI_PALETTE_VARIABLES.length);
     expect(written.get("--ui-canvas-background")).toMatch(/^#/);
   });

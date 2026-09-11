@@ -103,6 +103,7 @@ export const UI_PROVIDER_TOKEN_PARTS = ["background", "foreground"] as const;
 
 /** Context-free material tokens. */
 export const UI_MATERIAL_TOKENS = [
+  "toolbar-paint",
   "panel-tint",
   "panel-opacity",
   "shadow",

@@ -8,7 +8,7 @@
  *  from the library. */
 
 import { toCanonicalThemeColor } from "./colors";
-import { serializeThemeRecord } from "./theme-file";
+import { parseThemeFile, serializeThemeRecord } from "./theme-file";
 import {
   APP_OVERRIDE_ROLE_SET,
   type AppModeSpec,
@@ -207,10 +207,48 @@ export function installCustomTheme(theme: ThemeDefinition): ThemeDefinition {
   ) {
     throw new Error(`A theme named "${theme.label}" is already installed.`);
   }
+  theme = parseThemeFile(serializeThemeRecord(theme));
   const row = storedRowFor(theme);
   const themes = [...library.themes, theme];
   setCustomThemeLibrary([...library.storedThemes, row], themes);
   return theme;
+}
+
+/** Preserve fields owned by newer versions while replacing all known editable roles.
+ * In particular, clearing an override must not resurrect its old stored value. */
+function mergeStoredTheme(previous: Record<string, unknown>, next: Record<string, unknown>): Record<string, unknown> {
+  const object = (value: unknown): Record<string, unknown> => isRecord(value) ? value : {};
+  const mergeMode = (old: Record<string, unknown>, fresh: Record<string, unknown>) => {
+    const { seeds: _seeds, overrides: _overrides, panelOpacity: _opacity, ...metadata } = old;
+    const unknownOverrides = Object.fromEntries(Object.entries(object(old.overrides))
+      .filter(([role]) => !APP_OVERRIDE_ROLE_SET.has(role)));
+    return { ...metadata, ...fresh,
+      seeds: { ...object(old.seeds), ...object(fresh.seeds) },
+      overrides: { ...unknownOverrides, ...object(fresh.overrides) },
+    };
+  };
+  const { variants: _variants, collection: _collection, managed: _managed,
+    seeds: _seeds, overrides: _overrides, panelOpacity: _opacity, ...metadata } = previous;
+  const modeFrom = (row: Record<string, unknown>, mode: string) =>
+    mode === row.appearance ? row : object(object(row.variants)[mode]);
+  const result: Record<string, unknown> = { ...metadata, ...mergeMode(modeFrom(previous, String(next.appearance)), next) };
+  // Top-level metadata is retained; known optional fields can be explicitly removed.
+  delete result.variants;
+  delete result.collection;
+  delete result.managed;
+  if (next.collection) result.collection = { ...object(previous.collection), ...object(next.collection) };
+  if (next.managed) result.managed = next.managed;
+  const variants = Object.fromEntries(Object.entries(object(previous.variants))
+    .filter(([mode]) => mode !== "light" && mode !== "dark"));
+  for (const [mode, spec] of Object.entries(object(next.variants))) {
+    const oldMode = { ...modeFrom(previous, mode) };
+    if (mode === previous.appearance) {
+      for (const key of ["version", "id", "name", "label", "appearance", "variants", "collection", "managed"]) delete oldMode[key];
+    }
+    variants[mode] = mergeMode(oldMode, object(spec));
+  }
+  if (Object.keys(variants).length) result.variants = variants;
+  return result;
 }
 
 /** Replace an installed theme in place. */
@@ -220,8 +258,12 @@ export function updateCustomTheme(themeId: string, replacement: ThemeDefinition)
   if (index < 0) {
     throw new Error(`Theme "${themeId}" is not installed.`);
   }
-  const next = { ...replacement, id: themeId };
-  const row = storedRowFor(next);
+  if (replacement.id !== themeId || !library.themes.some((theme) => theme.id === themeId)) {
+    throw new Error("An edited theme must retain its installed id.");
+  }
+  const next = parseThemeFile(serializeThemeRecord(replacement));
+  const previous = library.storedThemes[index] as Record<string, unknown>;
+  const row = mergeStoredTheme(previous, storedRowFor(next));
 
   const nextStoredThemes = [...library.storedThemes];
   nextStoredThemes[index] = row;

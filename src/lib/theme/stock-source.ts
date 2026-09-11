@@ -82,3 +82,9 @@ const STOCK_DARK: AppModeSpec = {
 export function stockModeSpec(appearance: ThemeAppearance): AppModeSpec {
   return appearance === "dark" ? STOCK_DARK : STOCK_LIGHT;
 }
+
+/** Only the app-owned objects keep the exact Default appearance. Copies,
+ * imported files, and editor drafts always use normal palette validation. */
+export function isStockModeSpec(spec: AppModeSpec): boolean {
+  return spec === STOCK_LIGHT || spec === STOCK_DARK;
+}

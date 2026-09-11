@@ -28,11 +28,19 @@ export type { ThemePreviewSession } from "./preview-session";
  */
 let lastAppliedAppearance: AppearanceSettings = DEFAULT_APPEARANCE_SETTINGS;
 
+const appearanceListeners = new Set<() => void>();
+export function subscribeToAppearanceSettings(listener: () => void): () => void {
+  appearanceListeners.add(listener);
+  return () => { appearanceListeners.delete(listener); };
+}
+
 export function getLastAppliedAppearanceSettings(): AppearanceSettings {
   return lastAppliedAppearance;
 }
 
+let refreshGeneration = 0;
 export async function refreshAppliedAppearance(): Promise<void> {
+  const generation = ++refreshGeneration;
   await loadCustomThemesIntoMemory();
   const [theme, appearanceMode, halves, appearance] = await Promise.all([
     getThemePreference(),
@@ -40,8 +48,10 @@ export async function refreshAppliedAppearance(): Promise<void> {
     getThemeHalves(),
     getAppearanceSettings(),
   ]);
+  if (generation !== refreshGeneration) return;
   lastAppliedAppearance = appearance;
-  applyUsageMonitorTheme(theme, {
+  for (const listener of appearanceListeners) listener();
+  if (!themePreview.repaint()) applyUsageMonitorTheme(theme, {
     appearanceMode,
     halves,
     systemDark: systemPrefersDark(),
@@ -71,6 +81,5 @@ export const themePreview = createThemePreviewCoordinator({
  *  persisted appearance. Use for OS/broadcast changes so a draft is never
  *  silently wiped by a listener. */
 export async function refreshAppearanceRespectingPreview(): Promise<void> {
-  if (themePreview.repaint()) return;
   await refreshAppliedAppearance();
 }

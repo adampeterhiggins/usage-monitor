@@ -82,6 +82,7 @@ function setContext(vars: Record<string, string>, context: UiSurfaceContext, pal
 
 export function paletteToCssVariables(palette: ResolvedUiPalette): Record<string, string> {
   const vars: Record<string, string> = {};
+  vars[uiMaterialVar("toolbar-paint")] = palette.stock ? "transparent" : palette.contexts.toolbar.background;
   for (const context of ["canvas", "card", "menu", "toolbar"] as const) {
     setContext(vars, context, palette.contexts[context]);
   }

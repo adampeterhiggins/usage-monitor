@@ -6,7 +6,8 @@ import {
   pairVsCodeThemes,
   parseVsCodeThemeFile,
 } from "./vscodeImport";
-import { themeColorToHex } from "./colors";
+import { resolveUiPalette } from "./resolve-ui-palette";
+import { themeColorToHex, themeColorRgb, themeContrastRatio } from "./colors";
 
 describe("isVsCodeThemeFile", () => {
   it("recognizes workbench colors by dotted keys", () => {
@@ -41,20 +42,24 @@ describe("parseVsCodeThemeFile", () => {
     expect(theme.appearance).toBe("dark");
   });
 
-  it("accepts #RGBA and #RRGGBBAA and flattens them over the canvas", () => {
+  it("preserves alpha until resolution on the actual destination surface", () => {
     const theme = parseVsCodeThemeFile({
       name: "Alpha",
       type: "light",
       colors: {
         "editor.background": "#ffffff",
+        "menu.background": "#101010",
         "editorWidget.background": "#00000080", // ~50% black → #7f7f7f
         "input.background": "#0008",
       },
     });
     const spec = theme.modes.light;
-    expect(themeColorToHex(spec!.overrides!.cardBackground!)).toBe("#7f7f7f");
+    expect(spec!.overrides!.cardBackground).toBeUndefined();
     // #0008 → alpha nibble doubles to 0x88 (~53%) → #777777 over white
-    expect(themeColorToHex(spec!.overrides!.inputBackground!)).toBe("#777777");
+    expect(themeColorToHex(spec!.overrides!.inputBackground!)).toBe("#00000088");
+    const palette = resolveUiPalette(spec!, "light");
+    expect(palette.contexts.canvas.input.background).toBe("#777777");
+    expect(palette.contexts.menu.input.background).not.toBe(palette.contexts.canvas.input.background);
   });
 
   it("converts color(display-p3) and color(srgb) values", () => {
@@ -68,8 +73,8 @@ describe("parseVsCodeThemeFile", () => {
     });
     const spec = theme.modes.dark;
     expect(themeColorToHex(spec!.seeds.canvas)).toMatch(/^#[0-9a-f]{6}$/);
-    // accent flattened over the canvas — still a readable hex
-    expect(themeColorToHex(spec!.seeds.accent)).toMatch(/^#[0-9a-f]{6}$/);
+    // Alpha remains authored until the resolver knows the destination.
+    expect(themeColorToHex(spec!.seeds.accent)).toBe("#6699ff80");
   });
 
   it("leaves roles it cannot safely map to the resolver", () => {
@@ -84,7 +89,7 @@ describe("parseVsCodeThemeFile", () => {
     expect(spec!.overrides?.cardBackground).toBeUndefined();
   });
 
-  it("drops an unreadable imported foreground rather than keeping it", () => {
+  it("retains imported source text while repairing its resolved contrast", () => {
     const theme = parseVsCodeThemeFile({
       name: "Unreadable",
       type: "light",
@@ -93,7 +98,27 @@ describe("parseVsCodeThemeFile", () => {
         "editor.foreground": "#f0f0f0", // ~1.2:1 on white — must not be adopted
       },
     });
-    expect(theme.modes.light!.overrides?.textPrimary).toBeUndefined();
+    expect(themeColorToHex(theme.modes.light!.overrides?.textPrimary!)).toBe("#f0f0f0");
+    const canvas = resolveUiPalette(theme.modes.light!, "light").contexts.canvas;
+    expect(themeContrastRatio(themeColorRgb(canvas.text.primary)!, themeColorRgb(canvas.background)!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("maps coherent menu, action and secondary-button families", () => {
+    const theme = parseVsCodeThemeFile({ name: "Mixed", type: "light", colors: {
+      "editor.background": "#ffffff", "editor.foreground": "#111111",
+      "menu.background": "#181818", "menu.foreground": "#eeeeee",
+      "button.background": "#8844cc", "button.foreground": "#ffffff",
+      "button.secondaryBackground": "#dddddd", "button.secondaryForeground": "#222222",
+      "button.secondaryHoverBackground": "#cccccc", focusBorder: "#00ff00",
+    }});
+    const spec = theme.modes.light!;
+    const hex = (role: keyof NonNullable<typeof spec.overrides>) => themeColorToHex(spec.overrides?.[role]!);
+    expect(themeColorToHex(spec.seeds.accent)).toBe("#8844cc");
+    expect(hex("menuForeground")).toBe("#eeeeee");
+    expect(hex("controlForeground")).toBe("#222222");
+    expect(hex("controlHoverBackground")).toBe("#cccccc");
+    const menu = resolveUiPalette(spec, "light").contexts.menu;
+    expect(themeContrastRatio(themeColorRgb(menu.text.primary)!, themeColorRgb(menu.background)!)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("rejects files without an editor background", () => {

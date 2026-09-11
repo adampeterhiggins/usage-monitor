@@ -130,7 +130,9 @@ const THEME_BLOCK = `
   --color-ui-control: var(--local-control-rest-background);
   --color-ui-control-fg: var(--local-control-rest-foreground);
   --color-ui-control-hover: var(--local-control-hover-background);
+  --color-ui-control-hover-fg: var(--local-control-hover-foreground);
   --color-ui-control-pressed: var(--local-control-pressed-background);
+  --color-ui-control-pressed-fg: var(--local-control-pressed-foreground);
   --color-ui-control-disabled: var(--local-control-disabled-background);
   --color-ui-control-disabled-fg: var(--local-control-disabled-foreground);
 
@@ -138,13 +140,17 @@ const THEME_BLOCK = `
   --color-ui-action: var(--local-action-rest-background);
   --color-ui-action-fg: var(--local-action-rest-foreground);
   --color-ui-action-hover: var(--local-action-hover-background);
+  --color-ui-action-hover-fg: var(--local-action-hover-foreground);
   --color-ui-action-pressed: var(--local-action-pressed-background);
+  --color-ui-action-pressed-fg: var(--local-action-pressed-foreground);
   --color-ui-action-disabled: var(--local-action-disabled-background);
   --color-ui-action-disabled-fg: var(--local-action-disabled-foreground);
   --color-ui-destructive: var(--local-destructive-rest-background);
   --color-ui-destructive-fg: var(--local-destructive-rest-foreground);
   --color-ui-destructive-hover: var(--local-destructive-hover-background);
+  --color-ui-destructive-hover-fg: var(--local-destructive-hover-foreground);
   --color-ui-destructive-pressed: var(--local-destructive-pressed-background);
+  --color-ui-destructive-pressed-fg: var(--local-destructive-pressed-foreground);
   --color-ui-destructive-disabled: var(--local-destructive-disabled-background);
   --color-ui-destructive-disabled-fg: var(--local-destructive-disabled-foreground);
 
@@ -249,6 +255,46 @@ const THEME_BLOCK = `
 
 /* ---- Window shell ---- */
 
+.ui-toolbar {
+  background: var(--ui-toolbar-paint);
+  color: var(--local-text-primary);
+}
+
+/* Default keeps its established focus/disabled treatment. The attribute is
+ * written by the apply layer; a theme file cannot opt into this exception. */
+:root[data-ui-stock="false"] .ui-button:focus-visible {
+  --tw-ring-color: var(--local-border-focus);
+  --tw-ring-offset-width: 2px;
+  --tw-ring-offset-color: var(--local-background);
+}
+:root[data-ui-stock="false"] .ui-button:disabled {
+  opacity: 1;
+  pointer-events: none;
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="filled"]:disabled {
+  background: var(--local-control-disabled-background);
+  color: var(--local-control-disabled-foreground);
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="accent"]:disabled {
+  background: var(--local-action-disabled-background);
+  color: var(--local-action-disabled-foreground);
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="destructive"]:disabled {
+  background: var(--local-destructive-disabled-background);
+  color: var(--local-destructive-disabled-foreground);
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="transparent"]:hover:enabled {
+  color: var(--local-control-hover-foreground);
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="transparent"]:active:enabled {
+  background: var(--local-control-pressed-background);
+  color: var(--local-control-pressed-foreground);
+}
+:root[data-ui-stock="false"] .ui-button[data-variant="transparent"]:disabled {
+  background: transparent;
+  color: var(--local-text-disabled);
+}
+
 /* A declared surface context paints its resolved background + primary text. */
 .ui-surface {
   background: var(--local-background);
@@ -288,10 +334,12 @@ const THEME_BLOCK = `
 
 .glass-button:hover {
   background: var(--ui-glass-hover-background);
+  color: var(--ui-glass-hover-foreground);
 }
 
 .glass-button:active {
   background: var(--ui-glass-pressed-background);
+  color: var(--ui-glass-pressed-foreground);
 }
 
 .glass-button:disabled,

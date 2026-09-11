@@ -113,6 +113,7 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
   }
   if (!isThemeLabel(name)) throw new Error("Theme files need a name (48 characters or fewer).");
 
+  if (value.id !== undefined && typeof value.id !== "string") throw new Error("Theme ids must be strings.");
   const { id } = themeFileIdentity(name, typeof value.id === "string" ? value.id : undefined);
   const collection = parseCollectionField(value.collection);
 
