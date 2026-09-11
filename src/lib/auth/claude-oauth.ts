@@ -1,11 +1,11 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { fetchJson, fetchText, header, HttpError } from "../platform/http";
+import type { ProviderLoginResult } from "../contracts/auth";
 import {
   abortError,
   oauthErrorMessage,
   pkceChallenge,
   randomBase64Url,
-  type ProviderLoginResult,
   type ProviderLoginSession,
 } from "./login-session";
 

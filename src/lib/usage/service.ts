@@ -8,13 +8,11 @@ import { create } from "zustand";
 
 import { replaceAccountCredential } from "../accounts/operations";
 import { getAccount } from "../accounts/repository";
+import type { AccountPublic } from "../contracts/accounts";
+import type { AccountFetchState, UsageResult } from "../contracts/usage";
 import { fetchUsage } from "./cache";
-import type { AccountPublic, UsageResult } from "./types";
 
-export type AccountFetchState =
-  | { status: "loading"; previous?: UsageResult }
-  | { status: "ok"; result: UsageResult }
-  | { status: "error"; message: string; previous?: UsageResult };
+export type { AccountFetchState } from "../contracts/usage";
 
 export interface UsageService {
   states: Record<string, AccountFetchState>;

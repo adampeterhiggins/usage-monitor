@@ -3,9 +3,10 @@ import { startCodexLogin } from "./codex-oauth";
 import { startCursorLogin } from "./cursor-login";
 import { isClaudeOauthJson } from "./claude-oauth";
 import type { ProviderLoginSession } from "./login-session";
-import type { ProviderId } from "../usage/types";
+import type { ProviderId } from "../contracts/providers";
 
-export type { ProviderLoginResult, ProviderLoginSession } from "./login-session";
+export type { ProviderLoginResult } from "../contracts/auth";
+export type { ProviderLoginSession } from "./login-session";
 export { describeLoginError, isAbortError } from "./login-session";
 export { submitClaudeLoginCode };
 
@@ -54,13 +55,4 @@ export function credentialLooksLikeSession(provider: ProviderId, credential: str
   return cred.length > 20;
 }
 
-export function signInLabel(provider: ProviderId): string {
-  switch (provider) {
-    case "claude":
-      return "Sign in with Claude";
-    case "codex":
-      return "Sign in with Codex";
-    case "cursor":
-      return "Sign in with Cursor";
-  }
-}
+export { signInLabel } from "./provider-meta";

@@ -1,13 +1,10 @@
 import * as React from "react";
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import {
-  formatFetchedAt,
-  PROVIDERS,
-  severityColor,
-  worstPercent,
-  type AccountPublic,
-  type ProviderId,
-} from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { AccountPublic } from "../../lib/contracts/accounts";
+import type { ProviderId } from "../../lib/contracts/providers";
+import { formatFetchedAt } from "../../lib/usage/format";
+import { severityColor, worstPercent } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
 import type { AccountFetchState } from "../../lib/usage/service";
 import { UsageProgress } from "../ui/usage-progress";

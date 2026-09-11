@@ -7,7 +7,7 @@
 import { create } from "zustand";
 
 import { useUsageStore } from "../usage/service";
-import type { AccountPublic } from "../usage/types";
+import type { AccountPublic } from "../contracts/accounts";
 import {
   addAccount,
   removeAccount,

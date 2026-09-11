@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { createUsageService } from "./service";
-import type { AccountPublic, UsageResult } from "./types";
+import type { AccountPublic } from "../contracts/accounts";
+import type { UsageResult } from "../contracts/usage";
 
 function account(id: string): AccountPublic {
   return {
     id,
     provider: "claude",
     label: id,
+    authKind: "session",
     hasCredential: true,
     hidden: false,
   };

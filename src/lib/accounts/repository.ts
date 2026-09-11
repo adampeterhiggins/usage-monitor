@@ -1,9 +1,11 @@
 /** Read side of the accounts document: the canonical account list and
- *  per-account lookups. Secrets never leave these calls — `listAccounts`
- *  returns the public projection. */
+ *  per-account lookups. `listAccounts` returns the public projection;
+ *  `getAccountAuth` is the only secret-bearing read and exists for the
+ *  edit form and usage fetchers. */
 
-import type { Account, AccountPublic } from "../usage/types";
-import { toPublic } from "../usage/types";
+import type { Account, AccountPublic } from "../contracts/accounts";
+import { toPublic } from "../contracts/accounts";
+import type { AccountAuth } from "../contracts/auth";
 import { loadAccounts } from "./document";
 
 export async function listAccounts(): Promise<AccountPublic[]> {
@@ -14,10 +16,9 @@ export async function getAccount(id: string): Promise<Account | undefined> {
   return (await loadAccounts()).find((a) => a.id === id);
 }
 
-export async function getAccountSecret(
-  id: string,
-): Promise<{ credential: string; extra?: string }> {
+/** The account's full auth configuration — secret-bearing. */
+export async function getAccountAuth(id: string): Promise<AccountAuth> {
   const account = await getAccount(id);
   if (!account) throw new Error("Account not found.");
-  return { credential: account.credential, extra: account.extra };
+  return account.auth;
 }

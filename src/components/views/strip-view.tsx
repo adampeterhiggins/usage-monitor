@@ -1,12 +1,9 @@
 import { Clock } from "lucide-react";
-import {
-  formatPercent,
-  PROVIDERS,
-  severityColor,
-  shortLabel,
-  type AccountPublic,
-  type ProviderId,
-} from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { AccountPublic } from "../../lib/contracts/accounts";
+import type { ProviderId } from "../../lib/contracts/providers";
+import { formatPercent, shortLabel } from "../../lib/usage/format";
+import { severityColor } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
 import type { AccountFetchState } from "../../lib/usage/service";
 import { Badge, Text } from "../ui";

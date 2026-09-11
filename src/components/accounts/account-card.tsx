@@ -1,5 +1,7 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import { formatFetchedAt, PROVIDERS, type AccountPublic } from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { AccountPublic } from "../../lib/contracts/accounts";
+import { formatFetchedAt } from "../../lib/usage/format";
 import type { AccountFetchState } from "../../lib/usage/service";
 import { AccountActionsMenu } from "./account-actions-menu";
 import { UsageProgress } from "../ui/usage-progress";

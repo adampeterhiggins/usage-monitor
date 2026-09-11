@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ProviderId } from "../usage/types";
+import type { ProviderId } from "../contracts/providers";
+import { CURSOR_IDE_SELECTOR } from "../contracts/auth";
 
 /** Keychain service name Claude Code stores its OAuth login under. */
 export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
@@ -7,8 +8,8 @@ export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 export const CODEX_KEYCHAIN_SERVICE = "Codex Auth";
 /** Keychain service name `cursor-agent` stores its session JWT under. */
 export const CURSOR_ACCESS_TOKEN_SERVICE = "cursor-access-token";
-/** Native-mode `extra` pin for the Cursor desktop app's `state.vscdb` login. */
-export const CURSOR_IDE_PIN = "ide";
+/** Stored `extra` value pinning a Cursor account to the desktop app's `state.vscdb` login. */
+export const CURSOR_IDE_PIN = CURSOR_IDE_SELECTOR;
 
 export interface KeychainLogin {
   service: string;

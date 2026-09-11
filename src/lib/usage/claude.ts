@@ -7,7 +7,9 @@ import {
 } from "../auth/claude-oauth";
 import { fetchJson } from "../platform/http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
-import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "./types";
+import type { Account } from "../contracts/accounts";
+import { authCredential, authLocalSelector } from "../contracts/auth";
+import type { UsageFetchHooks, UsageSnapshot, UsageWindow } from "../contracts/usage";
 
 interface UsageBucket {
   utilization?: number | null;
@@ -216,8 +218,8 @@ export async function fetchClaudeUsage(
   account: Account,
   hooks?: UsageFetchHooks,
 ): Promise<UsageSnapshot> {
-  const cred = account.credential.trim();
-  if (cred === "") return fetchViaClaudeCode(account.extra?.trim() || undefined);
+  const cred = authCredential(account.auth).trim();
+  if (cred === "") return fetchViaClaudeCode(authLocalSelector(account.auth));
   if (isClaudeOauthJson(cred) || /^sk-ant-oat/.test(cred)) {
     try {
       return await fetchViaStoredOauth(cred, hooks);

@@ -31,7 +31,8 @@ import { useGithubToken, useUpdaterPoller } from "./hooks/updater";
 import { useAccountsStore } from "./lib/accounts";
 import { acceleratorGlyphs } from "./lib/platform/shortcut";
 import { useUsageStore } from "./lib/usage/service";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic } from "./lib/usage/types";
+import type { AccountPublic } from "./lib/contracts/accounts";
+import { PROVIDER_ORDER, PROVIDERS } from "./lib/auth/provider-meta";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },

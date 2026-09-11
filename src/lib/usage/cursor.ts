@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fetchJson } from "../platform/http";
 import { CURSOR_IDE_PIN, KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
-import type { Account, UsageSnapshot, UsageWindow } from "./types";
+import type { Account } from "../contracts/accounts";
+import { authCredential, authLocalSelector } from "../contracts/auth";
+import type { UsageSnapshot, UsageWindow } from "../contracts/usage";
 
 interface CursorUsageSummary {
   billingCycleStart?: string;
@@ -223,8 +225,8 @@ async function resolveNativeCookie(pin?: string): Promise<string> {
 }
 
 export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot> {
-  const pasted = account.credential.trim();
-  const cookie = pasted ? cookieFromPasted(pasted) : await resolveNativeCookie(account.extra?.trim() || undefined);
+  const pasted = authCredential(account.auth).trim();
+  const cookie = pasted ? cookieFromPasted(pasted) : await resolveNativeCookie(authLocalSelector(account.auth));
   const headers = {
     Cookie: `WorkosCursorSessionToken=${cookie}`,
     Origin: "https://cursor.com",

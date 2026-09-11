@@ -1,5 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { fetchJson, fetchText } from "../platform/http";
+import type { ProviderLoginResult } from "../contracts/auth";
 import {
   abortError,
   decodeJwtPayload,
@@ -8,7 +9,6 @@ import {
   pkceChallenge,
   randomBase64Url,
   sleep,
-  type ProviderLoginResult,
   type ProviderLoginSession,
 } from "./login-session";
 

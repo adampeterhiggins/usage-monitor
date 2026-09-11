@@ -1,5 +1,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 
+import type { ProviderLoginResult } from "../contracts/auth";
+
 export function abortError(signal: AbortSignal): Error {
   return signal.reason instanceof Error
     ? signal.reason
@@ -92,11 +94,7 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
   }
 }
 
-export interface ProviderLoginResult {
-  credential: string;
-  extra?: string;
-  suggestedLabel?: string;
-}
+
 
 export interface ProviderLoginSession {
   kind: "device_code" | "paste_code" | "browser";
