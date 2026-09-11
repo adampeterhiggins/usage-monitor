@@ -1,4 +1,6 @@
-import type { Account, ProviderId, UsageFetchHooks, UsageResult, UsageSnapshot } from "./types";
+import type { Account } from "../contracts/accounts";
+import type { ProviderId } from "../contracts/providers";
+import type { UsageFetchHooks, UsageResult, UsageSnapshot } from "../contracts/usage";
 import { fetchClaudeUsage } from "./claude";
 import { fetchCodexUsage } from "./codex";
 import { fetchCursorUsage } from "./cursor";

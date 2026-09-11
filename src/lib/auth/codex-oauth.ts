@@ -1,10 +1,10 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { fetchText } from "../platform/http";
+import type { ProviderLoginResult } from "../contracts/auth";
 import {
   decodeJwtPayload,
   oauthErrorMessage,
   sleep,
-  type ProviderLoginResult,
   type ProviderLoginSession,
 } from "./login-session";
 
@@ -235,7 +235,7 @@ export async function startCodexLogin(): Promise<ProviderLoginSession> {
       );
       return {
         credential: serializeCodexAuthJson(tokens),
-        extra: tokens.accountId,
+        accountId: tokens.accountId,
         suggestedLabel: suggestedLabel(tokens),
       };
     }

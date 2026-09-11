@@ -21,7 +21,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useAccountsStore } from "../../lib/accounts";
 import { toast } from "../../lib/platform/toast";
-import { PROVIDERS, type AccountPublic } from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { AccountPublic } from "../../lib/contracts/accounts";
 import { Badge, Button, cn, Text } from "../ui";
 
 interface AccountManagementDialogProps {

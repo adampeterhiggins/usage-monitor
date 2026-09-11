@@ -35,7 +35,7 @@ import {
 } from "../../lib/platform/shortcut";
 import { registerToggleShortcut } from "../../lib/platform/global-shortcut";
 import { toast } from "../../lib/platform/toast";
-import { type Layout } from "../../lib/usage/types";
+import { type Layout } from "../../lib/settings/layout";
 import { exit } from "@tauri-apps/plugin-process";
 import { Tooltip } from "../ui/tooltip";
 import { GithubAuthSettings } from "./github-auth-settings";

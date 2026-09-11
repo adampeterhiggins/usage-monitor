@@ -1,5 +1,4 @@
 import { DEFAULT_REFRESH_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "../platform/shortcut";
-import type { Layout } from "../usage/types";
 import { settingsStore } from "./store";
 
 export const REFRESH_SHORTCUT_QUERY_KEY = ["settings", "refreshShortcut"] as const;
@@ -23,11 +22,3 @@ export async function setRefreshShortcut(accelerator: string): Promise<string> {
   return accelerator;
 }
 
-export async function getLayout(): Promise<Layout> {
-  return (await settingsStore.get<Layout>("layout")) ?? "wall";
-}
-
-export async function setLayout(layout: Layout): Promise<void> {
-  await settingsStore.set("layout", layout);
-  await settingsStore.save();
-}

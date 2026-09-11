@@ -1,8 +1,7 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { getAccountSecret, useAccountsStore } from "../../lib/accounts";
+import { getAccountAuth, useAccountsStore } from "../../lib/accounts";
 import {
-  CURSOR_IDE_PIN,
   cursorIdeLoginMeta,
   describeKeychainEntry,
   KEYCHAIN_LOGINS,
@@ -10,9 +9,12 @@ import {
   type CursorIdeLogin,
   type KeychainEntry,
 } from "../../lib/auth/keychain";
+import { CURSOR_IDE_SELECTOR, type AccountAuth } from "../../lib/contracts/auth";
+import type { AccountPublic } from "../../lib/contracts/accounts";
+import type { ProviderId } from "../../lib/contracts/providers";
 import { credentialLooksLikeSession, signInLabel } from "../../lib/auth/provider-login";
 import { toast } from "../../lib/platform/toast";
-import { PROVIDER_ORDER, PROVIDERS, type AccountPublic, type ProviderId } from "../../lib/usage/types";
+import { PROVIDER_ORDER, PROVIDERS } from "../../lib/auth/provider-meta";
 import { ProviderLoginButton } from "./provider-login-button";
 import { Button, Input, cn } from "../ui";
 
@@ -27,21 +29,15 @@ interface AccountDialogProps {
   account?: AccountPublic | null;
 }
 
-function inferAuthMethod(provider: ProviderId, credential: string): AuthMethod {
-  const cred = credential.trim();
-  if (!cred && KEYCHAIN_LOGINS[provider]) return "local";
-  if (cred && credentialLooksLikeSession(provider, cred)) return "signin";
-  if (cred) return "paste";
-  return "signin";
-}
+
 
 export function AccountDialog({ open, onOpenChange, account }: AccountDialogProps) {
   const editing = !!account;
   const [provider, setProvider] = React.useState<ProviderId>("claude");
   const [label, setLabel] = React.useState("");
   const [credential, setCredential] = React.useState("");
-  /** Provider-specific secondary value carried through untouched (e.g. Codex account id). */
-  const [savedExtra, setSavedExtra] = React.useState<string | undefined>(undefined);
+  /** Secondary provider identifier carried through untouched (Codex's ChatGPT account id). */
+  const [savedAccountId, setSavedAccountId] = React.useState<string | undefined>(undefined);
   /** Native mode: which local login to read ("" = automatic). */
   const [keychainAccount, setKeychainAccount] = React.useState("");
   const [keychainEntries, setKeychainEntries] = React.useState<KeychainEntry[]>([]);
@@ -60,21 +56,34 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
       setProvider(account.provider);
       setLabel(account.label);
       setCredential("");
-      setSavedExtra(undefined);
+      setSavedAccountId(undefined);
       setKeychainAccount("");
       setLoadingSecret(true);
-      void getAccountSecret(account.id)
-        .then((secret) => {
-          setCredential(secret.credential);
-          // In native mode `extra` is the pinned local login (Keychain account
-          // or Cursor `ide`); otherwise it is provider data to carry through.
-          if (KEYCHAIN_LOGINS[account.provider] && secret.credential.trim() === "") {
-            setKeychainAccount(secret.extra ?? "");
-            setSavedExtra(undefined);
-          } else {
-            setSavedExtra(secret.extra);
+      void getAccountAuth(account.id)
+        .then((auth) => {
+          switch (auth.kind) {
+            case "local-auto":
+              setAuthMethod("local");
+              break;
+            case "local-keychain":
+              setKeychainAccount(auth.keychainAccount);
+              setAuthMethod("local");
+              break;
+            case "cursor-ide":
+              setKeychainAccount(CURSOR_IDE_SELECTOR);
+              setAuthMethod("local");
+              break;
+            case "session":
+              setCredential(auth.credential);
+              setSavedAccountId(auth.accountId);
+              setAuthMethod("signin");
+              break;
+            case "pasted":
+              setCredential(auth.credential);
+              setSavedAccountId(auth.accountId);
+              setAuthMethod("paste");
+              break;
           }
-          setAuthMethod(inferAuthMethod(account.provider, secret.credential));
         })
         .catch((e) => setError(e instanceof Error ? e.message : String(e)))
         .finally(() => setLoadingSecret(false));
@@ -82,7 +91,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
       setProvider("claude");
       setLabel("");
       setCredential("");
-      setSavedExtra(undefined);
+      setSavedAccountId(undefined);
       setKeychainAccount("");
       setAuthMethod("signin");
       setLoadingSecret(false);
@@ -124,7 +133,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
   const nativeOptions: Array<{ id: string; label: string }> = [];
   if (provider === "cursor" && cursorIde) {
     nativeOptions.push({
-      id: CURSOR_IDE_PIN,
+      id: CURSOR_IDE_SELECTOR,
       label: cursorIde.email ? `Cursor IDE · ${cursorIde.email}` : "Cursor IDE login",
     });
   }
@@ -152,9 +161,20 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
     setAuthMethod(next);
   }
 
-  function nextExtra(): string | undefined {
-    if (authMethod === "local") return keychainAccount || undefined;
-    return savedExtra;
+  /** The typed auth configuration the current form state describes. */
+  function nextAuth(): AccountAuth {
+    if (authMethod === "local") {
+      if (provider === "cursor" && keychainAccount === CURSOR_IDE_SELECTOR) {
+        return { kind: "cursor-ide" };
+      }
+      if (keychainAccount) return { kind: "local-keychain", keychainAccount };
+      return { kind: "local-auto" };
+    }
+    const cred = credential.trim();
+    const accountId = savedAccountId;
+    return authMethod === "signin"
+      ? { kind: "session", credential: cred, accountId }
+      : { kind: "pasted", credential: cred, accountId };
   }
 
   const canSubmit =
@@ -165,23 +185,20 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
   async function handleConfirm() {
     setError(null);
     try {
-      const nextCredential = authMethod === "local" ? "" : credential.trim();
       const accounts = useAccountsStore.getState();
       if (editing && account) {
         await accounts.update({
           id: account.id,
           provider,
           label: label.trim(),
-          credential: nextCredential,
-          extra: nextExtra(),
+          auth: nextAuth(),
         });
         toast.success("Account updated", { description: `${meta.name} · ${label.trim()}` });
       } else {
         await accounts.add({
           provider,
           label: label.trim(),
-          credential: nextCredential,
-          extra: nextExtra(),
+          auth: nextAuth(),
         });
         toast.success("Account added", { description: `${meta.name} · ${label.trim()}` });
       }
@@ -224,7 +241,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                         if (editing || id === provider) return;
                         setProvider(id);
                         setCredential("");
-                        setSavedExtra(undefined);
+                        setSavedAccountId(undefined);
                         setKeychainAccount("");
                         if (authMethod === "local" && !KEYCHAIN_LOGINS[id]) setAuthMethod("signin");
                       }}
@@ -273,12 +290,12 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                 onSignedIn={(result) => {
                   setCredential(result.credential);
                   setKeychainAccount("");
-                  if (result.extra) setSavedExtra(result.extra);
+                  if (result.accountId) setSavedAccountId(result.accountId);
                   if (!label.trim() && result.suggestedLabel) setLabel(result.suggestedLabel);
                 }}
                 onClear={() => {
                   setCredential("");
-                  setSavedExtra(undefined);
+                  setSavedAccountId(undefined);
                 }}
               />
             ) : null}
@@ -308,7 +325,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                       ))}
                       {pinnedMissing ? (
                         <option value={keychainAccount}>
-                          {keychainAccount === CURSOR_IDE_PIN
+                          {keychainAccount === CURSOR_IDE_SELECTOR
                             ? "Cursor IDE (no longer signed in)"
                             : `${keychainAccount} (no longer in Keychain)`}
                         </option>

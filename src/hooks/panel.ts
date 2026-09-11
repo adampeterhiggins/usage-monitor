@@ -14,7 +14,7 @@ import {
   REFRESH_SHORTCUT_QUERY_KEY,
   setLayout as persistLayout,
 } from "../lib/settings";
-import type { Layout } from "../lib/usage/types";
+import type { Layout } from "../lib/settings/layout";
 
 /** Persisted panel layout with a write-through setter. */
 export function useLayout(): [Layout, (next: Layout) => void] {

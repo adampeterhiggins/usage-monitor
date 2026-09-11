@@ -1,13 +1,8 @@
-import {
-  formatFetchedAt,
-  formatPercent,
-  formatReset,
-  PROVIDERS,
-  severityFillClass,
-  severityTextClass,
-  type AccountPublic,
-  type UsageWindow,
-} from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { AccountPublic } from "../../lib/contracts/accounts";
+import type { UsageWindow } from "../../lib/contracts/usage";
+import { formatFetchedAt, formatPercent, formatReset } from "../../lib/usage/format";
+import { severityFillClass, severityTextClass } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/account-actions-menu";
 import type { AccountFetchState } from "../../lib/usage/service";
 import { Badge, Button, cn, Text } from "../ui";

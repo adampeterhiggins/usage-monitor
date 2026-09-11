@@ -13,7 +13,8 @@ import {
   type ProviderLoginSession,
 } from "../../lib/auth/provider-login";
 import { toast } from "../../lib/platform/toast";
-import { PROVIDERS, type ProviderId } from "../../lib/usage/types";
+import { PROVIDERS } from "../../lib/auth/provider-meta";
+import type { ProviderId } from "../../lib/contracts/providers";
 import { Button, cn } from "../ui";
 
 const ACCENT_CLASS = {
@@ -61,7 +62,7 @@ export function ProviderLoginButton({
   provider: ProviderId;
   credential: string;
   disabled?: boolean;
-  onSignedIn: (result: { credential: string; extra?: string; suggestedLabel?: string }) => void;
+  onSignedIn: (result: { credential: string; accountId?: string; suggestedLabel?: string }) => void;
   onClear?: () => void;
 }) {
   const [session, setSession] = React.useState<ProviderLoginSession | null>(() => peekProviderLogin(provider));

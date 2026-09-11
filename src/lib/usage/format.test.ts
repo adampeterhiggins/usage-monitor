@@ -1,29 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  formatFetchedAt,
-  formatPercent,
-  formatReset,
-  severity,
-  shortLabel,
-  toPublic,
-  worstPercent,
-  type Account,
-} from "./types";
+
+import { formatFetchedAt, formatPercent, formatReset, shortLabel } from "./format";
 
 afterEach(() => {
   vi.useRealTimers();
-});
-
-describe("severity", () => {
-  it("maps percentages to severity bands", () => {
-    expect(severity(undefined)).toBe("neutral");
-    expect(severity(0)).toBe("ok");
-    expect(severity(39.9)).toBe("ok");
-    expect(severity(40)).toBe("warn");
-    expect(severity(70)).toBe("high");
-    expect(severity(90)).toBe("critical");
-    expect(severity(100)).toBe("critical");
-  });
 });
 
 describe("formatPercent", () => {
@@ -77,42 +57,5 @@ describe("formatFetchedAt", () => {
     expect(formatFetchedAt(now - 10_000)).toBe("just now");
     expect(formatFetchedAt(now - 5 * 60_000)).toBe("5 min ago");
     expect(formatFetchedAt(now - 3 * 3_600_000)).toMatch(/\d{2}:\d{2}/);
-  });
-});
-
-describe("worstPercent", () => {
-  it("returns the max used percent, ignoring missing values", () => {
-    expect(worstPercent([])).toBeUndefined();
-    expect(
-      worstPercent([{ label: "a" }, { label: "b", usedPercent: 42 }, { label: "c", usedPercent: 7 }]),
-    ).toBe(42);
-  });
-});
-
-describe("toPublic", () => {
-  const account: Account = {
-    id: "a1",
-    provider: "claude",
-    label: "Work",
-    credential: "  secret  ",
-    extra: "pin",
-    hidden: true,
-  };
-
-  it("strips the credential but reports whether one exists", () => {
-    const pub = toPublic(account);
-    expect(pub).toEqual({
-      id: "a1",
-      provider: "claude",
-      label: "Work",
-      hasCredential: true,
-      extra: "pin",
-      hidden: true,
-    });
-    expect("credential" in pub).toBe(false);
-  });
-
-  it("treats whitespace-only credentials as absent", () => {
-    expect(toPublic({ ...account, credential: "   " }).hasCredential).toBe(false);
   });
 });

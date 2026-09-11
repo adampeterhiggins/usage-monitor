@@ -2,7 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { accountIdFromAccessToken, parseCodexAuthJson, refreshCodexOauth, serializeCodexAuthJson } from "../auth/codex-oauth";
 import { fetchJson } from "../platform/http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../auth/keychain";
-import type { Account, UsageFetchHooks, UsageSnapshot, UsageWindow } from "./types";
+import type { Account } from "../contracts/accounts";
+import { authAccountId, authCredential, authLocalSelector } from "../contracts/auth";
+import type { UsageFetchHooks, UsageSnapshot, UsageWindow } from "../contracts/usage";
 
 interface RateLimitWindow {
   used_percent?: number | null;
@@ -60,11 +62,11 @@ async function resolveNativeCreds(keychainAccount?: string): Promise<CodexCreds>
 }
 
 async function resolveCreds(account: Account): Promise<CodexCreds> {
-  const cred = account.credential.trim();
+  const cred = authCredential(account.auth).trim();
 
   if (cred.startsWith("{")) return parseAuthJson(cred, "Pasted credential");
 
-  if (cred === "") return resolveNativeCreds(account.extra?.trim() || undefined);
+  if (cred === "") return resolveNativeCreds(authLocalSelector(account.auth));
 
   if (cred.startsWith("/") || cred.startsWith("~")) {
     const rel = cred === "~/.codex/auth.json" || cred === "~/.codex" ? AUTH_FILE : cred.replace(/^~\//, "");
@@ -78,7 +80,7 @@ async function resolveCreds(account: Account): Promise<CodexCreds> {
     return creds;
   }
 
-  return { accessToken: cred, accountId: account.extra };
+  return { accessToken: cred, accountId: authAccountId(account.auth) };
 }
 
 export function parseAuthJson(raw: string, describe: string): CodexCreds {
@@ -160,7 +162,7 @@ export async function fetchCodexUsage(
     data = await fetchWham(creds);
   } catch (e) {
     if (e instanceof Error && /HTTP 401/.test(e.message)) {
-      const refreshed = await refreshStoredCodex(account.credential.trim(), hooks).catch(() => null);
+      const refreshed = await refreshStoredCodex(authCredential(account.auth).trim(), hooks).catch(() => null);
       if (refreshed) {
         data = await fetchWham(refreshed);
       } else {
