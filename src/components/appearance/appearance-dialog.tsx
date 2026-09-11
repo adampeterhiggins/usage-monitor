@@ -43,12 +43,12 @@ import {
 import type { ThemePreference, ThemePreferenceMode } from "../../lib/theme/types";
 import { parse as parseJsonc } from "jsonc-parser";
 import {
-  importOpenVsxThemeExtension,
   OPEN_VSX_SEARCH_PAGE_SIZE,
   pickRandomOpenVsxTheme,
   searchOpenVsxThemes,
   type OpenVsxThemeExtension,
-} from "../../lib/theme/openVsx";
+} from "../../lib/theme/open-vsx/client";
+import { importOpenVsxThemeExtension } from "../../lib/theme/open-vsx/import";
 import {
   isVsCodeThemeFile,
   pairVsCodeThemes,
