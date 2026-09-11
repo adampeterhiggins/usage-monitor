@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { RefreshCw, Settings } from "lucide-react";
 import type { ResolvedUiPalette } from "../../lib/theme/resolve-ui-palette";
 import { paletteToCssVariables } from "../../lib/theme/ui-palette-css";
@@ -56,6 +56,30 @@ const PROVIDER_TONES: Record<MockCard["providerTone"], string> = {
  * onto this shell; otherwise it reads the live document variables (which the
  * theme layer already painted), so Appearance tweaks show up immediately.
  */
+/** Desktop-like wash so panel translucency is visible in the miniature.
+ *  Production paints over the real wallpaper; this is preview chrome only. */
+export function PreviewBackdrop({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("relative min-h-0 overflow-hidden rounded-[14px]", className)}>
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(135deg, #5f7d9b 0%, #c4a574 46%, #7d8f62 100%)",
+        }}
+      />
+      <div className="relative flex h-full min-h-0 flex-col">{children}</div>
+    </div>
+  );
+}
+
 export function UsageMonitorPreview({
   className,
   palette,
@@ -209,7 +233,9 @@ export function AppearancePreview({
           </div>
         ) : null}
       </div>
-      <UsageMonitorPreview className="flex-1" />
+      <PreviewBackdrop className="flex-1">
+        <UsageMonitorPreview className="flex-1" />
+      </PreviewBackdrop>
     </aside>
   );
 }

@@ -19,7 +19,7 @@ import { toast } from "../ui/toast";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { UsageMonitorPreview } from "./AppearancePreview";
+import { PreviewBackdrop, UsageMonitorPreview } from "./AppearancePreview";
 import { useThemeEditorStore } from "./themeEditorStore";
 import {
   addDraftMode,
@@ -424,12 +424,23 @@ export function ThemeEditorHost() {
                 Rebuild from Canvas & Accent
               </Button>
               {beforeRebuild && (
-                <Button variant="transparent" size="small" onClick={() => {
-                  setDraft(current => current ? {
-                    ...current, modes: { ...current.modes, [beforeRebuild.mode]: beforeRebuild.value },
-                  } : current);
-                  setBeforeRebuild(null);
-                }}>Undo rebuild</Button>
+                <Button
+                  variant="transparent"
+                  size="small"
+                  onClick={() => {
+                    setDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            modes: { ...current.modes, [beforeRebuild.mode]: beforeRebuild.value },
+                          }
+                        : current,
+                    );
+                    setBeforeRebuild(null);
+                  }}
+                >
+                  Undo rebuild
+                </Button>
               )}
               {COLOR_GROUPS.map((group) => (
                 <section key={group.title} className="grid gap-2">
@@ -472,7 +483,9 @@ export function ThemeEditorHost() {
               <div className="text-[10px] font-medium uppercase tracking-wide text-ui-tertiary">
                 Preview
               </div>
-              <UsageMonitorPreview className="min-h-0 flex-1" palette={resolved} />
+              <PreviewBackdrop className="min-h-0 flex-1">
+                <UsageMonitorPreview className="min-h-0 flex-1" palette={resolved} />
+              </PreviewBackdrop>
               {!!resolved?.diagnostics.length && (
                 <details className="max-h-40 overflow-y-auto text-[11px] text-ui-secondary">
                   <summary className="cursor-pointer">Readability adjustments ({resolved.diagnostics.length})</summary>
