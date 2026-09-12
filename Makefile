@@ -375,7 +375,7 @@ release-local: ## Build, publish and update the manifest from this machine (bypa
 	[ -n "$$DMG" ] && cp "$$DMG" "$$TMP/usage-monitor_$${V}_universal.dmg" || true; \
 	git push origin HEAD; \
 	git tag -f "v$$V" HEAD; \
-	git push origin "v$$V" --force; \
+	git push origin "refs/tags/v$$V" --force; \
 	if gh release view "v$$V" --repo $(REPO) >/dev/null 2>&1; then \
 		gh release upload "v$$V" "$$TMP"/* --repo $(REPO) --clobber; \
 	else \
