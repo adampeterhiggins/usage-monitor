@@ -28,7 +28,7 @@ import { useUpdaterPoller } from "../hooks/useUpdaterPoller";
 import { useAccountsStore } from "../state/accounts";
 import { acceleratorGlyphs } from "../lib/settings/shortcuts";
 import { startPanelDragging } from "../platform/windows";
-import { useLayout, useRefreshShortcut } from "../state/preferences";
+import { useLayout, useRefreshShortcut, useWallColumns } from "../state/preferences";
 import { useUsageStore } from "../state/usage";
 
 export function PanelApp() {
@@ -49,6 +49,7 @@ export function PanelApp() {
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
 
   const [layout, changeLayout] = useLayout();
+  const [wallColumns, changeWallColumns] = useWallColumns();
   const refreshShortcut = useRefreshShortcut();
   useAppearanceRefresh();
   useToggleShortcut();
@@ -148,6 +149,7 @@ export function PanelApp() {
     return (
       <UsageLayout
         layout={layout}
+        wallColumns={wallColumns}
         accounts={visibleAccounts}
         grouped={grouped}
         fetchStates={fetchStates}
@@ -211,6 +213,8 @@ export function PanelApp() {
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}
+            wallColumns={wallColumns}
+            onWallColumnsChange={changeWallColumns}
             onManageAccounts={() => setManageOpen(true)}
             dialogOpen={blockingOverlay}
             onOpenChange={setSettingsOpen}

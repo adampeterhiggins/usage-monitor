@@ -5,7 +5,7 @@
 
 import type { AccountPublic } from "../../contracts/accounts";
 import type { AccountFetchState } from "../../contracts/usage";
-import type { Layout } from "../../lib/settings/layout";
+import type { Layout, WallColumns } from "../../lib/settings/layout";
 import { PROVIDERS } from "../../providers/metadata";
 import { AccountCard } from "../accounts/AccountCard";
 import { Text } from "../ui/text";
@@ -14,8 +14,18 @@ import { LedgerView } from "./LedgerView";
 import { StripView } from "./StripView";
 import type { ProviderGroup } from "./accountGrouping";
 
+/** Literal class names so Tailwind's scanner sees every Wall column count. */
+const WALL_GRID_COLUMNS: Record<WallColumns, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+};
+
 export interface UsageLayoutProps {
   layout: Layout;
+  /** Column count used by the Wall layout. */
+  wallColumns: WallColumns;
   /** Visible accounts in persisted order — Wall and Ledger read this. */
   accounts: AccountPublic[];
   /** Provider-grouped accounts — Grouped, Stacked, Strip, and Focus read this. */
@@ -29,6 +39,7 @@ export interface UsageLayoutProps {
 
 export function UsageLayout({
   layout,
+  wallColumns,
   accounts,
   grouped,
   fetchStates,
@@ -103,7 +114,7 @@ export function UsageLayout({
     case "wall":
     default:
       return (
-        <div className="grid grid-cols-2 gap-3 p-4">
+        <div className={`grid gap-3 p-4 ${WALL_GRID_COLUMNS[wallColumns]}`}>
           {accounts.map((account) => (
             <AccountCard
               key={account.id}
