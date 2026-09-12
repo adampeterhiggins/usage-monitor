@@ -1,7 +1,7 @@
 {
   "name": "usage-monitor",
   "private": true,
-  "version": "0.1.32",
+  "version": "0.2.0",
   "description": "Native macOS menu-bar app tracking Claude, Codex, and Cursor usage allowances",
   "author": "Adam Higgins",
   "license": "MIT",
