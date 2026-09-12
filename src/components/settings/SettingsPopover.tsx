@@ -46,6 +46,7 @@ import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { UpdatePanel } from "./UpdatePanel";
 import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 
@@ -207,6 +208,7 @@ export function SettingsPopover({
   );
 
   const currentLayoutLabel = LAYOUT_OPTIONS.find((o) => o.id === layout)?.label ?? "Wall";
+  const goBack = () => setPage(page === "columns" ? "layout" : "root");
 
   return (
     <Popover.Root
@@ -238,7 +240,7 @@ export function SettingsPopover({
             event.stopPropagation();
             if (page !== "root") {
               event.preventDefault();
-              setPage("root");
+              goBack();
             }
           }}
         >
@@ -248,7 +250,7 @@ export function SettingsPopover({
             onKeyDown={(event: React.KeyboardEvent) => {
               if (event.key === "Backspace" && query === "" && page !== "root") {
                 event.preventDefault();
-                setPage("root");
+                goBack();
               }
             }}
           >
@@ -279,12 +281,6 @@ export function SettingsPopover({
                     label="Switch Layout…"
                     accessory={currentLayoutLabel}
                     onSelect={() => setPage("layout")}
-                  />
-                  <Item
-                    icon={Columns3}
-                    label="Wall Columns…"
-                    accessory={String(wallColumns)}
-                    onSelect={() => setPage("columns")}
                   />
                   <Item
                     icon={Scaling}
@@ -332,10 +328,11 @@ export function SettingsPopover({
                     key={id}
                     icon={icon}
                     label={label}
+                    chip={id === "wall" ? String(wallColumns) : undefined}
                     accessory={id === layout ? "✓" : undefined}
                     onSelect={() => {
                       onLayoutChange(id);
-                      setPage("root");
+                      setPage(id === "wall" ? "columns" : "root");
                     }}
                   />
                 ))}
@@ -371,12 +368,14 @@ const itemClass =
 function Item({
   icon: Icon,
   label,
+  chip,
   accessory,
   disabled,
   onSelect,
 }: {
   icon: LucideIcon;
   label: string;
+  chip?: string;
   accessory?: string;
   disabled?: boolean;
   onSelect: () => void;
@@ -384,7 +383,14 @@ function Item({
   return (
     <Command.Item disabled={disabled} onSelect={onSelect} className={cn(itemClass, disabled && "cursor-default opacity-40")}>
       <Icon className="size-4 text-ui-secondary" />
-      <span className="flex-1">{label}</span>
+      <span className="flex flex-1 items-center gap-1.5">
+        {label}
+        {chip ? (
+          <Badge size="small" color="secondary">
+            {chip}
+          </Badge>
+        ) : null}
+      </span>
       {accessory ? <span className="text-[11px] text-ui-tertiary">{accessory}</span> : null}
     </Command.Item>
   );
