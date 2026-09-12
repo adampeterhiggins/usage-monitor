@@ -30,7 +30,7 @@ const argOf = (name, fallback = null) => {
 
 const tag = argOf("--tag");
 const out = argOf("--out", "latest.json");
-const repo = argOf("--repo", process.env.GITHUB_REPOSITORY ?? "adampeterhiggins/usage-monitor-native");
+const repo = argOf("--repo", process.env.GITHUB_REPOSITORY ?? "adampeterhiggins/usage-monitor");
 const sigPath = argOf("--signature");
 const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
 
