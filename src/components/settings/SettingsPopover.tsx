@@ -217,8 +217,9 @@ export function SettingsPopover({
           ref={contentRef}
           align="end"
           sideOffset={6}
+          collisionPadding={8}
           data-ui-surface="menu"
-          className="ui-surface z-50 w-80 overflow-hidden rounded-2xl p-0 shadow-lg ring-1 ring-ui-subtle"
+          className="ui-surface z-50 flex max-h-[var(--radix-popover-content-available-height)] w-80 flex-col overflow-hidden rounded-2xl p-0 shadow-lg ring-1 ring-ui-subtle"
           onEscapeKeyDown={(event) => {
             event.stopPropagation();
             if (page !== "root") {
@@ -229,7 +230,7 @@ export function SettingsPopover({
         >
           <Command
             loop
-            className="flex flex-col"
+            className="flex min-h-0 flex-col"
             onKeyDown={(event: React.KeyboardEvent) => {
               if (event.key === "Backspace" && query === "" && page !== "root") {
                 event.preventDefault();
@@ -242,10 +243,10 @@ export function SettingsPopover({
                 placeholder="Search for actions…"
                 value={query}
                 onValueChange={setQuery}
-                className="h-9 border-b border-ui-subtle bg-transparent px-3 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
+                className="h-9 shrink-0 border-b border-ui-subtle bg-transparent px-3 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
               />
             ) : null}
-            <Command.List className="h-auto max-h-[320px] overflow-y-auto p-1">
+            <Command.List className="h-auto max-h-[320px] min-h-0 overflow-y-auto p-1">
               <Command.Empty className="px-3 py-6 text-center text-[12px] text-ui-tertiary">
                 No actions found.
               </Command.Empty>
