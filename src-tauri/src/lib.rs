@@ -7,7 +7,7 @@
 //! - `tray`: status-bar icon and menu
 //! - `state`: `PanelState`, shared window/panel flags
 //! - `frame`: persisted window geometry
-//! - `credentials`: provider login reads (Keychain, Cursor IDE DB, cookies)
+//! - `credentials`: provider login reads (Keychain, Cursor IDE DB, home files)
 //! - `http`: native fetch so requests carry no webview Origin
 
 mod commands;
@@ -26,9 +26,7 @@ use state::PanelState;
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
@@ -53,7 +51,6 @@ pub fn run() {
             commands::list_keychain_accounts,
             commands::cursor_ide_login_meta,
             commands::read_cursor_ide_access_token,
-            commands::read_window_cookie,
             commands::http_request
         ])
         .setup(|app| {

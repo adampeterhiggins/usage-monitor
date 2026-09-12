@@ -28,7 +28,7 @@ import { useUpdaterPoller } from "../hooks/useUpdaterPoller";
 import { useAccountsStore } from "../state/accounts";
 import { acceleratorGlyphs } from "../lib/settings/shortcuts";
 import { startPanelDragging } from "../platform/windows";
-import { useGithubToken, useLayout, useRefreshShortcut } from "../state/preferences";
+import { useLayout, useRefreshShortcut } from "../state/preferences";
 import { useUsageStore } from "../state/usage";
 
 export function PanelApp() {
@@ -49,7 +49,6 @@ export function PanelApp() {
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
 
   const [layout, changeLayout] = useLayout();
-  const [githubToken, setGithubToken] = useGithubToken();
   const refreshShortcut = useRefreshShortcut();
   useAppearanceRefresh();
   useToggleShortcut();
@@ -215,8 +214,6 @@ export function PanelApp() {
             onManageAccounts={() => setManageOpen(true)}
             dialogOpen={blockingOverlay}
             onOpenChange={setSettingsOpen}
-            githubToken={githubToken}
-            onGithubTokenChange={setGithubToken}
           />
         </div>
       </header>

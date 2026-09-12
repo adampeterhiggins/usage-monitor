@@ -2,6 +2,14 @@
   "name": "usage-monitor",
   "private": true,
   "version": "0.1.32",
+  "description": "Native macOS menu-bar app tracking Claude, Codex, and Cursor usage allowances",
+  "author": "Adam Higgins",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adampeterhiggins/usage-monitor.git"
+  },
+  "homepage": "https://github.com/adampeterhiggins/usage-monitor",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -31,10 +39,8 @@
     "@tanstack/react-query": "^5.101.4",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
-    "@tauri-apps/plugin-http": "^2.5.9",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-process": "^2.3.1",
-    "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-store": "^2.4.4",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "clsx": "^2.1.1",

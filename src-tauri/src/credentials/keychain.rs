@@ -9,12 +9,29 @@ pub(crate) struct KeychainEntry {
     modified: Option<String>,
 }
 
+/// The only services the frontend may query — the CLI logins the app reads.
+/// Mirrors `KEYCHAIN_LOGINS` in `src/providers/shared/localCredentials.ts`.
+const ALLOWED_SERVICES: &[&str] = &[
+    "Claude Code-credentials",
+    "Codex Auth",
+    "cursor-access-token",
+];
+
+fn ensure_allowed(service: &str) -> Result<(), String> {
+    if ALLOWED_SERVICES.contains(&service) {
+        Ok(())
+    } else {
+        Err(format!("Keychain service \"{service}\" is not readable by this app."))
+    }
+}
+
 /// Read a generic password from the macOS Keychain.
 ///
 /// When `account` is given the lookup is pinned to that Keychain account
 /// (`security -a`); otherwise `security` returns whichever item matches the
 /// service first, which is arbitrary when several exist.
 pub(crate) fn read_password(service: &str, account: Option<&str>) -> Result<String, String> {
+    ensure_allowed(service)?;
     let mut args = vec!["find-generic-password", "-s", service];
     if let Some(acct) = account {
         args.extend(["-a", acct]);
@@ -37,6 +54,7 @@ pub(crate) fn read_password(service: &str, account: Option<&str>) -> Result<Stri
 /// item attributes are parsed. Lets the UI offer a choice when several
 /// logins share one service name.
 pub(crate) fn list_accounts(service: &str) -> Result<Vec<KeychainEntry>, String> {
+    ensure_allowed(service)?;
     let output = Command::new("security")
         .arg("dump-keychain")
         .output()

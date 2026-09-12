@@ -42,20 +42,15 @@ export async function currentVersion(): Promise<string> {
   return appVersion();
 }
 
-function authHeaders(token: string | null): Record<string, string> | undefined {
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
-
 export interface CheckOutcome {
   update: PendingUpdate | null;
   state: Partial<UpdateState>;
 }
 
-export async function checkForUpdate(token: string | null): Promise<CheckOutcome> {
+export async function checkForUpdate(): Promise<CheckOutcome> {
   const version = await currentVersion();
-  const headers = authHeaders(token);
 
-  const update = await checkNativeUpdate(headers);
+  const update = await checkNativeUpdate();
   const lastCheckedAt = new Date().toISOString();
 
   if (!update) {
@@ -88,7 +83,6 @@ export async function checkForUpdate(token: string | null): Promise<CheckOutcome
 
 export async function installUpdate(
   update: PendingUpdate,
-  token: string | null,
   onProgress: (patch: Partial<UpdateState>) => void,
 ): Promise<void> {
   let downloaded = 0;
@@ -113,7 +107,7 @@ export async function installUpdate(
         onProgress({ phase: "ready", progress: 1 });
         break;
     }
-  }, authHeaders(token));
+  });
 
   onProgress({ phase: "ready", progress: 1 });
 }
@@ -147,13 +141,10 @@ export function describeUpdateError(err: unknown): string {
   const message = (err as Error)?.message ?? String(err);
 
   if (/404|not found/i.test(message)) {
-    return (
-      "Could not read the update manifest (404). Either no release has been published yet, " +
-      "or the stored GitHub token lacks read access to this repository."
-    );
+    return "Could not read the update manifest (404). No release has been published yet.";
   }
   if (/401|403|unauthor|forbidden/i.test(message)) {
-    return "GitHub rejected the credentials for the update check. Re-check the token in Settings.";
+    return "GitHub rejected the update check. Rate limits reset hourly — try again later.";
   }
   if (/signature|minisign|pubkey/i.test(message)) {
     return (

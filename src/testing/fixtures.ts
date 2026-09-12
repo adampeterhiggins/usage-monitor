@@ -217,24 +217,6 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
     // Completing instantly makes the browser-login flow testable end to end.
     { status: 200, body: { accessToken: MOCK_CURSOR_SESSION_JWT } },
   ],
-  [
-    "github.com/login/device/code",
-    {
-      status: 200,
-      body: {
-        device_code: "mock-device-code",
-        user_code: "MOCK-CODE",
-        verification_uri: "https://github.com/login/device",
-        interval: 1,
-        expires_in: 900,
-      },
-    },
-  ],
-  [
-    "github.com/login/oauth/access_token",
-    { status: 200, body: { access_token: "ghp_mock_github_token", token_type: "bearer" } },
-  ],
-  ["api.github.com/user", { status: 200, body: { login: "mockdev" } }],
   ["open-vsx.org/api/-/search", { status: 200, body: { extensions: [], totalSize: 0 } }],
   ["open-vsx.org/api/", { status: 404, body: { error: "not stubbed" } }],
 ];
