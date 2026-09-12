@@ -4,6 +4,18 @@ A native macOS menu-bar app that tracks usage allowances for **Claude**, **Codex
 
 Tauri v2 shell (real `.app`, WKWebView) with all usage fetching, caching, and UI in TypeScript. Ported from the Glaze Usage Monitor panel.
 
+## Install
+
+```bash
+brew install --cask adampeterhiggins/tap/usage-monitor
+```
+
+The build is unsigned, so installing via Homebrew is the easy path — it skips the quarantine attribute. If you download the `.dmg` from a [release](https://github.com/adampeterhiggins/usage-monitor/releases) directly instead, macOS will refuse to open it; either allow it in **System Settings → Privacy & Security** after the first failed launch, or run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Usage Monitor.app"
+```
+
 ## Setup
 
 ```bash
@@ -44,6 +56,10 @@ make keygen
 
 # 2. Give CI the private key
 make secrets
+
+# 3. Let CI update the Homebrew tap — create a fine-grained PAT with
+#    contents:write on adampeterhiggins/homebrew-tap only, then:
+gh secret set HOMEBREW_TAP_TOKEN --repo adampeterhiggins/usage-monitor
 ```
 
 The **public** key lives in `src-tauri/tauri.conf.json` and is committed — that is what each build trusts. **Back up `.updater/signing.key`.** Lose it and existing installs can never be updated again; they would need replacing by hand.
@@ -74,7 +90,7 @@ The chain is: version gate → bump → `npm run check` → commit → tag → p
 
 Other useful targets: `make version` (reports drift across the three files), `make set-version-0.3.0`, `make app` (build and install into `/Applications`, verifying the installed version), `make runs`, `make watch`, `make verify-release`, and `make release-local` if CI is broken and you need to publish from your laptop.
 
-The workflow then builds a signed **universal** macOS bundle, publishes a GitHub Release with the `.dmg`, `.app.tar.gz` and `.app.tar.gz.sig`, and commits a `latest.json` to the `releases` branch. The running app picks it up on its next check — 15 seconds after launch, then every 6 hours — or immediately via **Settings → Updates → Check now**.
+The workflow then builds a signed **universal** macOS bundle, publishes a GitHub Release with the `.dmg`, `.app.tar.gz` and `.app.tar.gz.sig`, updates the `usage-monitor` cask in [adampeterhiggins/homebrew-tap](https://github.com/adampeterhiggins/homebrew-tap), and commits a `latest.json` to the `releases` branch. The running app picks it up on its next check — 15 seconds after launch, then every 6 hours — or immediately via **Settings → Updates → Check now**.
 
 ### How updates reach a private repo
 

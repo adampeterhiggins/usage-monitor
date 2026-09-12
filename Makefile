@@ -9,7 +9,8 @@ CONF_VERSION  := $(shell node -p "require('./src-tauri/tauri.conf.json').version
 CARGO_VERSION := $(shell awk -F'"' '/^version[[:space:]]*=/{print $$2; exit}' src-tauri/Cargo.toml 2>/dev/null)
 TAG           := v$(VERSION)
 
-REPO       := adampeterhiggins/usage-monitor-native
+REPO       := adampeterhiggins/usage-monitor
+TAP_REPO   := adampeterhiggins/homebrew-tap
 APP_NAME   := Usage Monitor
 BUNDLE_DIR := src-tauri/target/universal-apple-darwin/release/bundle
 TARBALL    := $(BUNDLE_DIR)/macos/$(APP_NAME).app.tar.gz
@@ -27,7 +28,7 @@ WATCH ?= 1
 
 .PHONY: help install deps dev check build app clean version keygen secrets \
         check-version ensure-version set-version prepare-release tag-version \
-        release release-local verify-release watch runs doctor
+        release release-local verify-release watch runs doctor tap-update
 
 ##@ Getting started
 
@@ -95,6 +96,11 @@ doctor: ## Check the release prerequisites are in place
 		printf "  ok    TAURI_SIGNING_PRIVATE_KEY is set on the repo\n"; \
 	else \
 		printf "  MISS  repo secret not set — run: make secrets\n"; \
+	fi
+	@if gh secret list --repo $(REPO) 2>/dev/null | grep -q HOMEBREW_TAP_TOKEN; then \
+		printf "  ok    HOMEBREW_TAP_TOKEN is set on the repo\n"; \
+	else \
+		printf "  MISS  HOMEBREW_TAP_TOKEN not set — fine-grained PAT, contents:write on $(TAP_REPO)\n"; \
 	fi
 	@printf "\n\033[1mGit\033[0m\n"
 	@printf "  branch      %s\n" "$$(git rev-parse --abbrev-ref HEAD)"
@@ -378,6 +384,7 @@ release-local: ## Build, publish and update the manifest from this machine (bypa
 	GH_TOKEN="$$(gh auth token)" node scripts/build-update-manifest.mjs --tag "v$$V" --out latest.json; \
 	$(MAKE) --no-print-directory publish-manifest VERSION_ARG="$$V"; \
 	rm -rf "$$TMP"; \
+	$(MAKE) --no-print-directory tap-update; \
 	$(MAKE) --no-print-directory verify-release-$$V
 
 .PHONY: publish-manifest
@@ -413,6 +420,29 @@ manifest-%: ## Generate and publish the manifest for an existing release
 	@GH_TOKEN="$$(gh auth token)" node scripts/build-update-manifest.mjs --tag "v$*" --out latest.json
 	@$(MAKE) --no-print-directory publish-manifest VERSION_ARG="$*"
 	@$(MAKE) --no-print-directory verify-release-$*
+
+tap-update: ## Update the Homebrew tap cask for the current version (CI does this too)
+	@set -e; \
+	V="$(VERSION)"; \
+	DMG="$$(ls "$(BUNDLE_DIR)"/dmg/*.dmg 2>/dev/null | head -n 1)"; \
+	if [ -z "$$DMG" ]; then echo "No dmg under $(BUNDLE_DIR)/dmg — run 'make build' first."; exit 1; fi; \
+	SHA="$$(shasum -a 256 "$$DMG" | awk '{print $$1}')"; \
+	TMP="$$(mktemp -d)"; \
+	trap 'rm -rf "$$TMP"' EXIT; \
+	gh repo clone $(TAP_REPO) "$$TMP/tap" -- --depth 5 >/dev/null; \
+	cd "$$TMP/tap"; \
+	sed -i '' -E \
+	  -e "s/^  version \".*\"/  version \"$$V\"/" \
+	  -e "s/^  sha256 \".*\"/  sha256 \"$$SHA\"/" \
+	  Casks/usage-monitor.rb; \
+	if git diff --quiet; then \
+		echo "Cask already current ($$V)."; \
+	else \
+		git add Casks/usage-monitor.rb; \
+		git commit -m "usage-monitor $$V" >/dev/null; \
+		git push; \
+		echo "Updated $(TAP_REPO) to $$V (sha256 $$SHA)"; \
+	fi
 
 ##@ CI and signing
 

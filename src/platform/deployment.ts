@@ -1,4 +1,4 @@
-export const GITHUB_REPOSITORY = "adampeterhiggins/usage-monitor-native";
+export const GITHUB_REPOSITORY = "adampeterhiggins/usage-monitor";
 
 export interface DeploymentInfo {
   version: string | null;

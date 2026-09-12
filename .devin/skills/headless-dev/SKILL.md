@@ -1,6 +1,6 @@
 ---
 name: headless-dev
-description: Run and test usage-monitor-native headlessly in a browser with mocked Tauri IPC. Use when an agent needs to verify UI behavior, take screenshots, or exercise the app without building the native shell. Covers dev:mock lifecycle, the ?window= surface switch, the __TAURI_MOCK__ driver handle, and fixture/stub maintenance.
+description: Run and test usage-monitor headlessly in a browser with mocked Tauri IPC. Use when an agent needs to verify UI behavior, take screenshots, or exercise the app without building the native shell. Covers dev:mock lifecycle, the ?window= surface switch, the __TAURI_MOCK__ driver handle, and fixture/stub maintenance.
 ---
 
 # Headless dev (browser mock)
