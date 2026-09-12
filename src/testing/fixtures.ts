@@ -75,6 +75,7 @@ export const MOCK_STORES: Record<string, Record<string, unknown>> = {
     theme: "t3-chat",
     appearanceMode: "system",
     layout: "wall",
+    wallColumns: 2,
   },
 };
 

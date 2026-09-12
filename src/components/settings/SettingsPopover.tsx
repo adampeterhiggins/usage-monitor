@@ -13,6 +13,9 @@ import {
   AlignJustify,
   Rows3,
   Columns2,
+  Columns3,
+  Columns4,
+  RectangleVertical,
   Power,
   RefreshCw,
   Scaling,
@@ -38,7 +41,7 @@ import {
 } from "../../lib/settings/shortcuts";
 import { registerToggleShortcut } from "../../platform/global-shortcut";
 import { toast } from "../ui/toast";
-import { type Layout } from "../../lib/settings/layout";
+import { type Layout, type WallColumns } from "../../lib/settings/layout";
 import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { UpdatePanel } from "./UpdatePanel";
@@ -46,7 +49,7 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
 
-type Page = "root" | "layout" | "updates";
+type Page = "root" | "layout" | "columns" | "updates";
 
 const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "wall", label: "Wall", icon: LayoutGrid },
@@ -55,6 +58,13 @@ const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "ledger", label: "Ledger", icon: AlignJustify },
   { id: "strip", label: "Strip", icon: Rows3 },
   { id: "focus", label: "Focus", icon: Columns2 },
+];
+
+const WALL_COLUMN_OPTIONS: Array<{ id: WallColumns; label: string; icon: LucideIcon }> = [
+  { id: 1, label: "1 Column", icon: RectangleVertical },
+  { id: 2, label: "2 Columns", icon: Columns2 },
+  { id: 3, label: "3 Columns", icon: Columns3 },
+  { id: 4, label: "4 Columns", icon: Columns4 },
 ];
 
 function useShortcutRecorder(
@@ -84,6 +94,8 @@ function useShortcutRecorder(
 interface SettingsPopoverProps {
   layout: Layout;
   onLayoutChange: (layout: Layout) => void;
+  wallColumns: WallColumns;
+  onWallColumnsChange: (columns: WallColumns) => void;
   onManageAccounts: () => void;
   dialogOpen: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -92,6 +104,8 @@ interface SettingsPopoverProps {
 export function SettingsPopover({
   layout,
   onLayoutChange,
+  wallColumns,
+  onWallColumnsChange,
   onManageAccounts,
   dialogOpen,
   onOpenChange,
@@ -267,6 +281,12 @@ export function SettingsPopover({
                     onSelect={() => setPage("layout")}
                   />
                   <Item
+                    icon={Columns3}
+                    label="Wall Columns…"
+                    accessory={String(wallColumns)}
+                    onSelect={() => setPage("columns")}
+                  />
+                  <Item
                     icon={Scaling}
                     label="Restore Default Size"
                     onSelect={() => {
@@ -315,6 +335,19 @@ export function SettingsPopover({
                     accessory={id === layout ? "✓" : undefined}
                     onSelect={() => {
                       onLayoutChange(id);
+                      setPage("root");
+                    }}
+                  />
+                ))}
+              {page === "columns" &&
+                WALL_COLUMN_OPTIONS.map(({ id, label, icon }) => (
+                  <Item
+                    key={id}
+                    icon={icon}
+                    label={label}
+                    accessory={id === wallColumns ? "✓" : undefined}
+                    onSelect={() => {
+                      onWallColumnsChange(id);
                       setPage("root");
                     }}
                   />
