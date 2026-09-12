@@ -2,7 +2,7 @@ import { useUpdates } from "../../state/updates";
 import { formatBytes, formatPublished } from "../../lib/updates/service";
 import { Button } from "../ui/button";
 
-export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
+export function UpdatePanel() {
   const state = useUpdates();
   const pct = state.progress != null ? Math.round(state.progress * 100) : null;
 
@@ -83,9 +83,7 @@ export function UpdatePanel({ hasToken }: { hasToken: boolean }) {
       ) : null}
 
       <p className="text-[10.5px] leading-relaxed text-ui-placeholder">
-        {hasToken
-          ? "Updates come from this app's private repository, using your GitHub sign-in."
-          : "Updates are served from a private repository. Sign in with GitHub to enable checks."}
+        Updates are checked against the project's GitHub releases — no sign-in needed.
       </p>
     </div>
   );

@@ -26,6 +26,22 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
+/// The frontend may only fetch hosts the providers and theme marketplace
+/// actually use. Anything else could turn a frontend compromise into an
+/// arbitrary exfiltration channel.
+const ALLOWED_HOSTS: &[&str] = &[
+    "claude.ai",
+    "console.anthropic.com",
+    "api.anthropic.com",
+    "cursor.com",
+    "www.cursor.com",
+    "api2.cursor.sh",
+    "authenticator.cursor.sh",
+    "auth.openai.com",
+    "chatgpt.com",
+    "open-vsx.org",
+];
+
 /// Pass `encoding: "base64"` for binary bodies (Open VSX VSIX packages).
 pub(crate) async fn request(
     url: &str,
@@ -34,12 +50,21 @@ pub(crate) async fn request(
     body: Option<String>,
     encoding: Option<&str>,
 ) -> Result<HttpResponse, String> {
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("Invalid URL: {e}"))?;
+    let allowed = parsed.scheme() == "https"
+        && parsed
+            .host_str()
+            .is_some_and(|host| ALLOWED_HOSTS.contains(&host));
+    if !allowed {
+        return Err(format!("http_request is restricted to known provider hosts: {url}"));
+    }
+
     let method: reqwest::Method = method
         .unwrap_or("GET")
         .parse()
         .map_err(|e| format!("Invalid HTTP method: {e}"))?;
 
-    let mut request = client().request(method, url);
+    let mut request = client().request(method, parsed);
     if let Some(headers) = headers {
         for (key, value) in headers {
             request = request.header(key, value);

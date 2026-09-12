@@ -33,6 +33,5 @@ export interface PendingUpdate {
   publishedAt: string | null;
   downloadAndInstall(
     onProgress: (event: UpdateProgressEvent) => void,
-    headers?: Record<string, string>,
   ): Promise<void>;
 }

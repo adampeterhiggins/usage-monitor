@@ -276,8 +276,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # The app fetches this file from raw.githubusercontent.com, which serves
-          # private repositories to an authenticated request. It therefore needs a
+          # The app fetches this file from raw.githubusercontent.com, which needs a
           # stable branch path, not a per-release asset URL.
           cp latest.json /tmp/latest.json
           # Remove the untracked copy before switching branches. The releases
@@ -333,7 +332,7 @@ jobs:
           fi
           echo "Manifest on the releases branch serves ${COMMITTED}."
 
-          # The artifact must actually be downloadable with the same auth the app uses.
+          # The artifact must actually be downloadable.
           ASSET_URL="$(gh api "repos/${REPO}/contents/latest.json?ref=releases" \
             --jq '.content' | base64 -d \
             | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{process.stdout.write(JSON.parse(d).platforms["darwin-aarch64"].url)})')"

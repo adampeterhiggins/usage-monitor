@@ -41,7 +41,6 @@ import { toast } from "../ui/toast";
 import { type Layout } from "../../lib/settings/layout";
 import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
-import { GithubAuthSettings } from "./GithubAuthSettings";
 import { UpdatePanel } from "./UpdatePanel";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -88,8 +87,6 @@ interface SettingsPopoverProps {
   onManageAccounts: () => void;
   dialogOpen: boolean;
   onOpenChange?: (open: boolean) => void;
-  githubToken: string | null;
-  onGithubTokenChange: (token: string | null) => void;
 }
 
 export function SettingsPopover({
@@ -98,8 +95,6 @@ export function SettingsPopover({
   onManageAccounts,
   dialogOpen,
   onOpenChange,
-  githubToken,
-  onGithubTokenChange,
 }: SettingsPopoverProps) {
   const queryClient = useQueryClient();
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -325,8 +320,7 @@ export function SettingsPopover({
                 ))}
               {page === "updates" && (
                 <div>
-                  <UpdatePanel hasToken={!!githubToken} />
-                  <GithubAuthSettings githubToken={githubToken} onGithubTokenChange={onGithubTokenChange} />
+                  <UpdatePanel />
                 </div>
               )}
             </Command.List>

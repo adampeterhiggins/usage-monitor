@@ -56,7 +56,7 @@ describe("installUpdate progress mapping", () => {
       { type: "progress", chunkLength: 60 },
       { type: "finished" },
     ]);
-    await installUpdate(update, null, (p) => patches.push(p));
+    await installUpdate(update, (p) => patches.push(p));
 
     expect(patches).toContainEqual({ totalBytes: 100, downloadedBytes: 0, progress: 0 });
     expect(patches).toContainEqual({ downloadedBytes: 40, progress: 0.4 });
@@ -68,7 +68,6 @@ describe("installUpdate progress mapping", () => {
     const patches: Partial<UpdateState>[] = [];
     await installUpdate(
       fakeUpdate([{ type: "started" }, { type: "progress", chunkLength: 10 }]),
-      null,
       (p) => patches.push(p),
     );
     expect(patches).toContainEqual({ totalBytes: null, downloadedBytes: 0, progress: null });

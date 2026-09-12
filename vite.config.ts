@@ -22,7 +22,6 @@ const TAURI_MOCK_ALIASES: Record<string, string> = {
   "@tauri-apps/plugin-updater": "updater",
   "@tauri-apps/plugin-process": "process",
   "@tauri-apps/plugin-opener": "opener",
-  "@tauri-apps/plugin-shell": "shell",
   "@tauri-apps/plugin-global-shortcut": "global-shortcut",
 };
 

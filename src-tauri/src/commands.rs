@@ -49,17 +49,6 @@ pub(crate) fn set_account_modal_open(app: AppHandle, open: bool) {
     panel::set_account_modal(&app, open);
 }
 
-/// Read a named cookie from a webview (used by Cursor sign-in).
-#[tauri::command]
-pub(crate) async fn read_window_cookie(
-    app: AppHandle,
-    label: String,
-    name: String,
-    urls: Option<Vec<String>>,
-) -> Result<Option<String>, String> {
-    credentials::read_window_cookie(&app, &label, &name, urls.as_deref()).await
-}
-
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).
 #[tauri::command]
 pub(crate) fn read_home_file(rel_path: String) -> Result<String, String> {
