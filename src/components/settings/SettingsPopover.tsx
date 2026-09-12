@@ -15,6 +15,7 @@ import {
   Columns2,
   Power,
   RefreshCw,
+  Scaling,
   Settings,
   Users,
   type LucideIcon,
@@ -27,6 +28,7 @@ import {
   setToggleShortcut,
 } from "../../lib/settings/index";
 import { openAppearanceWindow } from "../../platform/appearance-window";
+import { restoreDefaultPanelSize } from "../../platform/windows";
 import {
   acceleratorFromKeyDown,
   DEFAULT_REFRESH_SHORTCUT,
@@ -267,6 +269,14 @@ export function SettingsPopover({
                     label="Switch Layout…"
                     accessory={currentLayoutLabel}
                     onSelect={() => setPage("layout")}
+                  />
+                  <Item
+                    icon={Scaling}
+                    label="Restore Default Size"
+                    onSelect={() => {
+                      void restoreDefaultPanelSize();
+                      setOpen(false);
+                    }}
                   />
                   <Item
                     icon={Contrast}
