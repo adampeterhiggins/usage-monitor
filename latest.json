@@ -1,15 +1,15 @@
 {
-  "version": "0.1.31",
-  "notes": "## What's Changed\n* Show a pointer cursor on clickable buttons by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/35\n* Fix tray panel staying pinned after closing the account modal by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/34\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.30...v0.1.31",
-  "pub_date": "2026-09-12T09:33:59Z",
+  "version": "0.1.32",
+  "notes": "## What's Changed\n* Restore default window size and keep the fit handle on-screen by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor-native/pull/36\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor-native/compare/v0.1.31...v0.1.32",
+  "pub_date": "2026-09-12T09:52:47Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUpsbWhIbTB5a05TR1ZTUHpKNlpBemtVQU8xZ2tkRkZEMTRJSkozcCtQcUVKN0t5NU9BbGhJRzluM2xtWFlwRWQrTW10WlY1Ly9MMytVZlJhTWlEb0EwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MjA1NjMzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnYzSTlOSnRQMVJVRk55L0dFVEVJSXdxd2UzWGtIN0R5MlBKL1ZZMjA4WlN1cTJzUmFselMvRHZRQ3NnQWh1TUI2N1U1RlN6eWprYzhhc05hV2pCeURBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/559002613"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNWcUk2N0dtTEN3dnVXSUdCVWltRlpvWDlDdVJHUjRCSWVJZ3hYZkN2NjRJakJCbGRyTkZCLys0TGROQzlzUEZCSk9wa0Q0bks2M2E5OWZMRnJiMGdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MjA2NzYxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CjgxVkJ1all2WDJCazF5MVUxTFR1bC8xd1pYcEhvSlg5ak1GRFZ4V3YvVE44Y0lJdWE1WFR0MGZJL3RuZnhjYVByZXBwb2w5SEpCZWVqcm5BdnI3ekFRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/559026717"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUpsbWhIbTB5a05TR1ZTUHpKNlpBemtVQU8xZ2tkRkZEMTRJSkozcCtQcUVKN0t5NU9BbGhJRzluM2xtWFlwRWQrTW10WlY1Ly9MMytVZlJhTWlEb0EwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MjA1NjMzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CnYzSTlOSnRQMVJVRk55L0dFVEVJSXdxd2UzWGtIN0R5MlBKL1ZZMjA4WlN1cTJzUmFselMvRHZRQ3NnQWh1TUI2N1U1RlN6eWprYzhhc05hV2pCeURBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/559002613"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNWcUk2N0dtTEN3dnVXSUdCVWltRlpvWDlDdVJHUjRCSWVJZ3hYZkN2NjRJakJCbGRyTkZCLys0TGROQzlzUEZCSk9wa0Q0bks2M2E5OWZMRnJiMGdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MjA2NzYxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CjgxVkJ1all2WDJCazF5MVUxTFR1bC8xd1pYcEhvSlg5ak1GRFZ4V3YvVE44Y0lJdWE1WFR0MGZJL3RuZnhjYVByZXBwb2w5SEpCZWVqcm5BdnI3ekFRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor-native/releases/assets/559026717"
     }
   }
 }
