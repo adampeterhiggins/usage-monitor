@@ -251,6 +251,11 @@ const THEME_BLOCK = `
   textarea {
     user-select: text;
   }
+
+  /* Body uses cursor: default; restore the fingertip on enabled buttons. */
+  button:enabled:not([data-disabled]) {
+    cursor: pointer;
+  }
 }
 
 /* ---- Window shell ---- */

@@ -328,7 +328,7 @@ export function SettingsPopover({
 }
 
 const itemClass =
-  "flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-ui-control-hover";
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-ui-control-hover";
 
 function Item({
   icon: Icon,
@@ -344,7 +344,7 @@ function Item({
   onSelect: () => void;
 }) {
   return (
-    <Command.Item disabled={disabled} onSelect={onSelect} className={cn(itemClass, disabled && "opacity-40")}>
+    <Command.Item disabled={disabled} onSelect={onSelect} className={cn(itemClass, disabled && "cursor-default opacity-40")}>
       <Icon className="size-4 text-ui-secondary" />
       <span className="flex-1">{label}</span>
       {accessory ? <span className="text-[11px] text-ui-tertiary">{accessory}</span> : null}

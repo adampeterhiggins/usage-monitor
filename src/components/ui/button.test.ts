@@ -21,3 +21,11 @@ it("scopes disabled and focus changes to custom themes", () => {
   expect(css).toContain(':root[data-ui-stock="false"] .ui-button:focus-visible');
   expect(css).toContain('--tw-ring-offset-color: var(--local-background)');
 });
+
+it("gives enabled buttons a pointer cursor", () => {
+  const markup = renderToStaticMarkup(createElement(Button, { children: "Test" }));
+  expect(markup).toContain("cursor-pointer");
+  expect(markup).toContain("disabled:cursor-default");
+  expect(css).toContain("button:enabled:not([data-disabled])");
+  expect(css).toContain("cursor: pointer");
+});
