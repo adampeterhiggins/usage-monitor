@@ -155,7 +155,7 @@ function MenuItem({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full cursor-default items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-ui-control-hover",
+        "flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-ui-control-hover",
         danger ? "text-ui-status-critical-text" : "text-ui-primary",
       )}
     >

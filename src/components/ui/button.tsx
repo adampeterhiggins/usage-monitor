@@ -40,7 +40,7 @@ export const Button = React.forwardRef<
       onClick={onClick}
       style={style}
       className={cn(
-        "ui-button inline-flex items-center justify-center gap-1.5 rounded-full no-drag transition-colors disabled:opacity-40",
+        "ui-button inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full no-drag transition-colors disabled:cursor-default disabled:opacity-40",
         iconOnly && size === "large" && "size-8",
         iconOnly && size === "medium" && "size-7",
         iconOnly && size === "small" && "size-6",
