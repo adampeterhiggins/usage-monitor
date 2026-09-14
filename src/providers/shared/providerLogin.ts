@@ -1,6 +1,7 @@
 import { startClaudeLogin, submitClaudeLoginCode } from "../claude/auth";
 import { startCodexLogin } from "../codex/auth";
 import { startCursorLogin } from "../cursor/auth";
+import { startDevinLogin } from "../devin/auth";
 import { isClaudeOauthJson } from "../claude/auth";
 import type { ProviderLoginSession } from "./loginSession";
 import type { ProviderId } from "../../contracts/providers";
@@ -20,6 +21,8 @@ async function createProviderLogin(provider: ProviderId): Promise<ProviderLoginS
       return startCodexLogin();
     case "cursor":
       return startCursorLogin();
+    case "devin":
+      return startDevinLogin();
   }
 }
 
@@ -52,6 +55,7 @@ export function credentialLooksLikeSession(provider: ProviderId, credential: str
   if (!cred) return false;
   if (provider === "claude") return isClaudeOauthJson(cred) || cred.startsWith("sk-ant-oat");
   if (provider === "codex") return cred.startsWith("{") && cred.includes("access_token");
+  if (provider === "devin") return !cred.includes("windsurf_api_key") && cred.length > 40;
   return cred.length > 20;
 }
 

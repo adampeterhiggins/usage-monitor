@@ -91,6 +91,8 @@
   --local-provider-green-foreground: var(--ui-canvas-provider-green-foreground);
   --local-provider-blue-background: var(--ui-canvas-provider-blue-background);
   --local-provider-blue-foreground: var(--ui-canvas-provider-blue-foreground);
+  --local-provider-purple-background: var(--ui-canvas-provider-purple-background);
+  --local-provider-purple-foreground: var(--ui-canvas-provider-purple-foreground);
 }
 
 [data-ui-surface="canvas"] {
@@ -168,6 +170,8 @@
   --local-provider-green-foreground: var(--ui-canvas-provider-green-foreground);
   --local-provider-blue-background: var(--ui-canvas-provider-blue-background);
   --local-provider-blue-foreground: var(--ui-canvas-provider-blue-foreground);
+  --local-provider-purple-background: var(--ui-canvas-provider-purple-background);
+  --local-provider-purple-foreground: var(--ui-canvas-provider-purple-foreground);
 }
 
 [data-ui-surface="card"] {
@@ -245,6 +249,8 @@
   --local-provider-green-foreground: var(--ui-card-provider-green-foreground);
   --local-provider-blue-background: var(--ui-card-provider-blue-background);
   --local-provider-blue-foreground: var(--ui-card-provider-blue-foreground);
+  --local-provider-purple-background: var(--ui-card-provider-purple-background);
+  --local-provider-purple-foreground: var(--ui-card-provider-purple-foreground);
 }
 
 [data-ui-surface="menu"] {
@@ -322,6 +328,8 @@
   --local-provider-green-foreground: var(--ui-menu-provider-green-foreground);
   --local-provider-blue-background: var(--ui-menu-provider-blue-background);
   --local-provider-blue-foreground: var(--ui-menu-provider-blue-foreground);
+  --local-provider-purple-background: var(--ui-menu-provider-purple-background);
+  --local-provider-purple-foreground: var(--ui-menu-provider-purple-foreground);
 }
 
 [data-ui-surface="toolbar"] {
@@ -399,6 +407,8 @@
   --local-provider-green-foreground: var(--ui-toolbar-provider-green-foreground);
   --local-provider-blue-background: var(--ui-toolbar-provider-blue-background);
   --local-provider-blue-foreground: var(--ui-toolbar-provider-blue-foreground);
+  --local-provider-purple-background: var(--ui-toolbar-provider-purple-background);
+  --local-provider-purple-foreground: var(--ui-toolbar-provider-purple-foreground);
 }
 
 :root[data-theme="light"] {
@@ -477,6 +487,8 @@
   --ui-canvas-provider-green-foreground: #006b4f;
   --ui-canvas-provider-blue-background: #e7f3fe;
   --ui-canvas-provider-blue-foreground: #006ec6;
+  --ui-canvas-provider-purple-background: #f0edfb;
+  --ui-canvas-provider-purple-foreground: #6d4bd8;
   --ui-card-background: #fcfcfc;
   --ui-card-text-primary: #000000;
   --ui-card-text-secondary: #656565;
@@ -551,6 +563,8 @@
   --ui-card-provider-green-foreground: #006b4f;
   --ui-card-provider-blue-background: #e5f1fb;
   --ui-card-provider-blue-foreground: #006cc4;
+  --ui-card-provider-purple-background: #eeeaf8;
+  --ui-card-provider-purple-foreground: #6d4bd8;
   --ui-menu-background: #fcfcfc;
   --ui-menu-text-primary: #000000;
   --ui-menu-text-secondary: #656565;
@@ -625,6 +639,8 @@
   --ui-menu-provider-green-foreground: #006b4f;
   --ui-menu-provider-blue-background: #e5f1fb;
   --ui-menu-provider-blue-foreground: #006cc4;
+  --ui-menu-provider-purple-background: #eeeaf8;
+  --ui-menu-provider-purple-foreground: #6d4bd8;
   --ui-toolbar-background: #ffffff;
   --ui-toolbar-text-primary: #000000;
   --ui-toolbar-text-secondary: #666666;
@@ -699,6 +715,8 @@
   --ui-toolbar-provider-green-foreground: #006b4f;
   --ui-toolbar-provider-blue-background: #e7f3fe;
   --ui-toolbar-provider-blue-foreground: #006ec6;
+  --ui-toolbar-provider-purple-background: #f0edfb;
+  --ui-toolbar-provider-purple-foreground: #6d4bd8;
   --ui-toolbar-paint: transparent;
   --ui-panel-tint: #ffffff;
   --ui-panel-opacity: 0.42;
@@ -790,6 +808,8 @@
   --ui-canvas-provider-green-foreground: #3dba7a;
   --ui-canvas-provider-blue-background: #263140;
   --ui-canvas-provider-blue-foreground: #5aa0f0;
+  --ui-canvas-provider-purple-background: #322e41;
+  --ui-canvas-provider-purple-foreground: #a78bfa;
   --ui-card-background: #2c2c2e;
   --ui-card-text-primary: #ffffff;
   --ui-card-text-secondary: #ababab;
@@ -864,6 +884,8 @@
   --ui-card-provider-green-foreground: #45c180;
   --ui-card-provider-blue-background: #333f4d;
   --ui-card-provider-blue-foreground: #67aeff;
+  --ui-card-provider-purple-background: #403b4f;
+  --ui-card-provider-purple-foreground: #b29bff;
   --ui-menu-background: #2c2c2e;
   --ui-menu-text-primary: #ffffff;
   --ui-menu-text-secondary: #ababab;
@@ -938,6 +960,8 @@
   --ui-menu-provider-green-foreground: #45c180;
   --ui-menu-provider-blue-background: #333f4d;
   --ui-menu-provider-blue-foreground: #67aeff;
+  --ui-menu-provider-purple-background: #403b4f;
+  --ui-menu-provider-purple-foreground: #b29bff;
   --ui-toolbar-background: #1c1c1e;
   --ui-toolbar-text-primary: #ffffff;
   --ui-toolbar-text-secondary: #a4a4a5;
@@ -1012,6 +1036,8 @@
   --ui-toolbar-provider-green-foreground: #3dba7a;
   --ui-toolbar-provider-blue-background: #263140;
   --ui-toolbar-provider-blue-foreground: #5aa0f0;
+  --ui-toolbar-provider-purple-background: #322e41;
+  --ui-toolbar-provider-purple-foreground: #a78bfa;
   --ui-toolbar-paint: transparent;
   --ui-panel-tint: #1c1c1e;
   --ui-panel-opacity: 0.55;
@@ -1104,6 +1130,8 @@
     --ui-canvas-provider-green-foreground: #3dba7a;
     --ui-canvas-provider-blue-background: #263140;
     --ui-canvas-provider-blue-foreground: #5aa0f0;
+    --ui-canvas-provider-purple-background: #322e41;
+    --ui-canvas-provider-purple-foreground: #a78bfa;
     --ui-card-background: #2c2c2e;
     --ui-card-text-primary: #ffffff;
     --ui-card-text-secondary: #ababab;
@@ -1178,6 +1206,8 @@
     --ui-card-provider-green-foreground: #45c180;
     --ui-card-provider-blue-background: #333f4d;
     --ui-card-provider-blue-foreground: #67aeff;
+    --ui-card-provider-purple-background: #403b4f;
+    --ui-card-provider-purple-foreground: #b29bff;
     --ui-menu-background: #2c2c2e;
     --ui-menu-text-primary: #ffffff;
     --ui-menu-text-secondary: #ababab;
@@ -1252,6 +1282,8 @@
     --ui-menu-provider-green-foreground: #45c180;
     --ui-menu-provider-blue-background: #333f4d;
     --ui-menu-provider-blue-foreground: #67aeff;
+    --ui-menu-provider-purple-background: #403b4f;
+    --ui-menu-provider-purple-foreground: #b29bff;
     --ui-toolbar-background: #1c1c1e;
     --ui-toolbar-text-primary: #ffffff;
     --ui-toolbar-text-secondary: #a4a4a5;
@@ -1326,6 +1358,8 @@
     --ui-toolbar-provider-green-foreground: #3dba7a;
     --ui-toolbar-provider-blue-background: #263140;
     --ui-toolbar-provider-blue-foreground: #5aa0f0;
+    --ui-toolbar-provider-purple-background: #322e41;
+    --ui-toolbar-provider-purple-foreground: #a78bfa;
     --ui-toolbar-paint: transparent;
     --ui-panel-tint: #1c1c1e;
     --ui-panel-opacity: 0.55;
@@ -1445,6 +1479,8 @@
   --color-ui-provider-green-fg: var(--local-provider-green-foreground);
   --color-ui-provider-orange: var(--local-provider-orange-background);
   --color-ui-provider-orange-fg: var(--local-provider-orange-foreground);
+  --color-ui-provider-purple: var(--local-provider-purple-background);
+  --color-ui-provider-purple-fg: var(--local-provider-purple-foreground);
 
   /* window material */
   --color-ui-glass: var(--ui-glass-rest-background);

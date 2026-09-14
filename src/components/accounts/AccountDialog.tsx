@@ -5,6 +5,7 @@ import { useAccountsStore } from "../../state/accounts";
 import {
   cursorIdeLoginMeta,
   describeKeychainEntry,
+  hasLocalLogin,
   KEYCHAIN_LOGINS,
   type CursorIdeLogin,
   type KeychainEntry,
@@ -247,7 +248,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                         setCredential("");
                         setSavedAccountId(undefined);
                         setKeychainAccount("");
-                        if (authMethod === "local" && !KEYCHAIN_LOGINS[id]) setAuthMethod("signin");
+                        if (authMethod === "local" && !hasLocalLogin(id)) setAuthMethod("signin");
                       }}
                       className={cn(
                         "h-7 rounded-md text-[12px] font-medium transition-colors",
@@ -278,7 +279,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   className={SELECT_CLASS}
                 >
                   <option value="signin">{signInLabel(provider)}</option>
-                  {keychainLogin ? (
+                  {hasLocalLogin(provider) ? (
                     <option value="local">Use {meta.nativeLoginName} on this Mac</option>
                   ) : null}
                   <option value="paste">{meta.pasteMethodLabel}</option>
@@ -304,9 +305,9 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               />
             ) : null}
 
-            {authMethod === "local" && keychainLogin ? (
+            {authMethod === "local" && hasLocalLogin(provider) ? (
               <div className="flex flex-col gap-1.5">
-                {showKeychainPicker ? (
+                {keychainLogin && showKeychainPicker ? (
                   <>
                     <span className="text-[11px] text-ui-tertiary">
                       {nativeOptions.length} local logins found. Pin one if Automatic picks the wrong account.

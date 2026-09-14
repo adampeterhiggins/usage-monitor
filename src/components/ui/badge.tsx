@@ -6,6 +6,7 @@ export type BadgeColor =
   | "orange"
   | "green"
   | "blue"
+  | "purple"
   | "red"
   | "secondary"
   | "healthy"
@@ -20,7 +21,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Provider tones (orange/green/blue) read the resolved provider identity
+ * Provider tones (orange/green/blue/purple) read the resolved provider identity
  * palette — they stay stable regardless of the theme accent and never carry
  * usage meaning. Severity tones (healthy/warning/high/critical) read the
  * status palette's soft badge pairs.
@@ -30,6 +31,7 @@ export function Badge({ color = "secondary", size = "medium", className, childre
     orange: "bg-ui-provider-orange text-ui-provider-orange-fg",
     green: "bg-ui-provider-green text-ui-provider-green-fg",
     blue: "bg-ui-provider-blue text-ui-provider-blue-fg",
+    purple: "bg-ui-provider-purple text-ui-provider-purple-fg",
     red: "bg-ui-status-critical-soft text-ui-status-critical-soft-fg",
     secondary: "bg-ui-status-neutral-soft text-ui-status-neutral-soft-fg",
     healthy: "bg-ui-status-healthy-soft text-ui-status-healthy-soft-fg",

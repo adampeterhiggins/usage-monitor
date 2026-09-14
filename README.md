@@ -1,6 +1,6 @@
 # Usage Monitor
 
-A native macOS menu-bar app that tracks usage allowances for **Claude**, **Codex**, and **Cursor** across multiple accounts. Summon it with a global shortcut (default **⌘⇧U**) or the menu-bar icon.
+A native macOS menu-bar app that tracks usage allowances for **Claude**, **Codex**, **Cursor**, and **Devin** across multiple accounts. Summon it with a global shortcut (default **⌘⇧U**) or the menu-bar icon.
 
 Tauri v2 shell (real `.app`, WKWebView) with all usage fetching, caching, and UI in TypeScript. Ported from the Glaze Usage Monitor panel.
 
@@ -33,10 +33,11 @@ On first launch the panel is empty. Add accounts from **Settings → Manage Acco
 | Claude | Sign in, `sessionKey` cookie, or blank | Reads Claude Code from the macOS Keychain / `~/.claude/.credentials.json` |
 | Codex | Sign in, `~/.codex/auth.json` contents, or blank | Auto-reads the Keychain / `~/.codex/auth.json` |
 | Cursor | Sign in, `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
+| Devin | Sign in, `windsurf_api_key`, or blank | Reads the Devin CLI login from `~/.local/share/devin/credentials.toml` |
 
 Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and no third-party endpoint — the only hosts the app can reach are the providers' and Open VSX (theme marketplace).
 
-Not affiliated with Anthropic, OpenAI, or Cursor.
+Not affiliated with Anthropic, OpenAI, Cursor, or Cognition.
 
 ## Using it
 

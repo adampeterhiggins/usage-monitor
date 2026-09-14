@@ -25,6 +25,16 @@ export interface KeychainLogin {
   noun: string;
 }
 
+/** Providers whose native mode reads a CLI login from a file in $HOME. */
+export const FILE_LOGINS: Partial<Record<ProviderId, { path: string; noun: string }>> = {
+  devin: { path: ".local/share/devin/credentials.toml", noun: "Devin CLI login" },
+};
+
+/** Whether this provider can read a login that already exists on this Mac. */
+export function hasLocalLogin(provider: ProviderId): boolean {
+  return Boolean(KEYCHAIN_LOGINS[provider] || FILE_LOGINS[provider]);
+}
+
 /** Providers whose native mode reads a CLI login from the macOS Keychain. */
 export const KEYCHAIN_LOGINS: Partial<Record<ProviderId, KeychainLogin>> = {
   claude: { service: CLAUDE_CODE_KEYCHAIN_SERVICE, noun: "Claude Code login" },
