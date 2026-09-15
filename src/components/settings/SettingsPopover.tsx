@@ -1,6 +1,4 @@
 import * as React from "react";
-import * as Popover from "@radix-ui/react-popover";
-import { Command } from "cmdk";
 import { OPEN_SETTINGS_EVENT, WINDOW_SHOWN_EVENT } from "../../contracts/platform";
 import { subscribe } from "../../platform/events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -45,9 +43,18 @@ import { type Layout, type WallColumns } from "../../lib/settings/layout";
 import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { UpdatePanel } from "./UpdatePanel";
-import { cn } from "../../lib/utils";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import {
+  MenuCommand,
+  MenuContent,
+  MenuEmpty,
+  MenuGroup,
+  MenuInput,
+  MenuItem,
+  MenuList,
+  MenuRoot,
+  MenuTrigger,
+} from "../ui/menu";
 
 
 type Page = "root" | "layout" | "columns" | "updates";
@@ -211,8 +218,7 @@ export function SettingsPopover({
   const goBack = () => setPage(page === "columns" ? "layout" : "root");
 
   return (
-    <Popover.Root
-      modal={false}
+    <MenuRoot
       open={open}
       onOpenChange={(next) => {
         if (!next && recordingAny) return;
@@ -221,177 +227,136 @@ export function SettingsPopover({
     >
       <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
         <span className="inline-flex">
-          <Popover.Trigger asChild>
+          <MenuTrigger asChild>
             <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
               <Settings className="size-4" />
             </Button>
-          </Popover.Trigger>
+          </MenuTrigger>
         </span>
       </Tooltip>
-      <Popover.Portal>
-        <Popover.Content
-          ref={contentRef}
-          align="end"
-          sideOffset={6}
-          collisionPadding={8}
-          data-ui-surface="menu"
-          className="ui-surface z-50 flex max-h-[var(--radix-popover-content-available-height)] w-80 flex-col overflow-hidden rounded-2xl p-0 shadow-lg ring-1 ring-ui-subtle"
-          onEscapeKeyDown={(event) => {
-            event.stopPropagation();
-            if (page !== "root") {
+      <MenuContent
+        ref={contentRef}
+        align="end"
+        sideOffset={6}
+        collisionPadding={8}
+        className="z-50 flex max-h-[var(--radix-popover-content-available-height)] w-80 flex-col overflow-hidden rounded-2xl shadow-lg"
+        onEscapeKeyDown={(event) => {
+          event.stopPropagation();
+          if (page !== "root") {
+            event.preventDefault();
+            goBack();
+          }
+        }}
+      >
+        <MenuCommand
+          className="flex min-h-0 flex-col"
+          onKeyDown={(event: React.KeyboardEvent) => {
+            if (event.key === "Backspace" && query === "" && page !== "root") {
               event.preventDefault();
               goBack();
             }
           }}
         >
-          <Command
-            loop
-            className="flex min-h-0 flex-col"
-            onKeyDown={(event: React.KeyboardEvent) => {
-              if (event.key === "Backspace" && query === "" && page !== "root") {
-                event.preventDefault();
-                goBack();
-              }
-            }}
-          >
-            {page !== "updates" ? (
-              <Command.Input
-                placeholder="Search for actions…"
-                value={query}
-                onValueChange={setQuery}
-                className="h-9 shrink-0 border-b border-ui-subtle bg-transparent px-3 text-[13px] text-ui-input-fg outline-none placeholder:text-ui-input-placeholder"
-              />
-            ) : null}
-            <Command.List className="h-auto max-h-[320px] min-h-0 overflow-y-auto p-1">
-              <Command.Empty className="px-3 py-6 text-center text-[12px] text-ui-tertiary">
-                No actions found.
-              </Command.Empty>
-              {page === "root" && (
-                <Command.Group>
-                  <Item
-                    icon={Users}
-                    label="Manage Accounts…"
-                    onSelect={() => {
-                      onManageAccounts();
-                      setOpen(false);
-                    }}
-                  />
-                  <Item
-                    icon={LayoutGrid}
-                    label="Switch Layout…"
-                    accessory={currentLayoutLabel}
-                    onSelect={() => setPage("layout")}
-                  />
-                  <Item
-                    icon={Scaling}
-                    label="Restore Default Size"
-                    onSelect={() => {
-                      void restoreDefaultPanelSize();
-                      setOpen(false);
-                    }}
-                  />
-                  <Item
-                    icon={Contrast}
-                    label="Appearance…"
-                    onSelect={() => {
-                      setOpen(false);
-                      void openAppearanceWindow();
-                    }}
-                  />
-                  <Item
-                    icon={RefreshCw}
-                    label="Refresh Command"
-                    accessory={
-                      recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
-                    }
-                    onSelect={() => setRecordingRefreshShortcut((prev) => !prev)}
-                  />
-                  <Item
-                    icon={Keyboard}
-                    label="Show/Hide Shortcut"
-                    accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
-                    onSelect={() => setRecordingShortcut((prev) => !prev)}
-                  />
-                  <Item icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
-                  <Item
-                    icon={Power}
-                    label="Quit"
-                    onSelect={() => {
-                      void exitApp();
-                    }}
-                  />
-                </Command.Group>
-              )}
-              {page === "layout" &&
-                LAYOUT_OPTIONS.map(({ id, label, icon }) => (
-                  <Item
-                    key={id}
-                    icon={icon}
-                    label={label}
-                    chip={id === "wall" ? String(wallColumns) : undefined}
-                    accessory={id === layout ? "✓" : undefined}
-                    onSelect={() => {
-                      onLayoutChange(id);
-                      setPage(id === "wall" ? "columns" : "root");
-                    }}
-                  />
-                ))}
-              {page === "columns" &&
-                WALL_COLUMN_OPTIONS.map(({ id, label, icon }) => (
-                  <Item
-                    key={id}
-                    icon={icon}
-                    label={label}
-                    accessory={id === wallColumns ? "✓" : undefined}
-                    onSelect={() => {
-                      onWallColumnsChange(id);
-                      setPage("root");
-                    }}
-                  />
-                ))}
-              {page === "updates" && (
-                <div>
-                  <UpdatePanel />
-                </div>
-              )}
-            </Command.List>
-          </Command>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-const itemClass =
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-ui-control-hover";
-
-function Item({
-  icon: Icon,
-  label,
-  chip,
-  accessory,
-  disabled,
-  onSelect,
-}: {
-  icon: LucideIcon;
-  label: string;
-  chip?: string;
-  accessory?: string;
-  disabled?: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <Command.Item disabled={disabled} onSelect={onSelect} className={cn(itemClass, disabled && "cursor-default opacity-40")}>
-      <Icon className="size-4 text-ui-secondary" />
-      <span className="flex flex-1 items-center gap-1.5">
-        {label}
-        {chip ? (
-          <Badge size="small" color="secondary">
-            {chip}
-          </Badge>
-        ) : null}
-      </span>
-      {accessory ? <span className="text-[11px] text-ui-tertiary">{accessory}</span> : null}
-    </Command.Item>
+          {page !== "updates" ? (
+            <MenuInput
+              placeholder="Search for actions…"
+              value={query}
+              onValueChange={setQuery}
+            />
+          ) : null}
+          <MenuList className="h-auto max-h-[320px] min-h-0 overflow-y-auto p-1">
+            <MenuEmpty>No actions found.</MenuEmpty>
+            {page === "root" && (
+              <MenuGroup>
+                <MenuItem
+                  icon={Users}
+                  label="Manage Accounts…"
+                  onSelect={() => {
+                    onManageAccounts();
+                    setOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon={LayoutGrid}
+                  label="Switch Layout…"
+                  accessory={currentLayoutLabel}
+                  onSelect={() => setPage("layout")}
+                />
+                <MenuItem
+                  icon={Scaling}
+                  label="Restore Default Size"
+                  onSelect={() => {
+                    void restoreDefaultPanelSize();
+                    setOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon={Contrast}
+                  label="Appearance…"
+                  onSelect={() => {
+                    setOpen(false);
+                    void openAppearanceWindow();
+                  }}
+                />
+                <MenuItem
+                  icon={RefreshCw}
+                  label="Refresh Command"
+                  accessory={
+                    recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
+                  }
+                  onSelect={() => setRecordingRefreshShortcut((prev) => !prev)}
+                />
+                <MenuItem
+                  icon={Keyboard}
+                  label="Show/Hide Shortcut"
+                  accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
+                  onSelect={() => setRecordingShortcut((prev) => !prev)}
+                />
+                <MenuItem icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+                <MenuItem
+                  icon={Power}
+                  label="Quit"
+                  onSelect={() => {
+                    void exitApp();
+                  }}
+                />
+              </MenuGroup>
+            )}
+            {page === "layout" &&
+              LAYOUT_OPTIONS.map(({ id, label, icon }) => (
+                <MenuItem
+                  key={id}
+                  icon={icon}
+                  label={label}
+                  chip={id === "wall" ? String(wallColumns) : undefined}
+                  accessory={id === layout ? "✓" : undefined}
+                  onSelect={() => {
+                    onLayoutChange(id);
+                    setPage(id === "wall" ? "columns" : "root");
+                  }}
+                />
+              ))}
+            {page === "columns" &&
+              WALL_COLUMN_OPTIONS.map(({ id, label, icon }) => (
+                <MenuItem
+                  key={id}
+                  icon={icon}
+                  label={label}
+                  accessory={id === wallColumns ? "✓" : undefined}
+                  onSelect={() => {
+                    onWallColumnsChange(id);
+                    setPage("root");
+                  }}
+                />
+              ))}
+            {page === "updates" && (
+              <div>
+                <UpdatePanel />
+              </div>
+            )}
+          </MenuList>
+        </MenuCommand>
+      </MenuContent>
+    </MenuRoot>
   );
 }
