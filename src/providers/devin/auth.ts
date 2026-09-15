@@ -1,4 +1,5 @@
 import { openExternal } from "../../platform/external";
+import { bindLoopbackCallback, type LoopbackCallback } from "../../platform/oauth";
 import { fetchJson } from "../../platform/http";
 import type { ProviderLoginResult } from "../../contracts/auth";
 import {
@@ -30,12 +31,14 @@ const EXCHANGE_URL =
 const USER_STATUS_URL =
   "https://server.codeium.com/exa.seat_management_pb.SeatManagementService/GetUserStatus";
 
+const LOGIN_TIMEOUT_SECONDS = 300;
+
 /**
- * The CLI redirects to a loopback server it spins up for the sign-in. This app
- * has no listener, so the browser lands on an unreachable page whose address
- * bar holds the code — the same paste-the-code shape the Claude flow uses.
+ * Only used when the loopback port cannot be bound. The browser then lands on
+ * an unreachable page whose address bar still holds the code, so sign-in
+ * degrades to the paste-the-code shape the Claude flow uses.
  */
-const REDIRECT_URI = "http://127.0.0.1:51703/callback";
+const FALLBACK_REDIRECT_URI = "http://127.0.0.1:51703/callback";
 
 /** Pull the API key out of the CLI's `credentials.toml`. */
 export function parseDevinCredentialsToml(raw: string, describe: string): string {
@@ -99,35 +102,60 @@ async function fetchSuggestedLabel(apiKey: string, signal: AbortSignal): Promise
   }
 }
 
+function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    if (signal.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    signal.addEventListener("abort", () => reject(abortError(signal)), { once: true });
+  });
+}
+
 export async function startDevinLogin(): Promise<ProviderLoginSession> {
   const controller = new AbortController();
   const verifier = randomBase64Url(32);
   const state = randomBase64Url(16);
+
+  // The CLI redirects to a loopback server it starts itself; bind the same way
+  // so the browser can deliver the code and sign-in completes on its own.
+  let callback: LoopbackCallback | null = null;
+  try {
+    callback = await bindLoopbackCallback(LOGIN_TIMEOUT_SECONDS);
+  } catch {
+    callback = null;
+  }
+
   const url = new URL(AUTHORIZE_URL);
-  url.searchParams.set("redirect_uri", REDIRECT_URI);
+  url.searchParams.set("redirect_uri", callback?.redirectUri ?? FALLBACK_REDIRECT_URI);
   url.searchParams.set("state", state);
   url.searchParams.set("prompt", "select_account");
   url.searchParams.set("code_challenge", pkceChallenge(verifier));
   url.searchParams.set("code_challenge_method", "S256");
 
   void openExternal(url.toString()).catch(() => {
-    // The account dialog still shows paste instructions if the browser cannot open.
+    // The dialog still offers "Open browser again".
   });
 
   let submit: ((code: string) => void) | undefined;
-  let rejectSubmit: ((error: Error) => void) | undefined;
-  const pasted = new Promise<string>((resolve, reject) => {
+  const pasted = new Promise<string>((resolve) => {
     submit = resolve;
-    rejectSubmit = reject;
   });
 
-  const onAbort = () => rejectSubmit?.(abortError(controller.signal));
-  controller.signal.addEventListener("abort", onAbort, { once: true });
+  async function authorization(): Promise<{ code: string; state?: string }> {
+    if (!callback) return parseDevinCallback(await pasted);
+    const params = await callback.wait(controller.signal);
+    const error = params.get("error");
+    if (error) throw new Error(`Devin sign-in failed: ${params.get("error_description") || error}`);
+    const code = params.get("code")?.trim();
+    if (!code) throw new Error("Devin sign-in returned no authorization code.");
+    return { code, state: params.get("state")?.trim() || undefined };
+  }
 
   const done = (async (): Promise<ProviderLoginResult> => {
-    const parsed = parseDevinCallback(await pasted);
+    const parsed = await Promise.race([authorization(), rejectOnAbort(controller.signal)]);
     if (parsed.state && parsed.state !== state) {
-      throw new Error("That code doesn’t match this sign-in. Start again and paste the new address.");
+      throw new Error("That sign-in doesn’t match this one. Start again.");
     }
     const data = await fetchJson<ExchangeResponse>(EXCHANGE_URL, {
       method: "POST",
@@ -140,17 +168,23 @@ export async function startDevinLogin(): Promise<ProviderLoginSession> {
       credential,
       suggestedLabel: await fetchSuggestedLabel(credential, controller.signal),
     };
-  })().finally(() => {
-    controller.signal.removeEventListener("abort", onAbort);
-  });
+  })().finally(() => callback?.release());
 
-  return {
-    kind: "paste_code",
-    prompt:
-      "Finish signing in in your browser. The last page will fail to load — paste its full address here.",
-    verificationUri: url.toString(),
-    done,
-    cancel: () => controller.abort(),
-    submitCode: (code: string) => submit?.(code),
-  };
+  return callback
+    ? {
+        kind: "browser",
+        prompt: "Finish signing in in your browser — this will complete on its own.",
+        verificationUri: url.toString(),
+        done,
+        cancel: () => controller.abort(),
+      }
+    : {
+        kind: "paste_code",
+        prompt:
+          "Finish signing in in your browser. The last page will fail to load — paste its full address here.",
+        verificationUri: url.toString(),
+        done,
+        cancel: () => controller.abort(),
+        submitCode: (code: string) => submit?.(code),
+      };
 }

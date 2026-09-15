@@ -16,6 +16,7 @@ mod frame;
 mod http;
 #[cfg(target_os = "macos")]
 mod macos;
+mod oauth;
 mod panel;
 mod state;
 mod tray;
@@ -51,7 +52,10 @@ pub fn run() {
             commands::list_keychain_accounts,
             commands::cursor_ide_login_meta,
             commands::read_cursor_ide_access_token,
-            commands::http_request
+            commands::http_request,
+            commands::oauth_listen,
+            commands::oauth_wait,
+            commands::oauth_cancel
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
