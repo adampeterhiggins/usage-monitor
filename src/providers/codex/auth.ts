@@ -1,9 +1,13 @@
 import { openExternal } from "../../platform/external";
+import { bindLoopbackCallback } from "../../platform/oauth";
 import { fetchText } from "../../platform/http";
 import type { ProviderLoginResult } from "../../contracts/auth";
 import {
   decodeJwtPayload,
   oauthErrorMessage,
+  pkceChallenge,
+  randomBase64Url,
+  rejectOnAbort,
   sleep,
   type ProviderLoginSession,
 } from "../shared/loginSession";
@@ -18,6 +22,13 @@ const DEVICE_REDIRECT_URI = `${AUTH_BASE}/deviceauth/callback`;
 const TOKEN_URL = `${AUTH_BASE}/oauth/token`;
 const DEVICE_TIMEOUT_MS = 15 * 60 * 1000;
 const JWT_AUTH_CLAIM = "https://api.openai.com/auth";
+
+/** `codex login` loopback: only these ports are on the client's allow-list. */
+const LOOPBACK_CALLBACK_PATH = "/auth/callback";
+const LOOPBACK_PORTS = [1455, 1457];
+const LOGIN_TIMEOUT_SECONDS = 300;
+const BROWSER_SCOPE =
+  "openid profile email offline_access api.connectors.read api.connectors.invoke";
 
 export interface CodexOauthTokens {
   accessToken: string;
@@ -173,7 +184,73 @@ function suggestedLabel(tokens: CodexOauthTokens): string | undefined {
   return typeof email === "string" && email ? email : undefined;
 }
 
-export async function startCodexLogin(): Promise<ProviderLoginSession> {
+/** Browser sign-in: a loopback listener catches the OAuth redirect, so the
+ *  user never pastes anything — the same flow `codex login` runs. */
+export async function startCodexBrowserLogin(): Promise<ProviderLoginSession> {
+  const controller = new AbortController();
+  const callback = await bindLoopbackCallback(LOGIN_TIMEOUT_SECONDS, {
+    ports: LOOPBACK_PORTS,
+    callbackPath: LOOPBACK_CALLBACK_PATH,
+    host: "localhost",
+  });
+  const redirectUri = callback.redirectUri;
+  const verifier = randomBase64Url(32);
+  const state = randomBase64Url(16);
+  const url = new URL(`${AUTH_BASE}/oauth/authorize`);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", CODEX_OAUTH_CLIENT_ID);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("scope", BROWSER_SCOPE);
+  url.searchParams.set("code_challenge", pkceChallenge(verifier));
+  url.searchParams.set("code_challenge_method", "S256");
+  url.searchParams.set("id_token_add_organizations", "true");
+  url.searchParams.set("codex_cli_simplified_flow", "true");
+  url.searchParams.set("state", state);
+
+  void openExternal(url.toString()).catch(() => {
+    // The account dialog still offers a way to reopen the browser.
+  });
+
+  const done = (async (): Promise<ProviderLoginResult> => {
+    try {
+      const params = await Promise.race([
+        callback.wait(controller.signal),
+        rejectOnAbort(controller.signal),
+      ]);
+      const error = params.get("error");
+      if (error) {
+        throw new Error(
+          params.get("error_description")?.trim() || `Codex sign-in failed (${error}).`,
+        );
+      }
+      const code = params.get("code")?.trim();
+      if (!code) throw new Error("Codex sign-in did not return a code.");
+      if (params.get("state") !== state) {
+        throw new Error("That sign-in callback doesn't match this request. Start again.");
+      }
+      const tokens = await exchangeCode(code, verifier, redirectUri, controller.signal);
+      return {
+        credential: serializeCodexAuthJson(tokens),
+        accountId: tokens.accountId,
+        suggestedLabel: suggestedLabel(tokens),
+      };
+    } finally {
+      callback.release();
+    }
+  })();
+
+  return {
+    kind: "browser",
+    prompt: "Finish signing in in your browser — this dialog updates automatically.",
+    verificationUri: url.toString(),
+    done,
+    cancel: () => controller.abort(),
+  };
+}
+
+/** Device-code sign-in for environments whose browser cannot reach the
+ *  loopback listener. Some orgs disable it — prefer the browser flow. */
+export async function startCodexDeviceCodeLogin(): Promise<ProviderLoginSession> {
   const controller = new AbortController();
   const started = await postJson<{
     device_auth_id?: string;

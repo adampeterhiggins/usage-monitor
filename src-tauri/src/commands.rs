@@ -85,9 +85,20 @@ pub(crate) fn read_cursor_ide_access_token() -> Result<String, String> {
 }
 
 /// Bind a loopback port for a provider sign-in redirect; returns the port.
+/// `ports` are tried in order (empty/absent = any free port) for providers
+/// whose redirect URIs are allow-listed; `callback_path` is the path the
+/// listener waits on (default `/callback`).
 #[tauri::command]
-pub(crate) fn oauth_listen() -> Result<u16, String> {
-    oauth::listen()
+pub(crate) fn oauth_listen(
+    ports: Option<Vec<u16>>,
+    callback_path: Option<String>,
+) -> Result<u16, String> {
+    let ports = ports.unwrap_or_default();
+    let ports = if ports.is_empty() { vec![0] } else { ports };
+    oauth::listen(
+        &ports,
+        &callback_path.unwrap_or_else(|| "/callback".to_string()),
+    )
 }
 
 /// Wait for the browser to deliver the authorization code to `port`.

@@ -1,30 +1,89 @@
-import { startClaudeLogin, submitClaudeLoginCode } from "../claude/auth";
-import { startCodexLogin } from "../codex/auth";
+import {
+  isClaudeOauthJson,
+  startClaudeBrowserLogin,
+  startClaudePasteCodeLogin,
+} from "../claude/auth";
+import { startCodexBrowserLogin, startCodexDeviceCodeLogin } from "../codex/auth";
 import { startCursorLogin } from "../cursor/auth";
-import { startDevinLogin } from "../devin/auth";
-import { isClaudeOauthJson } from "../claude/auth";
+import { startDevinBrowserLogin, startDevinPasteCodeLogin } from "../devin/auth";
 import type { ProviderLoginSession } from "./loginSession";
 import type { ProviderId } from "../../contracts/providers";
 
 export type { ProviderLoginResult } from "../../contracts/auth";
 export type { ProviderLoginSession } from "./loginSession";
-export { describeLoginError, isAbortError } from "./loginSession";
-export { submitClaudeLoginCode };
+export { describeLoginError, isAbortError, submitLoginCode } from "./loginSession";
+
+/** One selectable way to run a provider's managed sign-in. */
+export interface ProviderLoginMethod {
+  id: string;
+  label: string;
+  description?: string;
+  start: () => Promise<ProviderLoginSession>;
+}
+
+/**
+ * Sign-in methods per provider, best first — the loopback browser flow is
+ * always the default, with the paste/device-code variants kept for
+ * environments whose browser cannot reach this Mac's loopback listener.
+ */
+const LOGIN_METHODS: Record<ProviderId, ProviderLoginMethod[]> = {
+  claude: [
+    {
+      id: "browser",
+      label: "Sign in with browser",
+      description: "Opens claude.ai and finishes here automatically.",
+      start: startClaudeBrowserLogin,
+    },
+    {
+      id: "paste-code",
+      label: "Paste a sign-in code",
+      description: "The authorize page shows a code to paste back.",
+      start: startClaudePasteCodeLogin,
+    },
+  ],
+  codex: [
+    {
+      id: "browser",
+      label: "Sign in with browser",
+      description: "Opens ChatGPT sign-in and finishes here automatically.",
+      start: startCodexBrowserLogin,
+    },
+    {
+      id: "device-code",
+      label: "Use a device code",
+      description: "Enter a code on the sign-in page — some orgs disable this.",
+      start: startCodexDeviceCodeLogin,
+    },
+  ],
+  cursor: [
+    {
+      id: "browser",
+      label: "Sign in with browser",
+      description: "Finish signing in in your browser — passkeys work there.",
+      start: startCursorLogin,
+    },
+  ],
+  devin: [
+    {
+      id: "browser",
+      label: "Sign in with browser",
+      description: "Opens app.devin.ai and finishes here automatically.",
+      start: startDevinBrowserLogin,
+    },
+    {
+      id: "paste-code",
+      label: "Paste a redirect URL",
+      description: "The final page fails to load — paste its address back.",
+      start: startDevinPasteCodeLogin,
+    },
+  ],
+};
+
+export function providerLoginMethods(provider: ProviderId): ReadonlyArray<ProviderLoginMethod> {
+  return LOGIN_METHODS[provider];
+}
 
 const activeSessions = new Map<ProviderId, ProviderLoginSession>();
-
-async function createProviderLogin(provider: ProviderId): Promise<ProviderLoginSession> {
-  switch (provider) {
-    case "claude":
-      return startClaudeLogin();
-    case "codex":
-      return startCodexLogin();
-    case "cursor":
-      return startCursorLogin();
-    case "devin":
-      return startDevinLogin();
-  }
-}
 
 /** In-flight sign-in for this provider, if any. Survives dialog remounts. */
 export function peekProviderLogin(provider: ProviderId): ProviderLoginSession | null {
@@ -38,11 +97,16 @@ export function cancelProviderLogin(provider: ProviderId): void {
   session.cancel();
 }
 
-export async function startProviderLogin(provider: ProviderId): Promise<ProviderLoginSession> {
+export async function startProviderLogin(
+  provider: ProviderId,
+  methodId?: string,
+): Promise<ProviderLoginSession> {
   const existing = activeSessions.get(provider);
   if (existing) return existing;
 
-  const session = await createProviderLogin(provider);
+  const methods = LOGIN_METHODS[provider];
+  const method = methods.find((candidate) => candidate.id === methodId) ?? methods[0];
+  const session = await method.start();
   activeSessions.set(provider, session);
   void session.done.finally(() => {
     if (activeSessions.get(provider) === session) activeSessions.delete(provider);

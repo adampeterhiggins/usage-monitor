@@ -6,9 +6,10 @@ import {
   describeLoginError,
   isAbortError,
   peekProviderLogin,
+  providerLoginMethods,
   signInLabel,
   startProviderLogin,
-  submitClaudeLoginCode,
+  submitLoginCode,
   type ProviderLoginResult,
   type ProviderLoginSession,
 } from "../../providers/shared/providerLogin";
@@ -67,18 +68,23 @@ function attachDone(
 
 export function ProviderLoginButton({
   provider,
+  methodId,
   credential,
   disabled,
   onSignedIn,
   onClear,
 }: {
   provider: ProviderId;
+  /** Which managed flow to start — chosen by the dialog's method select. */
+  methodId?: string;
   credential: string;
   disabled?: boolean;
   onSignedIn: (result: { credential: string; accountId?: string; suggestedLabel?: string }) => void;
   onClear?: () => void;
 }) {
   const [session, setSession] = React.useState<ProviderLoginSession | null>(() => peekProviderLogin(provider));
+  const methods = providerLoginMethods(provider);
+  const method = methods.find((candidate) => candidate.id === methodId) ?? methods[0];
   const [pasteCode, setPasteCode] = React.useState("");
   const [submittingCode, setSubmittingCode] = React.useState(false);
   const sessionRef = React.useRef<ProviderLoginSession | null>(session);
@@ -136,7 +142,7 @@ export function ProviderLoginButton({
     if (pending || startingRef.current || disabled) return;
     startingRef.current = true;
     try {
-      bindSession(await startProviderLogin(provider));
+      bindSession(await startProviderLogin(provider, method.id));
     } catch (error) {
       if (!isAbortError(error)) {
         toast.error(describeLoginError(error, "Sign-in failed."));
@@ -168,7 +174,7 @@ export function ProviderLoginButton({
     if (!session || submittingCode) return;
     try {
       setSubmittingCode(true);
-      submitClaudeLoginCode(session, pasteCode);
+      submitLoginCode(session, pasteCode);
     } catch (error) {
       setSubmittingCode(false);
       toast.error(describeLoginError(error, "Couldn’t submit that code."));
@@ -199,7 +205,7 @@ export function ProviderLoginButton({
         <input
           value={pasteCode}
           onChange={(event) => setPasteCode(event.target.value)}
-          placeholder="Paste the full code (abc#xyz)"
+          placeholder="Paste the code or address here"
           className="mt-2 h-8 w-full rounded-lg border border-ui-input-border bg-ui-input px-2 text-[12px] text-ui-input-fg"
           autoComplete="off"
           spellCheck={false}
@@ -260,14 +266,19 @@ export function ProviderLoginButton({
   }
 
   return (
-    <Button
-      variant="accent"
-      disabled={disabled}
-      onClick={() => void handleSignIn()}
-      className="w-full"
-      style={PROVIDER_FILL_STYLE[PROVIDERS[provider].tone]}
-    >
-      {signInLabel(provider)}
-    </Button>
+    <div className="flex flex-col gap-1.5">
+      <Button
+        variant="accent"
+        disabled={disabled}
+        onClick={() => void handleSignIn()}
+        className="w-full"
+        style={PROVIDER_FILL_STYLE[PROVIDERS[provider].tone]}
+      >
+        {methods.length > 1 ? method.label : signInLabel(provider)}
+      </Button>
+      {methods.length > 1 && method.description ? (
+        <p className="text-[11px] leading-[14px] text-ui-tertiary">{method.description}</p>
+      ) : null}
+    </div>
   );
 }

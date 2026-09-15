@@ -1,4 +1,5 @@
 import { openExternal } from "../../platform/external";
+import { bindLoopbackCallback } from "../../platform/oauth";
 import { fetchJson, fetchText, header, HttpError } from "../../platform/http";
 import type { ProviderLoginResult } from "../../contracts/auth";
 import {
@@ -6,6 +7,7 @@ import {
   oauthErrorMessage,
   pkceChallenge,
   randomBase64Url,
+  rejectOnAbort,
   type ProviderLoginSession,
 } from "../shared/loginSession";
 
@@ -15,7 +17,11 @@ const AUTHORIZE_URL = "https://claude.ai/oauth/authorize";
 // Use the API host for native token exchanges. The console host is protected by
 // Cloudflare and can reject non-browser clients before OAuth handles the request.
 const TOKEN_URL = "https://api.anthropic.com/v1/oauth/token";
-const REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback";
+// Anthropic's hosted "show the code" page — where the paste-code flow lands.
+const REDIRECT_URI = "https://platform.claude.com/oauth/code/callback";
+// `claude auth login` loopback: any free localhost port is allowed.
+const LOOPBACK_CALLBACK_PATH = "/callback";
+const LOGIN_TIMEOUT_SECONDS = 300;
 const SCOPE = "org:create_api_key user:profile user:inference";
 const PROFILE_URL = "https://api.anthropic.com/api/oauth/profile";
 
@@ -218,20 +224,92 @@ async function fetchSuggestedLabel(accessToken: string, signal: AbortSignal): Pr
   }
 }
 
-export async function startClaudeLogin(): Promise<ProviderLoginSession> {
-  const controller = new AbortController();
-  const verifier = randomBase64Url(32);
-  const challenge = pkceChallenge(verifier);
+/** The Claude Code authorize URL — Anthropic requires state === the PKCE
+ *  verifier, and `code=true` on both the loopback and manual variants. */
+function claudeAuthorizeUrl(redirectUri: string, verifier: string): URL {
   const url = new URL(AUTHORIZE_URL);
   url.searchParams.set("code", "true");
   url.searchParams.set("client_id", CLAUDE_OAUTH_CLIENT_ID);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("redirect_uri", REDIRECT_URI);
+  url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("scope", SCOPE);
-  url.searchParams.set("code_challenge", challenge);
+  url.searchParams.set("code_challenge", pkceChallenge(verifier));
   url.searchParams.set("code_challenge_method", "S256");
-  // Anthropic's Claude Code authorize endpoint requires state === the PKCE verifier.
   url.searchParams.set("state", verifier);
+  return url;
+}
+
+/** Browser sign-in: a loopback listener catches the OAuth redirect, so the
+ *  user never pastes anything — the same flow `claude auth login` runs. */
+export async function startClaudeBrowserLogin(): Promise<ProviderLoginSession> {
+  const controller = new AbortController();
+  const callback = await bindLoopbackCallback(LOGIN_TIMEOUT_SECONDS, {
+    callbackPath: LOOPBACK_CALLBACK_PATH,
+    host: "localhost",
+  });
+  const verifier = randomBase64Url(32);
+  const url = claudeAuthorizeUrl(callback.redirectUri, verifier);
+
+  void openExternal(url.toString()).catch(() => {
+    // The account dialog still offers a way to reopen the browser.
+  });
+
+  const done = (async (): Promise<ProviderLoginResult> => {
+    try {
+      const params = await Promise.race([
+        callback.wait(controller.signal),
+        rejectOnAbort(controller.signal),
+      ]);
+      const error = params.get("error");
+      if (error) {
+        throw new Error(
+          params.get("error_description")?.trim() || `Claude sign-in failed (${error}).`,
+        );
+      }
+      const rawCode = params.get("code")?.trim();
+      if (!rawCode) throw new Error("Claude sign-in did not return a code.");
+      // The code may still arrive in the manual `code#state` shape.
+      const parsed = parseClaudeCallback(rawCode);
+      const returnedState = params.get("state")?.trim() || parsed.state;
+      if (returnedState !== verifier) {
+        throw new Error("That sign-in callback doesn’t match this request. Start again.");
+      }
+      const data = await postToken(
+        {
+          grant_type: "authorization_code",
+          code: parsed.code,
+          state: verifier,
+          client_id: CLAUDE_OAUTH_CLIENT_ID,
+          redirect_uri: callback.redirectUri,
+          code_verifier: verifier,
+        },
+        controller.signal,
+      );
+      const tokens = tokensFromResponse(data);
+      return {
+        credential: serializeClaudeOauthCredentials(tokens),
+        suggestedLabel: await fetchSuggestedLabel(tokens.accessToken, controller.signal),
+      };
+    } finally {
+      callback.release();
+    }
+  })();
+
+  return {
+    kind: "browser",
+    prompt: "Finish signing in in your browser — this dialog updates automatically.",
+    verificationUri: url.toString(),
+    done,
+    cancel: () => controller.abort(),
+  };
+}
+
+/** Manual sign-in for environments whose browser cannot reach the loopback
+ *  listener: the Anthropic page shows a code to paste back. */
+export async function startClaudePasteCodeLogin(): Promise<ProviderLoginSession> {
+  const controller = new AbortController();
+  const verifier = randomBase64Url(32);
+  const url = claudeAuthorizeUrl(REDIRECT_URI, verifier);
 
   void openExternal(url.toString()).catch(() => {
     // The account dialog still shows paste instructions if the browser cannot open.
@@ -280,9 +358,4 @@ export async function startClaudeLogin(): Promise<ProviderLoginSession> {
     cancel: () => controller.abort(),
     submitCode: (code: string) => submit?.(code),
   };
-}
-
-export function submitClaudeLoginCode(session: ProviderLoginSession, code: string): void {
-  if (!session.submitCode) throw new Error("This sign-in is not waiting for a code.");
-  session.submitCode(code);
 }
