@@ -5,6 +5,7 @@ import {
 } from "../claude/auth";
 import { startCodexBrowserLogin, startCodexDeviceCodeLogin } from "../codex/auth";
 import { startCursorLogin } from "../cursor/auth";
+import { credentialUserId } from "../cursor/usage";
 import { startDevinBrowserLogin, startDevinPasteCodeLogin } from "../devin/auth";
 import type { ProviderLoginSession } from "./loginSession";
 import type { ProviderId } from "../../contracts/providers";
@@ -121,6 +122,26 @@ export function credentialLooksLikeSession(provider: ProviderId, credential: str
   if (provider === "codex") return cred.startsWith("{") && cred.includes("access_token");
   if (provider === "devin") return !cred.includes("windsurf_api_key") && cred.length > 40;
   return cred.length > 20;
+}
+
+/** A comparable identity for a credential — the same underlying provider user
+ *  yields the same value even when the stored tokens differ (two Cursor
+ *  sign-ins mint different JWTs for one user). Falls back to the raw
+ *  credential so identical pasted secrets still match; undefined when there
+ *  is no credential to compare. */
+export function credentialIdentity(
+  provider: ProviderId,
+  credential: string,
+  accountId?: string,
+): string | undefined {
+  const cred = credential.trim();
+  if (!cred) return undefined;
+  if (provider === "cursor") {
+    const userId = credentialUserId(cred);
+    if (userId) return `user:${userId}`;
+  }
+  if (provider === "codex" && accountId?.trim()) return `acct:${accountId.trim()}`;
+  return `cred:${cred}`;
 }
 
 export { signInLabel } from "../metadata";

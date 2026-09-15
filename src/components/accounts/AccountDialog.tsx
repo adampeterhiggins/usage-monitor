@@ -11,11 +11,12 @@ import {
   type KeychainEntry,
 } from "../../providers/shared/localCredentials";
 import { listKeychainAccounts } from "../../platform/credentials";
-import { CURSOR_IDE_SELECTOR, type AccountAuth } from "../../contracts/auth";
+import { authAccountId, authCredential, CURSOR_IDE_SELECTOR, type AccountAuth } from "../../contracts/auth";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import {
   cancelProviderLogin,
+  credentialIdentity,
   credentialLooksLikeSession,
   providerLoginMethods,
 } from "../../providers/shared/providerLogin";
@@ -180,6 +181,35 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
     setAuthMethod(next);
   }
 
+  /** A browser sign-in completes with whatever provider session that browser
+   *  profile already holds — there is no account picker. When the resulting
+   *  credential resolves to the same user as another account, flag it while
+   *  redoing the sign-in is still cheap, instead of letting two cards go on
+   *  to report identical usage. */
+  async function warnIfDuplicateIdentity(result: { credential: string; accountId?: string }) {
+    setError(null);
+    const identity = credentialIdentity(provider, result.credential, result.accountId);
+    if (!identity) return;
+    const others = useAccountsStore
+      .getState()
+      .accounts.filter((a) => a.provider === provider && a.id !== account?.id);
+    for (const other of others) {
+      let existing: string | undefined;
+      try {
+        const auth = await getAccountAuth(other.id);
+        existing = credentialIdentity(provider, authCredential(auth), authAccountId(auth));
+      } catch {
+        continue;
+      }
+      if (existing === identity) {
+        setError(
+          `Signed in as the same ${meta.name} user as “${other.label}” — the cards will report identical usage. To track a different login, sign out of ${meta.name} in this browser (or use another profile) and sign in again.`,
+        );
+        return;
+      }
+    }
+  }
+
   /** The typed auth configuration the current form state describes. */
   function nextAuth(): AccountAuth {
     if (authMethod === "local") {
@@ -318,6 +348,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   setKeychainAccount("");
                   if (result.accountId) setSavedAccountId(result.accountId);
                   if (!label.trim() && result.suggestedLabel) setLabel(result.suggestedLabel);
+                  void warnIfDuplicateIdentity(result);
                 }}
                 onClear={() => {
                   setCredential("");

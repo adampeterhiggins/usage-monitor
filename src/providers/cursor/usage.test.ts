@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cookieFromPasted, findGrokBotUsage, sessionCookieFromJwt } from "./usage";
+import { cookieFromPasted, credentialUserId, findGrokBotUsage, sessionCookieFromJwt } from "./usage";
 
 function b64url(value: string): string {
   return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -46,6 +46,28 @@ describe("cookieFromPasted", () => {
   it("converts a pasted raw JWT into cookie form", () => {
     const token = jwt({ sub: "auth0|user_1", exp: FUTURE });
     expect(cookieFromPasted(token)).toBe(`user_1::${token}`);
+  });
+});
+
+describe("credentialUserId", () => {
+  it("reads the user id from every stored credential form", () => {
+    expect(credentialUserId("user_1::token")).toBe("user_1");
+    expect(credentialUserId("user_1%3A%3Atoken")).toBe("user_1");
+    expect(credentialUserId("WorkosCursorSessionToken=user_2::tok")).toBe("user_2");
+    const token = jwt({ sub: "auth0|user_3", exp: FUTURE });
+    expect(credentialUserId(token)).toBe("user_3");
+    expect(credentialUserId(JSON.stringify({ accessToken: token }))).toBe("user_3");
+  });
+
+  it("identifies the user even on an expired token", () => {
+    expect(credentialUserId(jwt({ sub: "google-oauth2|user_4", exp: 1_000_000 }))).toBe("user_4");
+  });
+
+  it("returns undefined for empty or opaque credentials", () => {
+    expect(credentialUserId("")).toBeUndefined();
+    expect(credentialUserId("   ")).toBeUndefined();
+    expect(credentialUserId("not-a-jwt")).toBeUndefined();
+    expect(credentialUserId("{}")).toBeUndefined();
   });
 });
 

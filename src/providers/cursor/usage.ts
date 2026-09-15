@@ -176,6 +176,24 @@ export function cookieFromPasted(raw: string): string {
   return trimmed;
 }
 
+/** The Cursor user id a credential authenticates as, whatever form it's kept
+ *  in — `userId::jwt` cookie, raw session JWT, or `{"accessToken": …}` JSON.
+ *  Two sign-ins as the same user mint different JWTs but share this id, so it
+ *  — not the token — is what detects a duplicate login. Never throws. */
+export function credentialUserId(credential: string): string | undefined {
+  try {
+    const raw = credential.trim().replace(/^WorkosCursorSessionToken=/i, "").replace(/%3A%3A/gi, "::");
+    if (!raw) return undefined;
+    if (raw.includes("::")) return raw.slice(0, raw.indexOf("::")) || undefined;
+    const payload = decodeJwtPayload(rawJwtFromSecret(raw, "Cursor credential"), "Cursor credential");
+    const sub = typeof payload.sub === "string" ? payload.sub : "";
+    if (!sub) return undefined;
+    return sub.includes("|") ? sub.slice(sub.lastIndexOf("|") + 1) : sub;
+  } catch {
+    return undefined;
+  }
+}
+
 async function cookieFromIde(): Promise<string> {
   const jwt = await readCursorIdeAccessToken();
   return sessionCookieFromJwt(jwt, "Cursor IDE login");
