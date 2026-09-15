@@ -30,6 +30,10 @@ const PROVIDER_FILL_STYLE = {
     background: "var(--ui-canvas-provider-blue-background)",
     color: "var(--ui-canvas-provider-blue-foreground)",
   },
+  purple: {
+    background: "var(--ui-canvas-provider-purple-background)",
+    color: "var(--ui-canvas-provider-purple-foreground)",
+  },
 } as const;
 
 const attachedDone = new WeakSet<ProviderLoginSession>();

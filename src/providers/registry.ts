@@ -7,6 +7,7 @@ import type { UsageFetchHooks, UsageSnapshot } from "../contracts/usage";
 import { fetchClaudeUsage } from "./claude/usage";
 import { fetchCodexUsage } from "./codex/usage";
 import { fetchCursorUsage } from "./cursor/usage";
+import { fetchDevinUsage } from "./devin/usage";
 
 export function fetchProviderUsage(
   account: Account,
@@ -19,5 +20,7 @@ export function fetchProviderUsage(
       return fetchCodexUsage(account, hooks);
     case "cursor":
       return fetchCursorUsage(account);
+    case "devin":
+      return fetchDevinUsage(account);
   }
 }

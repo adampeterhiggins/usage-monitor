@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use tauri::AppHandle;
 
-use crate::{credentials, http, panel};
+use crate::{credentials, http, oauth, panel};
 
 #[tauri::command]
 pub(crate) fn hide_window(app: AppHandle) {
@@ -82,6 +82,27 @@ pub(crate) fn cursor_ide_login_meta(
 #[tauri::command]
 pub(crate) fn read_cursor_ide_access_token() -> Result<String, String> {
     credentials::cursor_ide::access_token()
+}
+
+/// Bind a loopback port for a provider sign-in redirect; returns the port.
+#[tauri::command]
+pub(crate) fn oauth_listen() -> Result<u16, String> {
+    oauth::listen()
+}
+
+/// Wait for the browser to deliver the authorization code to `port`.
+#[tauri::command]
+pub(crate) async fn oauth_wait(port: u16, timeout_secs: Option<u64>) -> Result<String, String> {
+    let secs = timeout_secs.unwrap_or(300);
+    tauri::async_runtime::spawn_blocking(move || oauth::wait(port, secs))
+        .await
+        .map_err(|e| format!("Sign-in listener stopped unexpectedly: {e}"))?
+}
+
+/// Release a bound sign-in port when the user cancels.
+#[tauri::command]
+pub(crate) fn oauth_cancel(port: u16) {
+    oauth::cancel(port);
 }
 
 /// Fetch via the Rust side so requests carry no webview Origin.

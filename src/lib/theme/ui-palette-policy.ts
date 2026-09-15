@@ -6,6 +6,7 @@
  *  surface reads as dark (positive = lift) or light (negative = deepen). */
 
 import type { ThemeAppearance } from "./themePalettes";
+import type { UiProviderTone } from "./ui-tokens";
 
 // --- Contrast targets -----------------------------------------------------
 
@@ -102,9 +103,9 @@ export const STATUS_SEEDS: Record<ThemeAppearance, Record<"healthy" | "warning" 
 };
 
 /** Provider identity tones — deliberately the app's own brand-adjacent set. */
-export const PROVIDER_SEEDS: Record<ThemeAppearance, Record<"orange" | "green" | "blue", string>> = {
-  light: { orange: "#c75d07", green: "#006b4f", blue: "#138af2" },
-  dark: { orange: "#f0a15a", green: "#3dba7a", blue: "#5aa0f0" },
+export const PROVIDER_SEEDS: Record<ThemeAppearance, Record<UiProviderTone, string>> = {
+  light: { orange: "#c75d07", green: "#006b4f", blue: "#138af2", purple: "#6d4bd8" },
+  dark: { orange: "#f0a15a", green: "#3dba7a", blue: "#5aa0f0", purple: "#a78bfa" },
 };
 
 // --- Stock seeds ------------------------------------------------------------

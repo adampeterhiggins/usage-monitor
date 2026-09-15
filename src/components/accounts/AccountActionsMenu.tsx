@@ -14,6 +14,7 @@ const DASHBOARD_URLS: Record<ProviderId, string> = {
   claude: "https://claude.ai/settings/usage",
   codex: "https://chatgpt.com/codex/settings/usage",
   cursor: "https://cursor.com/dashboard",
+  devin: "https://app.devin.ai/settings/usage",
 };
 
 interface AccountActionsMenuProps {

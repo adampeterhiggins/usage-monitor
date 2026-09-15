@@ -43,7 +43,7 @@ export const UI_STATUS_TONES = [
 export type UiStatusTone = (typeof UI_STATUS_TONES)[number];
 
 /** Provider identity tones — deliberately independent of status/accent. */
-export const UI_PROVIDER_TONES = ["orange", "green", "blue"] as const;
+export const UI_PROVIDER_TONES = ["orange", "green", "blue", "purple"] as const;
 export type UiProviderTone = (typeof UI_PROVIDER_TONES)[number];
 
 export const UI_PAIR_STATES = ["rest", "hover", "pressed", "disabled"] as const;

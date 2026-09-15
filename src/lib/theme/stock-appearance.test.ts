@@ -7,114 +7,116 @@ import { paletteToCssVariables } from "./ui-palette-css";
 
 // Captured from PR #32 before these amendments. This is an exact regression
 // guard for Default, including all context/state colours and material values.
+// Re-captured when the Devin provider added the `purple` identity tone: every
+// pre-existing colour was verified byte-identical, only the new pair is added.
 const BASELINES = [
   [
     "light",
     50,
     40,
-    "343bc74e66122212cbd591cdfc1c47dea6fc4adcbe7c825dd3e7f216cd0a7938"
+    "ef6127bef7ccfe89b9d84c19c0471f3478b6e5fe6df1dadcf48a598ca17955ce"
   ],
   [
     "light",
     50,
     80,
-    "343bc74e66122212cbd591cdfc1c47dea6fc4adcbe7c825dd3e7f216cd0a7938"
+    "ef6127bef7ccfe89b9d84c19c0471f3478b6e5fe6df1dadcf48a598ca17955ce"
   ],
   [
     "light",
     50,
     100,
-    "343bc74e66122212cbd591cdfc1c47dea6fc4adcbe7c825dd3e7f216cd0a7938"
+    "ef6127bef7ccfe89b9d84c19c0471f3478b6e5fe6df1dadcf48a598ca17955ce"
   ],
   [
     "light",
     100,
     40,
-    "aef93640d51ba5bdfa26a44f77563c21453865ec02d1e89642ce5ea4942bfbe2"
+    "88a7f052376a2dccedb916e3f21979dad3f5eabd2608a7d15d779bdf487cba44"
   ],
   [
     "light",
     100,
     80,
-    "aef93640d51ba5bdfa26a44f77563c21453865ec02d1e89642ce5ea4942bfbe2"
+    "88a7f052376a2dccedb916e3f21979dad3f5eabd2608a7d15d779bdf487cba44"
   ],
   [
     "light",
     100,
     100,
-    "aef93640d51ba5bdfa26a44f77563c21453865ec02d1e89642ce5ea4942bfbe2"
+    "88a7f052376a2dccedb916e3f21979dad3f5eabd2608a7d15d779bdf487cba44"
   ],
   [
     "light",
     200,
     40,
-    "2f79445893d943d2125f4744f7ade5c9e0f00df3435644c9c60ffda74f7664b8"
+    "f7e68f1613443634baf5cc99f01c3f1addcadab6cab8e57841696d67793ff82c"
   ],
   [
     "light",
     200,
     80,
-    "2f79445893d943d2125f4744f7ade5c9e0f00df3435644c9c60ffda74f7664b8"
+    "f7e68f1613443634baf5cc99f01c3f1addcadab6cab8e57841696d67793ff82c"
   ],
   [
     "light",
     200,
     100,
-    "2f79445893d943d2125f4744f7ade5c9e0f00df3435644c9c60ffda74f7664b8"
+    "f7e68f1613443634baf5cc99f01c3f1addcadab6cab8e57841696d67793ff82c"
   ],
   [
     "dark",
     50,
     40,
-    "c48a8f16edd0079535bc8abe97f04d511363a41e5b35e734f2d89728f20fe9ac"
+    "f3a8069608df0464988bd4e71ec95fcc07de0e70e60bb0588c56ffa5fb8d2578"
   ],
   [
     "dark",
     50,
     80,
-    "fc12e139bc5896d8f40fececf15c50186c2ae17dcbe6e8434e9eec832b497dfa"
+    "2078d1625fee8426699a8e033804b432fdee2b6ebaa286726a3094fe66c7512b"
   ],
   [
     "dark",
     50,
     100,
-    "4d58a26582792106366d6572aab2461085a74ac134924264585982fcefc8fb29"
+    "69b218751e8644b23536083e817a667f68ff334d42f5aea0ac6a0c925f013976"
   ],
   [
     "dark",
     100,
     40,
-    "d57dc355d96a6a0827e8750c159e5fe6232bbf0cd926ed9a6107b81324e9b0da"
+    "62f866488a02f2c7ef6f3162dfb4fa77dd91c426035112d754326796ff980df6"
   ],
   [
     "dark",
     100,
     80,
-    "983c830bbc4f3d238fae2eb5a3aefe90424eae468b31b652ad1a97e803d4c911"
+    "dd3bc309b91114318bf89634ba41af1a263d9132f2e059ba6975d8278f8ef115"
   ],
   [
     "dark",
     100,
     100,
-    "e42d7534b6903f58ea57d5dc98e68a329af52ce4616ed5293aa961c701945b2f"
+    "e0f9897282eacd1b27997517a6dd4c15b753e226f8689582942ed8ac27b2462e"
   ],
   [
     "dark",
     200,
     40,
-    "fdf1d28e6a43477cedebb59bf9a7deeb4c7bfdcba27df13df86c7049edd2d072"
+    "d28532b6b2d81fae83bd9f69f040042e917789bef6f1cf37660268a7a451369a"
   ],
   [
     "dark",
     200,
     80,
-    "f8de833f6c894d146923097eb4fb163b38715c1d333fe46a1ee2d0f08798c972"
+    "e9b8e6d79705913c212c3dc148bc07881ff44cf4b62109fe45eeda0937a76e7d"
   ],
   [
     "dark",
     200,
     100,
-    "32b1af97b153c1475b2046cc6439058f5de3c0cd3a467eaa4e2c12c79c794b0c"
+    "c0f35523717c05a7274097f74b570881842a997fa9d1181caca42361cca4d504"
   ]
 ] as const;
 

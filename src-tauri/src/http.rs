@@ -39,6 +39,8 @@ const ALLOWED_HOSTS: &[&str] = &[
     "authenticator.cursor.sh",
     "auth.openai.com",
     "chatgpt.com",
+    "server.codeium.com",
+    "app.devin.ai",
     "open-vsx.org",
 ];
 

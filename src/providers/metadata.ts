@@ -2,11 +2,12 @@
  *  sign-in button labels. Protocol behavior stays in the provider modules. */
 
 import type { ProviderId } from "../contracts/providers";
+import type { UiProviderTone } from "../lib/theme/ui-tokens";
 
 export interface ProviderMeta {
   id: ProviderId;
   name: string;
-  tone: "orange" | "green" | "blue";
+  tone: UiProviderTone;
   credentialTitle: string;
   credentialHelp: string;
   credentialOptional: boolean;
@@ -54,9 +55,21 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     nativeLoginName: "Cursor or cursor-agent",
     pasteMethodLabel: "Paste a session cookie",
   },
+  devin: {
+    id: "devin",
+    name: "Devin",
+    tone: "purple",
+    credentialTitle: "API Key",
+    credentialHelp:
+      "Sign in to give this account its own Devin session, or paste the windsurf_api_key from ~/.local/share/devin/credentials.toml (the whole file works too). Leave blank to use your Devin CLI login.",
+    credentialOptional: true,
+    credentialPlaceholder: "windsurf_api_key or credentials.toml",
+    nativeLoginName: "the Devin CLI",
+    pasteMethodLabel: "Paste an API key",
+  },
 };
 
-export const PROVIDER_ORDER: ProviderId[] = ["claude", "codex", "cursor"];
+export const PROVIDER_ORDER: ProviderId[] = ["claude", "codex", "cursor", "devin"];
 
 export function signInLabel(provider: ProviderId): string {
   switch (provider) {
@@ -66,5 +79,7 @@ export function signInLabel(provider: ProviderId): string {
       return "Sign in with Codex";
     case "cursor":
       return "Sign in with Cursor";
+    case "devin":
+      return "Sign in with Devin";
   }
 }

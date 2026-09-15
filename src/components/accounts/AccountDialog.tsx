@@ -5,6 +5,7 @@ import { useAccountsStore } from "../../state/accounts";
 import {
   cursorIdeLoginMeta,
   describeKeychainEntry,
+  hasLocalLogin,
   KEYCHAIN_LOGINS,
   type CursorIdeLogin,
   type KeychainEntry,
@@ -230,34 +231,29 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <span className="text-[12px] font-medium text-ui-secondary">Provider</span>
-                <div
-                  className={cn(
-                    "grid grid-cols-3 rounded-lg bg-ui-control p-0.5",
-                    editing && "opacity-60",
-                  )}
+                {/* A select rather than a segmented control: the row stopped
+                    fitting at four providers and only grows from here. */}
+                <select
+                  value={provider}
+                  disabled={editing}
+                  aria-label="Provider"
+                  onChange={(event) => {
+                    const id = event.target.value as ProviderId;
+                    if (editing || id === provider) return;
+                    setProvider(id);
+                    setCredential("");
+                    setSavedAccountId(undefined);
+                    setKeychainAccount("");
+                    if (authMethod === "local" && !hasLocalLogin(id)) setAuthMethod("signin");
+                  }}
+                  className={cn(SELECT_CLASS, editing && "opacity-60")}
                 >
                   {PROVIDER_ORDER.map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      disabled={editing}
-                      onClick={() => {
-                        if (editing || id === provider) return;
-                        setProvider(id);
-                        setCredential("");
-                        setSavedAccountId(undefined);
-                        setKeychainAccount("");
-                        if (authMethod === "local" && !KEYCHAIN_LOGINS[id]) setAuthMethod("signin");
-                      }}
-                      className={cn(
-                        "h-7 rounded-md text-[12px] font-medium transition-colors",
-                        provider === id ? "bg-ui-card text-ui-primary shadow-sm" : "text-ui-secondary hover:text-ui-primary",
-                      )}
-                    >
+                    <option key={id} value={id}>
                       {PROVIDERS[id].name}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               <label className="flex flex-col gap-1.5">
@@ -278,7 +274,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   className={SELECT_CLASS}
                 >
                   <option value="signin">{signInLabel(provider)}</option>
-                  {keychainLogin ? (
+                  {hasLocalLogin(provider) ? (
                     <option value="local">Use {meta.nativeLoginName} on this Mac</option>
                   ) : null}
                   <option value="paste">{meta.pasteMethodLabel}</option>
@@ -304,9 +300,9 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               />
             ) : null}
 
-            {authMethod === "local" && keychainLogin ? (
+            {authMethod === "local" && hasLocalLogin(provider) ? (
               <div className="flex flex-col gap-1.5">
-                {showKeychainPicker ? (
+                {keychainLogin && showKeychainPicker ? (
                   <>
                     <span className="text-[11px] text-ui-tertiary">
                       {nativeOptions.length} local logins found. Pin one if Automatic picks the wrong account.

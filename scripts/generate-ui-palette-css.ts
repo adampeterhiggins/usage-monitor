@@ -203,6 +203,8 @@ const THEME_BLOCK = `
   --color-ui-provider-green-fg: var(--local-provider-green-foreground);
   --color-ui-provider-orange: var(--local-provider-orange-background);
   --color-ui-provider-orange-fg: var(--local-provider-orange-foreground);
+  --color-ui-provider-purple: var(--local-provider-purple-background);
+  --color-ui-provider-purple-fg: var(--local-provider-purple-foreground);
 
   /* window material */
   --color-ui-glass: var(--ui-glass-rest-background);

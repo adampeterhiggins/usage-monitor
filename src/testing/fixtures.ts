@@ -14,6 +14,15 @@ export function mockJwt(payload: Record<string, unknown>): string {
 
 const inDays = (days: number) => Math.floor(Date.now() / 1000) + days * 86_400;
 const inHours = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+const inHoursMs = (hours: number) => Date.now() + hours * 3_600_000;
+
+/** The Devin CLI's credentials file — plain TOML, not a Keychain entry. */
+const DEVIN_CREDENTIALS_TOML = [
+  'windsurf_api_key = "mock-devin-session-token"',
+  'api_server_url = "https://server.codeium.com"',
+  'devin_webapp_host = "app.devin.ai"',
+  'devin_api_url = "https://api.devin.ai"',
+].join("\n");
 
 export const MOCK_USER_ID = "user_mock_1234";
 export const MOCK_CURSOR_SESSION_JWT = mockJwt({
@@ -97,6 +106,7 @@ export const MOCK_KEYCHAIN_PASSWORDS: Record<string, string> = {
 export const MOCK_HOME_FILES: Record<string, string> = {
   ".codex/auth.json": CODEX_AUTH_JSON,
   ".cursor/auth.json": MOCK_CURSOR_SESSION_JWT,
+  ".local/share/devin/credentials.toml": DEVIN_CREDENTIALS_TOML,
 };
 
 export interface MockHttpResponse {
@@ -111,6 +121,26 @@ export interface MockHttpResponse {
  * CORS would block most of these).
  */
 export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
+  [
+    "SeatManagementService/GetUserStatus",
+    {
+      status: 200,
+      body: {
+        userStatus: {
+          email: "dev@example.com",
+          planStatus: {
+            planInfo: { planName: "Teams" },
+            // Deliberately omits weeklyQuotaRemainingPercent: proto3 drops
+            // zero values, and that must read as 100% used.
+            dailyQuotaRemainingPercent: 41,
+            dailyQuotaResetAtUnix: String(Math.floor(inHoursMs(9) / 1000)),
+            weeklyQuotaResetAtUnix: String(Math.floor(inHoursMs(130) / 1000)),
+            overageBalanceMicros: "20615663",
+          },
+        },
+      },
+    },
+  ],
   [
     "claude.ai/api/organizations",
     { status: 200, body: [{ uuid: "mock-org", name: "Mock Org" }] },

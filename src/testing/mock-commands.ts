@@ -59,6 +59,13 @@ export function handleCommand(cmd: string, args: unknown): unknown {
       }
       return body;
     }
+    case "oauth_listen":
+      return 51703;
+    case "oauth_wait":
+      // Mock mode has no browser round-trip; sign-in stays pending.
+      throw new Error("[mock-tauri] browser sign-in is not available in mock mode");
+    case "oauth_cancel":
+      return null;
     case "set_account_modal_open":
     case "hide_window":
     case "toggle_window":
