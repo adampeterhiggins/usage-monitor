@@ -1,5 +1,5 @@
 import * as React from "react";
-import * as Popover from "@radix-ui/react-popover";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Compass, Ellipsis, Pencil, RefreshCw, Trash2, type LucideIcon } from "lucide-react";
 import { openExternal } from "../../platform/external";
 import { useAccountsStore } from "../../state/accounts";
@@ -48,8 +48,8 @@ export function AccountActionsMenu({
 
   return (
     <>
-      <Popover.Root modal={false} open={open} onOpenChange={setOpen}>
-        <Popover.Trigger asChild>
+      <DropdownMenu.Root modal={false} open={open} onOpenChange={setOpen}>
+        <DropdownMenu.Trigger asChild>
           <Button
             iconOnly
             variant="transparent"
@@ -59,39 +59,25 @@ export function AccountActionsMenu({
           >
             <Ellipsis className="size-4" />
           </Button>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
             align="end"
             side="bottom"
             sideOffset={4}
             collisionPadding={8}
-            onOpenAutoFocus={(event) => event.preventDefault()}
             data-ui-surface="menu"
             className="ui-surface z-[80] min-w-[176px] rounded-[12px] p-1 shadow-menu ring-1 ring-ui-subtle"
           >
-            <MenuItem
-              icon={RefreshCw}
-              onSelect={() => {
-                setOpen(false);
-                onRefresh(account);
-              }}
-            >
+            <MenuItem icon={RefreshCw} onSelect={() => onRefresh(account)}>
               Refresh
             </MenuItem>
-            <MenuItem
-              icon={Pencil}
-              onSelect={() => {
-                setOpen(false);
-                onEdit(account);
-              }}
-            >
+            <MenuItem icon={Pencil} onSelect={() => onEdit(account)}>
               Edit
             </MenuItem>
             <MenuItem
               icon={Compass}
               onSelect={() => {
-                setOpen(false);
                 void openExternal(DASHBOARD_URLS[account.provider]).catch((e) =>
                   toast.error("Couldn’t open dashboard", {
                     description: e instanceof Error ? e.message : String(e),
@@ -101,20 +87,13 @@ export function AccountActionsMenu({
             >
               Open Dashboard
             </MenuItem>
-            <div className="mx-1.5 my-1 h-px bg-ui-subtle" />
-            <MenuItem
-              icon={Trash2}
-              danger
-              onSelect={() => {
-                setOpen(false);
-                setConfirmRemove(true);
-              }}
-            >
+            <DropdownMenu.Separator className="mx-1.5 my-1 h-px bg-ui-subtle" />
+            <MenuItem icon={Trash2} danger onSelect={() => setConfirmRemove(true)}>
               Remove
             </MenuItem>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
 
       {confirmRemove ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-ui-scrim p-6">
@@ -152,16 +131,16 @@ function MenuItem({
   icon: LucideIcon;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <DropdownMenu.Item
+      onSelect={onSelect}
       className={cn(
-        "flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none hover:bg-ui-control-hover",
+        "flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13px] outline-none",
+        "data-[highlighted]:bg-ui-control-hover",
         danger ? "text-ui-status-critical-text" : "text-ui-primary",
       )}
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
       {children}
-    </button>
+    </DropdownMenu.Item>
   );
 }

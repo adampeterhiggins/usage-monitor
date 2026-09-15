@@ -3,17 +3,10 @@ import { cn } from "../../lib/utils";
 
 export const Button = React.forwardRef<
   HTMLButtonElement,
-  {
-    children: React.ReactNode;
-    onClick?: React.MouseEventHandler<HTMLButtonElement>;
-    disabled?: boolean;
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
     variant?: "filled" | "glass" | "transparent" | "accent" | "destructive";
     size?: "small" | "medium" | "large";
     iconOnly?: boolean;
-    className?: string;
-    style?: React.CSSProperties;
-    type?: "button" | "submit";
-    "aria-label"?: string;
   }
 >(function Button(
   {
@@ -27,6 +20,7 @@ export const Button = React.forwardRef<
     style,
     type = "button",
     "aria-label": ariaLabel,
+    ...rest
   },
   ref,
 ) {
@@ -39,6 +33,7 @@ export const Button = React.forwardRef<
       data-variant={variant}
       onClick={onClick}
       style={style}
+      {...rest}
       className={cn(
         "ui-button inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full no-drag transition-colors disabled:cursor-default disabled:opacity-40",
         iconOnly && size === "large" && "size-8",
