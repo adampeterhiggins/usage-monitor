@@ -250,10 +250,6 @@ export async function startClaudeBrowserLogin(): Promise<ProviderLoginSession> {
   const verifier = randomBase64Url(32);
   const url = claudeAuthorizeUrl(callback.redirectUri, verifier);
 
-  void openExternal(url.toString()).catch(() => {
-    // The account dialog still offers a way to reopen the browser.
-  });
-
   const done = (async (): Promise<ProviderLoginResult> => {
     try {
       const params = await Promise.race([
@@ -297,7 +293,7 @@ export async function startClaudeBrowserLogin(): Promise<ProviderLoginSession> {
 
   return {
     kind: "browser",
-    prompt: "Finish signing in in your browser — this dialog updates automatically.",
+    prompt: "Open the sign-in link in the browser you want to use — this dialog updates automatically.",
     verificationUri: url.toString(),
     done,
     cancel: () => controller.abort(),

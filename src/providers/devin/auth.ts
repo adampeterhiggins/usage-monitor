@@ -142,7 +142,7 @@ function devinSession(
   return callback
     ? {
         kind: "browser",
-        prompt: "Finish signing in in your browser — this will complete on its own.",
+        prompt: "Open the sign-in link in the browser you want to use — this will complete on its own.",
         verificationUri: url.toString(),
         done,
         cancel: () => controller.abort(),
@@ -180,10 +180,6 @@ export async function startDevinBrowserLogin(): Promise<ProviderLoginSession> {
   const verifier = randomBase64Url(32);
   const state = randomBase64Url(16);
   const url = devinAuthorizeUrl(callback.redirectUri, state, verifier);
-
-  void openExternal(url.toString()).catch(() => {
-    // The dialog still offers "Open browser again".
-  });
 
   return devinSession(
     url,

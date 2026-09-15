@@ -170,6 +170,16 @@ export function ProviderLoginButton({
     }
   }
 
+  async function handleCopyLink() {
+    if (!session?.verificationUri) return;
+    try {
+      await navigator.clipboard.writeText(session.verificationUri);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn’t copy the link");
+    }
+  }
+
   function handleSubmitPasteCode() {
     if (!session || submittingCode) return;
     try {
@@ -233,9 +243,14 @@ export function ProviderLoginButton({
         <div className="text-[12px] text-ui-secondary">{session.prompt}</div>
         <div className="mt-2 flex gap-2">
           {session.verificationUri ? (
-            <Button size="small" variant="glass" onClick={() => void openExternal(session.verificationUri!)}>
-              Open browser again
-            </Button>
+            <>
+              <Button size="small" variant="glass" onClick={() => void openExternal(session.verificationUri!)}>
+                Open browser
+              </Button>
+              <Button size="small" variant="glass" onClick={() => void handleCopyLink()}>
+                Copy URL
+              </Button>
+            </>
           ) : null}
           <Button size="small" variant="glass" onClick={handleCancel}>
             Cancel

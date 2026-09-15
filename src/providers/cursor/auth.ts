@@ -1,4 +1,3 @@
-import { openExternal } from "../../platform/external";
 import { fetchJson, fetchText } from "../../platform/http";
 import type { ProviderLoginResult } from "../../contracts/auth";
 import {
@@ -118,10 +117,6 @@ export async function startCursorLogin(): Promise<ProviderLoginSession> {
   loginUrl.searchParams.set("mode", "login");
   loginUrl.searchParams.set("redirectTarget", "cli");
 
-  void openExternal(loginUrl.toString()).catch(() => {
-    // The account dialog still shows a way to reopen the browser.
-  });
-
   const done = (async (): Promise<ProviderLoginResult> => {
     const accessToken = await pollCursorAuth(uuid, verifier, controller.signal);
     const credential = sessionTokenFromAccessToken(accessToken);
@@ -133,7 +128,8 @@ export async function startCursorLogin(): Promise<ProviderLoginSession> {
 
   return {
     kind: "browser",
-    prompt: "Finish signing in in your browser. Passkeys work there.",
+    prompt:
+      "Open the link in a browser signed in as the Cursor account you want to track. Passkeys work there.",
     verificationUri: loginUrl.toString(),
     done,
     cancel: () => controller.abort(),
