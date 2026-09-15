@@ -265,7 +265,7 @@ export function SettingsPopover({
             />
           ) : null}
           <MenuList className="h-auto max-h-[320px] min-h-0 overflow-y-auto p-1">
-            <MenuEmpty>No actions found.</MenuEmpty>
+            {page !== "updates" ? <MenuEmpty>No actions found.</MenuEmpty> : null}
             {page === "root" && (
               <MenuGroup>
                 <MenuItem
