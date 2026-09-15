@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { toPublic, type Account } from "../../contracts/accounts";
 import type { AccountAuth } from "../../contracts/auth";
+import { PROVIDER_IDS } from "../../contracts/providers";
 import {
   authFromLegacy,
   decodeStoredAccount,
@@ -173,5 +174,27 @@ describe("toPublic", () => {
         auth: { kind: "session", credential: "   " },
       }).hasCredential,
     ).toBe(false);
+  });
+});
+
+/** A provider missing from the decoder's allowlist round-tripped as `null`,
+ *  so adding one made its accounts vanish on reload while the "Account added"
+ *  toast still fired. Cover every id, not just the ones that existed then. */
+describe("every provider survives a round trip", () => {
+  it.each(PROVIDER_IDS)("keeps a stored %s account", (provider) => {
+    const stored = encodeAccount({
+      id: `id-${provider}`,
+      provider,
+      label: `${provider}@example.com`,
+      auth: { kind: "session", credential: "tok" },
+      hidden: false,
+    });
+    const decoded = decodeStoredAccount(stored);
+    expect(decoded, provider).not.toBeNull();
+    expect(decoded?.provider).toBe(provider);
+  });
+
+  it("still rejects a provider the app does not know", () => {
+    expect(decodeStoredAccount({ id: "x", label: "L", provider: "grok" })).toBeNull();
   });
 });

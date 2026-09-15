@@ -19,7 +19,7 @@ import {
   CURSOR_IDE_SELECTOR,
   type AccountAuth,
 } from "../../contracts/auth";
-import type { ProviderId } from "../../contracts/providers";
+import { PROVIDER_IDS, type ProviderId } from "../../contracts/providers";
 import { credentialLooksLikeSession } from "../../providers/shared/providerLogin";
 
 export interface StoredAccountRow {
@@ -64,7 +64,7 @@ export function legacyFieldsFromAuth(
   }
 }
 
-const PROVIDERS = new Set<ProviderId>(["claude", "codex", "cursor"]);
+const PROVIDERS = new Set<ProviderId>(PROVIDER_IDS);
 
 export function decodeStoredAccount(raw: unknown): Account | null {
   if (!raw || typeof raw !== "object") return null;
