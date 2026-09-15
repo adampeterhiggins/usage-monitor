@@ -50,38 +50,56 @@ pub(crate) fn set_account_modal_open(app: AppHandle, open: bool) {
 }
 
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).
+///
+/// These credential commands shell out to `security`/`sqlite3` or hit the
+/// filesystem — synchronous commands run on the main thread, so a `security`
+/// call sitting on a Keychain authorization prompt would freeze the whole
+/// app. `spawn_blocking` keeps them off it and lets concurrent invokes run
+/// in parallel.
 #[tauri::command]
-pub(crate) fn read_home_file(rel_path: String) -> Result<String, String> {
-    credentials::read_home_file(&rel_path)
+pub(crate) async fn read_home_file(rel_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || credentials::read_home_file(&rel_path))
+        .await
+        .map_err(|e| format!("read_home_file stopped unexpectedly: {e}"))?
 }
 
 /// Read a generic password from the macOS Keychain (Claude Code login).
 #[tauri::command]
-pub(crate) fn read_keychain_password(
+pub(crate) async fn read_keychain_password(
     service: String,
     account: Option<String>,
 ) -> Result<String, String> {
-    credentials::keychain::read_password(&service, account.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        credentials::keychain::read_password(&service, account.as_deref())
+    })
+    .await
+    .map_err(|e| format!("Keychain read stopped unexpectedly: {e}"))?
 }
 
 /// List Keychain accounts stored under `service`, newest first.
 #[tauri::command]
-pub(crate) fn list_keychain_accounts(
+pub(crate) async fn list_keychain_accounts(
     service: String,
 ) -> Result<Vec<credentials::keychain::KeychainEntry>, String> {
-    credentials::keychain::list_accounts(&service)
+    tauri::async_runtime::spawn_blocking(move || credentials::keychain::list_accounts(&service))
+        .await
+        .map_err(|e| format!("Keychain list stopped unexpectedly: {e}"))?
 }
 
 /// Cursor IDE login attributes for the account picker. Never returns the token.
 #[tauri::command]
-pub(crate) fn cursor_ide_login_meta(
+pub(crate) async fn cursor_ide_login_meta(
 ) -> Result<Option<credentials::cursor_ide::CursorIdeLogin>, String> {
-    credentials::cursor_ide::login_meta()
+    tauri::async_runtime::spawn_blocking(credentials::cursor_ide::login_meta)
+        .await
+        .map_err(|e| format!("Cursor IDE lookup stopped unexpectedly: {e}"))?
 }
 
 #[tauri::command]
-pub(crate) fn read_cursor_ide_access_token() -> Result<String, String> {
-    credentials::cursor_ide::access_token()
+pub(crate) async fn read_cursor_ide_access_token() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(credentials::cursor_ide::access_token)
+        .await
+        .map_err(|e| format!("Cursor IDE token read stopped unexpectedly: {e}"))?
 }
 
 /// Bind a loopback port for a provider sign-in redirect; returns the port.
