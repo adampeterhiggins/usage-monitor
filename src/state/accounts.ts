@@ -1,8 +1,9 @@
 /** Canonical account list for the UI. Components read `accounts` here and
  *  call these actions instead of the repository/operations functions —
  *  every mutation persists, republishes the list, and keeps the usage
- *  service's fetch states coherent (a saved account re-fetches, a removed
- *  account's state is dropped). */
+ *  service's fetch states coherent. Only the account that changed is
+ *  (re)fetched: resetting every state on add made all cards re-enter
+ *  "loading" and refetch in parallel, which stalled the whole panel. */
 
 import { create } from "zustand";
 
@@ -41,14 +42,16 @@ export const useAccountsStore = create<AccountsStore>((set, get) => ({
   async add(input) {
     const added = await addAccount(input);
     await get().refresh();
-    useUsageStore.getState().reset();
+    void useUsageStore.getState().load(added.id);
     return added;
   },
 
   async update(input) {
     const updated = await updateAccount(input);
     await get().refresh();
-    useUsageStore.getState().reset();
+    // The credential may have changed — re-fetch just this account (its
+    // policy cache was already invalidated inside updateAccount).
+    void useUsageStore.getState().load(input.id, true);
     return updated;
   },
 
