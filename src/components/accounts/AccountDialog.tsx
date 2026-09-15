@@ -231,34 +231,29 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <span className="text-[12px] font-medium text-ui-secondary">Provider</span>
-                <div
-                  className={cn(
-                    "grid grid-cols-3 rounded-lg bg-ui-control p-0.5",
-                    editing && "opacity-60",
-                  )}
+                {/* A select rather than a segmented control: the row stopped
+                    fitting at four providers and only grows from here. */}
+                <select
+                  value={provider}
+                  disabled={editing}
+                  aria-label="Provider"
+                  onChange={(event) => {
+                    const id = event.target.value as ProviderId;
+                    if (editing || id === provider) return;
+                    setProvider(id);
+                    setCredential("");
+                    setSavedAccountId(undefined);
+                    setKeychainAccount("");
+                    if (authMethod === "local" && !hasLocalLogin(id)) setAuthMethod("signin");
+                  }}
+                  className={cn(SELECT_CLASS, editing && "opacity-60")}
                 >
                   {PROVIDER_ORDER.map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      disabled={editing}
-                      onClick={() => {
-                        if (editing || id === provider) return;
-                        setProvider(id);
-                        setCredential("");
-                        setSavedAccountId(undefined);
-                        setKeychainAccount("");
-                        if (authMethod === "local" && !hasLocalLogin(id)) setAuthMethod("signin");
-                      }}
-                      className={cn(
-                        "h-7 rounded-md text-[12px] font-medium transition-colors",
-                        provider === id ? "bg-ui-card text-ui-primary shadow-sm" : "text-ui-secondary hover:text-ui-primary",
-                      )}
-                    >
+                    <option key={id} value={id}>
                       {PROVIDERS[id].name}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               <label className="flex flex-col gap-1.5">
