@@ -6,6 +6,13 @@
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
+use std::time::Duration;
+
+/// Without a ceiling a stalled connection hangs the invoke forever — and the
+/// frontend's in-flight dedupe would keep returning that dead promise, leaving
+/// the account card on "loading" until restart.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(serde::Serialize)]
 pub(crate) struct HttpResponse {
@@ -21,6 +28,8 @@ fn client() -> &'static reqwest::Client {
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::limited(10))
+            .connect_timeout(CONNECT_TIMEOUT)
+            .timeout(REQUEST_TIMEOUT)
             .build()
             .expect("failed to build HTTP client")
     })

@@ -14,6 +14,10 @@ const DEFAULT_BACKOFF_MS = 300_000;
 const LAPSE_PROBE_MS = 60_000;
 const STALE_TTL_MULTIPLE = 2;
 const MAX_ENTRIES = 200;
+/** Ceiling on one fetch — above the worst legit chain of ~2 HTTP calls at the
+ *  native 30s timeout, so a stalled request (or a Keychain prompt nobody
+ *  answered) ends in an error state instead of loading forever. */
+const FETCH_TIMEOUT_MS = 90_000;
 
 const rawFetch = fetchProviderUsage;
 
@@ -45,11 +49,32 @@ export interface FetchUsageOptions extends UsageFetchHooks {
   force?: boolean;
 }
 
+/** Race a fetch against the ceiling. A timeout rejects the returned promise
+ *  so the caller's inflight slot frees and a retry really retries — while the
+ *  inner fetch keeps running and may still land its snapshot in the cache. */
+function boundedFetch(account: Account, opts: FetchUsageOptions): Promise<UsageResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            "Timed out — check for a hidden macOS Keychain prompt, then try again.",
+          ),
+        ),
+      FETCH_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([fetchUsageOnce(account, opts), timeout]).finally(() =>
+    clearTimeout(timer),
+  );
+}
+
 export async function fetchUsage(account: Account, opts: FetchUsageOptions = {}): Promise<UsageResult> {
   const existing = inflight.get(account.id);
   if (existing) return existing;
 
-  const pending = fetchUsageOnce(account, opts);
+  const pending = boundedFetch(account, opts);
   inflight.set(account.id, pending);
   try {
     return await pending;
