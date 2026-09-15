@@ -1,15 +1,15 @@
 {
   "version": "0.2.4",
-  "notes": "## What's Changed\n* Warn on duplicate sign-in identity; let users pick the browser by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/45\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.3...v0.2.4",
+  "notes": "## What's Changed\n* Warn on duplicate sign-in identity; let users pick the browser by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/45\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.3...v0.2.4\n\n## What's Changed\n* Warn on duplicate sign-in identity; let users pick the browser by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/45\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.3...v0.2.4",
   "pub_date": "2026-09-15T10:50:07Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUZiKy9VZnl0THlEZHY2ckI3Zkw0aVN5N3JVLzlmZnZQcURqRUNVZzBLS0Jab3NrLzZlTnlHZnFRSHF4MFBjbEJRbGg1S0hhMEZqWHYrU3dEYmxJcXdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDY5NDAwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CjVFRi9QcmNXUFdwaklqb29kZUdXM2FJU29JaDNRWEIvSVp1bVVia01nRnV0ZXVZamRNaDdzNk5uSjRGb3BKUmR6bnVGUVkwK0hqQkRJZDZ2N1dWU0J3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565505962"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUJUalJTVk5HRTVRaVJ5WDdHQXJOUW1wNldMb2pneVNlNldBRllHSE40Si83N2htdEFPeWtNTm9XUkc5ZTZWUDNhZlBpZTd4M2V6UlE2YVo2QWNnbGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDY5ODczCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5aT2ZGbFhFLzNJTXBqUGdiT2Z4MjB4YndmN1JQa3dvTlBxK3B6UytsZUE1aWZlSlJjbGtWRWV6cmZhVFY5V0EwOFFhRTFMdjNWbDliTFl4NE9vZ0NBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565518707"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUZiKy9VZnl0THlEZHY2ckI3Zkw0aVN5N3JVLzlmZnZQcURqRUNVZzBLS0Jab3NrLzZlTnlHZnFRSHF4MFBjbEJRbGg1S0hhMEZqWHYrU3dEYmxJcXdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDY5NDAwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CjVFRi9QcmNXUFdwaklqb29kZUdXM2FJU29JaDNRWEIvSVp1bVVia01nRnV0ZXVZamRNaDdzNk5uSjRGb3BKUmR6bnVGUVkwK0hqQkRJZDZ2N1dWU0J3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565505962"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUJUalJTVk5HRTVRaVJ5WDdHQXJOUW1wNldMb2pneVNlNldBRllHSE40Si83N2htdEFPeWtNTm9XUkc5ZTZWUDNhZlBpZTd4M2V6UlE2YVo2QWNnbGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDY5ODczCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm5aT2ZGbFhFLzNJTXBqUGdiT2Z4MjB4YndmN1JQa3dvTlBxK3B6UytsZUE1aWZlSlJjbGtWRWV6cmZhVFY5V0EwOFFhRTFMdjNWbDliTFl4NE9vZ0NBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565518707"
     }
   }
 }
