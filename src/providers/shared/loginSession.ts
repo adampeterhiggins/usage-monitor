@@ -12,6 +12,18 @@ export function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) throw abortError(signal);
 }
 
+/** Rejects with the signal's abort error — for racing a wait that does not
+ *  itself understand AbortSignal (e.g. a native loopback listener). */
+export function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    if (signal.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    signal.addEventListener("abort", () => reject(abortError(signal)), { once: true });
+  });
+}
+
 export function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -103,6 +115,12 @@ export interface ProviderLoginSession {
   prompt?: string;
   done: Promise<ProviderLoginResult>;
   cancel: () => void;
-  /** Claude paste-code flow: complete sign-in with the page's authorization code. */
+  /** Paste-code flows: complete sign-in with what the user pasted. */
   submitCode?: (code: string) => void;
+}
+
+/** Deliver a pasted code to a waiting `paste_code` session. */
+export function submitLoginCode(session: ProviderLoginSession, code: string): void {
+  if (!session.submitCode) throw new Error("This sign-in is not waiting for a code.");
+  session.submitCode(code);
 }

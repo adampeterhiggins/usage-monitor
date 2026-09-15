@@ -14,7 +14,11 @@ import { listKeychainAccounts } from "../../platform/credentials";
 import { CURSOR_IDE_SELECTOR, type AccountAuth } from "../../contracts/auth";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
-import { credentialLooksLikeSession, signInLabel } from "../../providers/shared/providerLogin";
+import {
+  cancelProviderLogin,
+  credentialLooksLikeSession,
+  providerLoginMethods,
+} from "../../providers/shared/providerLogin";
 import { toast } from "../ui/toast";
 import { PROVIDER_ORDER, PROVIDERS } from "../../providers/metadata";
 import { ProviderLoginButton } from "./ProviderLoginButton";
@@ -22,7 +26,16 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
-type AuthMethod = "signin" | "local" | "paste";
+/** `signin:<methodId>` runs a managed provider login; `local`/`paste` don't. */
+type AuthMethod = `signin:${string}` | "local" | "paste";
+
+function isSigninMethod(method: AuthMethod): boolean {
+  return method.startsWith("signin:");
+}
+
+function signinMethod(provider: ProviderId): AuthMethod {
+  return `signin:${providerLoginMethods(provider)[0].id}`;
+}
 
 const SELECT_CLASS =
   "h-8 rounded-lg border border-ui-input-border bg-ui-input px-2 text-[13px] text-ui-input-fg outline-none focus:border-ui-input-focus focus:ring-2 focus:ring-ui-focus/40";
@@ -47,7 +60,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
   const [keychainEntries, setKeychainEntries] = React.useState<KeychainEntry[]>([]);
   const [cursorIde, setCursorIde] = React.useState<CursorIdeLogin | null>(null);
   const [loadingSecret, setLoadingSecret] = React.useState(false);
-  const [authMethod, setAuthMethod] = React.useState<AuthMethod>("signin");
+  const [authMethod, setAuthMethod] = React.useState<AuthMethod>(signinMethod("claude"));
   const [error, setError] = React.useState<string | null>(null);
 
   const meta = PROVIDERS[provider];
@@ -80,7 +93,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
             case "session":
               setCredential(auth.credential);
               setSavedAccountId(auth.accountId);
-              setAuthMethod("signin");
+              setAuthMethod(signinMethod(account.provider));
               break;
             case "pasted":
               setCredential(auth.credential);
@@ -97,7 +110,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
       setCredential("");
       setSavedAccountId(undefined);
       setKeychainAccount("");
-      setAuthMethod("signin");
+      setAuthMethod(signinMethod("claude"));
       setLoadingSecret(false);
     }
   }, [open, account]);
@@ -153,9 +166,11 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
 
   function applyAuthMethod(next: AuthMethod) {
     if (next === authMethod) return;
+    // Leaving a managed sign-in abandons any session in flight.
+    if (isSigninMethod(authMethod)) cancelProviderLogin(provider);
     if (next === "local") {
       setCredential("");
-    } else if (next === "signin") {
+    } else if (isSigninMethod(next)) {
       if (!credentialLooksLikeSession(provider, credential)) setCredential("");
       setKeychainAccount("");
     } else {
@@ -176,7 +191,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
     }
     const cred = credential.trim();
     const accountId = savedAccountId;
-    return authMethod === "signin"
+    return isSigninMethod(authMethod)
       ? { kind: "session", credential: cred, accountId }
       : { kind: "pasted", credential: cred, accountId };
   }
@@ -244,7 +259,13 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                     setCredential("");
                     setSavedAccountId(undefined);
                     setKeychainAccount("");
-                    if (authMethod === "local" && !hasLocalLogin(id)) setAuthMethod("signin");
+                    const methods = providerLoginMethods(id);
+                    const currentId = isSigninMethod(authMethod) ? authMethod.slice(7) : null;
+                    if (authMethod === "local" && !hasLocalLogin(id)) {
+                      setAuthMethod(signinMethod(id));
+                    } else if (currentId && !methods.some((m) => m.id === currentId)) {
+                      setAuthMethod(`signin:${methods[0].id}`);
+                    }
                   }}
                   className={cn(SELECT_CLASS, editing && "opacity-60")}
                 >
@@ -273,7 +294,11 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                   onChange={(e) => applyAuthMethod(e.target.value as AuthMethod)}
                   className={SELECT_CLASS}
                 >
-                  <option value="signin">{signInLabel(provider)}</option>
+                  {providerLoginMethods(provider).map((method) => (
+                    <option key={method.id} value={`signin:${method.id}`}>
+                      {method.label}
+                    </option>
+                  ))}
                   {hasLocalLogin(provider) ? (
                     <option value="local">Use {meta.nativeLoginName} on this Mac</option>
                   ) : null}
@@ -282,9 +307,10 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
               </label>
             </div>
 
-            {authMethod === "signin" ? (
+            {isSigninMethod(authMethod) ? (
               <ProviderLoginButton
                 provider={provider}
+                methodId={authMethod.slice(7)}
                 credential={credential}
                 disabled={loadingSecret}
                 onSignedIn={(result) => {

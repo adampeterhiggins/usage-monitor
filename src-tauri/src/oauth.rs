@@ -14,9 +14,16 @@ use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
+/// A bound listener plus the path prefix it treats as its callback — Codex
+/// waits on `/auth/callback`, most providers on `/callback`.
+struct PendingListener {
+    listener: TcpListener,
+    callback_path: String,
+}
+
 /// Ports bound by `listen` and not yet consumed by `wait`.
-fn pending() -> &'static Mutex<HashMap<u16, TcpListener>> {
-    static PENDING: OnceLock<Mutex<HashMap<u16, TcpListener>>> = OnceLock::new();
+fn pending() -> &'static Mutex<HashMap<u16, PendingListener>> {
+    static PENDING: OnceLock<Mutex<HashMap<u16, PendingListener>>> = OnceLock::new();
     PENDING.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -31,22 +38,40 @@ const READ_TIMEOUT: Duration = Duration::from_secs(5);
 const RESPONSE: &str = "\
 You can close this window and return to Usage Monitor.";
 
-/// Bind an ephemeral loopback port. Returns the port to put in `redirect_uri`.
-pub(crate) fn listen() -> Result<u16, String> {
-    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
-        .map_err(|e| format!("Could not open a local port for sign-in: {e}"))?;
-    let port = listener
-        .local_addr()
-        .map_err(|e| format!("Could not read the local sign-in port: {e}"))?
-        .port();
-    listener
-        .set_nonblocking(true)
-        .map_err(|e| format!("Could not prepare the local sign-in port: {e}"))?;
-    pending()
-        .lock()
-        .map_err(|_| "Sign-in listener state is poisoned.".to_string())?
-        .insert(port, listener);
-    Ok(port)
+/// Bind a loopback port, trying `ports` in order (0 = any free port).
+/// Returns the port to put in `redirect_uri`.
+pub(crate) fn listen(ports: &[u16], callback_path: &str) -> Result<u16, String> {
+    let mut last_err = String::from("no ports offered");
+    for &port in ports {
+        let listener = match TcpListener::bind((Ipv4Addr::LOCALHOST, port)) {
+            Ok(listener) => listener,
+            Err(e) => {
+                last_err = e.to_string();
+                continue;
+            }
+        };
+        let port = listener
+            .local_addr()
+            .map_err(|e| format!("Could not read the local sign-in port: {e}"))?
+            .port();
+        listener
+            .set_nonblocking(true)
+            .map_err(|e| format!("Could not prepare the local sign-in port: {e}"))?;
+        pending()
+            .lock()
+            .map_err(|_| "Sign-in listener state is poisoned.".to_string())?
+            .insert(
+                port,
+                PendingListener {
+                    listener,
+                    callback_path: callback_path.to_string(),
+                },
+            );
+        return Ok(port);
+    }
+    Err(format!(
+        "Could not open a local port for sign-in: {last_err}"
+    ))
 }
 
 /// Drop a bound port without waiting — used when sign-in is cancelled.
@@ -69,12 +94,15 @@ fn reply(stream: &mut TcpStream, status: &str, body: &str) {
     let _ = stream.flush();
 }
 
-/// The query string of the first `/callback` request, e.g. `code=…&state=…`.
+/// The query string of the first request to the bound callback path.
 ///
 /// Anything else (a browser's `/favicon.ico`, a stray probe) is answered 404
 /// and ignored, so one noisy request cannot consume the sign-in.
 pub(crate) fn wait(port: u16, timeout_secs: u64) -> Result<String, String> {
-    let listener = pending()
+    let PendingListener {
+        listener,
+        callback_path,
+    } = pending()
         .lock()
         .map_err(|_| "Sign-in listener state is poisoned.".to_string())?
         .remove(&port)
@@ -104,7 +132,10 @@ pub(crate) fn wait(port: u16, timeout_secs: u64) -> Result<String, String> {
         let _ = stream.set_nonblocking(false);
 
         let mut request_line = String::new();
-        if BufReader::new(&stream).read_line(&mut request_line).is_err() {
+        if BufReader::new(&stream)
+            .read_line(&mut request_line)
+            .is_err()
+        {
             continue;
         }
         // `GET /callback?code=…&state=… HTTP/1.1`
@@ -113,7 +144,7 @@ pub(crate) fn wait(port: u16, timeout_secs: u64) -> Result<String, String> {
             Some((path, query)) => (path, query),
             None => (target, ""),
         };
-        if !path.starts_with("/callback") {
+        if !path.starts_with(&callback_path) {
             reply(&mut stream, "404 Not Found", "Not found.");
             continue;
         }
@@ -138,7 +169,7 @@ mod tests {
 
     #[test]
     fn delivers_the_callback_query() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         let client = std::thread::spawn(move || get(port, "/callback?code=abc&state=xyz"));
         let query = wait(port, 10).expect("wait");
         assert_eq!(query, "code=abc&state=xyz");
@@ -147,7 +178,7 @@ mod tests {
 
     #[test]
     fn ignores_other_paths_and_keeps_waiting() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         let client = std::thread::spawn(move || {
             // A browser asking for a favicon must not consume the sign-in.
             assert!(get(port, "/favicon.ico").starts_with("HTTP/1.1 404"));
@@ -159,21 +190,21 @@ mod tests {
 
     #[test]
     fn reports_an_error_callback_verbatim() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         std::thread::spawn(move || get(port, "/callback?error=access_denied"));
         assert_eq!(wait(port, 10).expect("wait"), "error=access_denied");
     }
 
     #[test]
     fn cancel_before_wait_releases_the_port() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         cancel(port);
         assert!(wait(port, 1).is_err());
     }
 
     #[test]
     fn cancel_interrupts_a_running_wait() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(200));
             cancel(port);
@@ -184,8 +215,28 @@ mod tests {
 
     #[test]
     fn times_out_without_a_callback() {
-        let port = listen().expect("bind");
+        let port = listen(&[0], "/callback").expect("bind");
         let err = wait(port, 1).expect_err("timeout");
         assert!(err.contains("Timed out"), "{err}");
+    }
+
+    #[test]
+    fn honors_a_custom_callback_path() {
+        let port = listen(&[0], "/auth/callback").expect("bind");
+        let client = std::thread::spawn(move || {
+            assert!(get(port, "/callback?code=wrong-path").starts_with("HTTP/1.1 404"));
+            get(port, "/auth/callback?code=abc")
+        });
+        assert_eq!(wait(port, 10).expect("wait"), "code=abc");
+        client.join().expect("join");
+    }
+
+    #[test]
+    fn falls_back_when_a_preferred_port_is_taken() {
+        let blocker = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).expect("bind");
+        let taken = blocker.local_addr().expect("addr").port();
+        let port = listen(&[taken, 0], "/callback").expect("bind");
+        assert_ne!(port, taken);
+        cancel(port);
     }
 }

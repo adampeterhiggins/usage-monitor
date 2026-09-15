@@ -14,9 +14,28 @@ export interface LoopbackCallback {
   release: () => void;
 }
 
-/** Bind an ephemeral loopback port for one sign-in redirect. */
-export async function bindLoopbackCallback(timeoutSeconds = 300): Promise<LoopbackCallback> {
-  const port = await invoke<number>("oauth_listen");
+export interface LoopbackBindOptions {
+  /** Ports to try in order — for providers whose redirect URIs are
+   *  allow-listed (Codex: 1455/1457). Default: any free port. */
+  ports?: number[];
+  /** Path the listener waits on (Codex: `/auth/callback`). Default `/callback`. */
+  callbackPath?: string;
+  /** Host written into `redirect_uri`. `localhost` matches the CLI allow-lists;
+   *  `127.0.0.1` is the default. */
+  host?: "127.0.0.1" | "localhost";
+}
+
+/** Bind a loopback port for one sign-in redirect. */
+export async function bindLoopbackCallback(
+  timeoutSeconds = 300,
+  options: LoopbackBindOptions = {},
+): Promise<LoopbackCallback> {
+  const port = await invoke<number>("oauth_listen", {
+    ports: options.ports ?? null,
+    callbackPath: options.callbackPath ?? null,
+  });
+  const host = options.host ?? "127.0.0.1";
+  const callbackPath = options.callbackPath ?? "/callback";
   let released = false;
 
   const release = () => {
@@ -29,7 +48,7 @@ export async function bindLoopbackCallback(timeoutSeconds = 300): Promise<Loopba
 
   return {
     port,
-    redirectUri: `http://127.0.0.1:${port}/callback`,
+    redirectUri: `http://${host}:${port}${callbackPath}`,
     release: () => release(),
     wait: async (signal?: AbortSignal) => {
       const onAbort = () => release();

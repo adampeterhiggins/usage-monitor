@@ -3,9 +3,9 @@ import { bindLoopbackCallback, type LoopbackCallback } from "../../platform/oaut
 import { fetchJson } from "../../platform/http";
 import type { ProviderLoginResult } from "../../contracts/auth";
 import {
-  abortError,
   pkceChallenge,
   randomBase64Url,
+  rejectOnAbort,
   type ProviderLoginSession,
 } from "../shared/loginSession";
 
@@ -102,58 +102,27 @@ async function fetchSuggestedLabel(apiKey: string, signal: AbortSignal): Promise
   }
 }
 
-function rejectOnAbort(signal: AbortSignal): Promise<never> {
-  return new Promise((_, reject) => {
-    if (signal.aborted) {
-      reject(abortError(signal));
-      return;
-    }
-    signal.addEventListener("abort", () => reject(abortError(signal)), { once: true });
-  });
-}
-
-export async function startDevinLogin(): Promise<ProviderLoginSession> {
-  const controller = new AbortController();
-  const verifier = randomBase64Url(32);
-  const state = randomBase64Url(16);
-
-  // The CLI redirects to a loopback server it starts itself; bind the same way
-  // so the browser can deliver the code and sign-in completes on its own.
-  let callback: LoopbackCallback | null = null;
-  try {
-    callback = await bindLoopbackCallback(LOGIN_TIMEOUT_SECONDS);
-  } catch {
-    callback = null;
-  }
-
-  const url = new URL(AUTHORIZE_URL);
-  url.searchParams.set("redirect_uri", callback?.redirectUri ?? FALLBACK_REDIRECT_URI);
-  url.searchParams.set("state", state);
-  url.searchParams.set("prompt", "select_account");
-  url.searchParams.set("code_challenge", pkceChallenge(verifier));
-  url.searchParams.set("code_challenge_method", "S256");
-
-  void openExternal(url.toString()).catch(() => {
-    // The dialog still offers "Open browser again".
-  });
-
+function devinSession(
+  url: URL,
+  verifier: string,
+  state: string,
+  authorization: (
+    controller: AbortController,
+    pasted: Promise<string>,
+  ) => Promise<{ code: string; state?: string }>,
+  callback: LoopbackCallback | null,
+  controller: AbortController,
+): ProviderLoginSession {
   let submit: ((code: string) => void) | undefined;
   const pasted = new Promise<string>((resolve) => {
     submit = resolve;
   });
 
-  async function authorization(): Promise<{ code: string; state?: string }> {
-    if (!callback) return parseDevinCallback(await pasted);
-    const params = await callback.wait(controller.signal);
-    const error = params.get("error");
-    if (error) throw new Error(`Devin sign-in failed: ${params.get("error_description") || error}`);
-    const code = params.get("code")?.trim();
-    if (!code) throw new Error("Devin sign-in returned no authorization code.");
-    return { code, state: params.get("state")?.trim() || undefined };
-  }
-
   const done = (async (): Promise<ProviderLoginResult> => {
-    const parsed = await Promise.race([authorization(), rejectOnAbort(controller.signal)]);
+    const parsed = await Promise.race([
+      authorization(controller, pasted),
+      rejectOnAbort(controller.signal),
+    ]);
     if (parsed.state && parsed.state !== state) {
       throw new Error("That sign-in doesn’t match this one. Start again.");
     }
@@ -187,4 +156,72 @@ export async function startDevinLogin(): Promise<ProviderLoginSession> {
         cancel: () => controller.abort(),
         submitCode: (code: string) => submit?.(code),
       };
+}
+
+function devinAuthorizeUrl(
+  redirectUri: string,
+  state: string,
+  verifier: string,
+): URL {
+  const url = new URL(AUTHORIZE_URL);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("state", state);
+  url.searchParams.set("prompt", "select_account");
+  url.searchParams.set("code_challenge", pkceChallenge(verifier));
+  url.searchParams.set("code_challenge_method", "S256");
+  return url;
+}
+
+/** Browser sign-in: a loopback listener catches the redirect and sign-in
+ *  completes on its own — the same flow `devin auth login` runs. */
+export async function startDevinBrowserLogin(): Promise<ProviderLoginSession> {
+  const controller = new AbortController();
+  const callback = await bindLoopbackCallback(LOGIN_TIMEOUT_SECONDS);
+  const verifier = randomBase64Url(32);
+  const state = randomBase64Url(16);
+  const url = devinAuthorizeUrl(callback.redirectUri, state, verifier);
+
+  void openExternal(url.toString()).catch(() => {
+    // The dialog still offers "Open browser again".
+  });
+
+  return devinSession(
+    url,
+    verifier,
+    state,
+    async (ctrl) => {
+      const params = await callback.wait(ctrl.signal);
+      const error = params.get("error");
+      if (error) {
+        throw new Error(`Devin sign-in failed: ${params.get("error_description") || error}`);
+      }
+      const code = params.get("code")?.trim();
+      if (!code) throw new Error("Devin sign-in returned no authorization code.");
+      return { code, state: params.get("state")?.trim() || undefined };
+    },
+    callback,
+    controller,
+  );
+}
+
+/** Manual sign-in for browsers that cannot reach this Mac's loopback listener:
+ *  the redirect page fails to load and its address bar holds the code. */
+export async function startDevinPasteCodeLogin(): Promise<ProviderLoginSession> {
+  const controller = new AbortController();
+  const verifier = randomBase64Url(32);
+  const state = randomBase64Url(16);
+  const url = devinAuthorizeUrl(FALLBACK_REDIRECT_URI, state, verifier);
+
+  void openExternal(url.toString()).catch(() => {
+    // The dialog still offers "Open browser again".
+  });
+
+  return devinSession(
+    url,
+    verifier,
+    state,
+    async (_ctrl, pasted) => parseDevinCallback(await pasted),
+    null,
+    controller,
+  );
 }
