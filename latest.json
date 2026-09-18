@@ -1,15 +1,15 @@
 {
-  "version": "0.2.5",
-  "notes": "## What's Changed\n* Keep account add/edit from sticking the whole panel on loading by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/46\n* Hide the empty-search state on the Updates settings page by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/47\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.4...v0.2.5\n\n## What's Changed\n* Keep account add/edit from sticking the whole panel on loading by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/46\n* Hide the empty-search state on the Updates settings page by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/47\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.4...v0.2.5",
-  "pub_date": "2026-09-15T11:28:10Z",
+  "version": "0.2.6",
+  "notes": "## What's Changed\n* Regroup the settings menu into sub-pages and fold in deployment info by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/49\n* Move Appearance settings into an in-panel dialog by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/50\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.5...v0.2.6",
+  "pub_date": "2026-09-18T15:09:44Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUpYbWcremxnS1JwMjlQMUhVdEdWdDk3anUyT2VQejVQTXZzdCtTaXNaOGdDVGIrdDBNOE1mWldib1o5SFNtOGFHRkV4TzlkUEVsMUQzd3ZBMFBXQkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDcyMzkxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CmtwbVBLbUNJOElzbVl3dTU4YUJGOXJaUlRHUDN4dEdLTHNYL1ZwTEJLRFBsUFBGUHNhRmdvY3l5SnoyWFNVOTZ3dTNTQ29vWlh0UjdXNkhrWTFpckN3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565585002"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNQSzdpSkNnYzBqMHgvR2xUNUw1R2NzUXFiWlVESnFtMjlHTXZOZ25mckpqMkYwdVVsS05nVzdlVnFjZkFxbE5yUW54ZDREbDZJUm9vQ2ViRlllakFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NzQ0MTc4CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClFwdCtaajY4ZmhnMlR1RFIrcjBIbTZ3bWRDUkNrM293bTVhLzJYcE9EZ2JSajdBYSs1UDEyQzVHbzRoaDBiUW5yTVlScTVIU1ZiSEIyZlBvRnlNYURBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/572868889"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUpYbWcremxnS1JwMjlQMUhVdEdWdDk3anUyT2VQejVQTXZzdCtTaXNaOGdDVGIrdDBNOE1mWldib1o5SFNtOGFHRkV4TzlkUEVsMUQzd3ZBMFBXQkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NDcyMzkxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CmtwbVBLbUNJOElzbVl3dTU4YUJGOXJaUlRHUDN4dEdLTHNYL1ZwTEJLRFBsUFBGUHNhRmdvY3l5SnoyWFNVOTZ3dTNTQ29vWlh0UjdXNkhrWTFpckN3PT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/565585002"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUNQSzdpSkNnYzBqMHgvR2xUNUw1R2NzUXFiWlVESnFtMjlHTXZOZ25mckpqMkYwdVVsS05nVzdlVnFjZkFxbE5yUW54ZDREbDZJUm9vQ2ViRlllakFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NzQ0MTc4CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClFwdCtaajY4ZmhnMlR1RFIrcjBIbTZ3bWRDUkNrM293bTVhLzJYcE9EZ2JSajdBYSs1UDEyQzVHbzRoaDBiUW5yTVlScTVIU1ZiSEIyZlBvRnlNYURBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/572868889"
     }
   }
 }
