@@ -8,12 +8,15 @@ export function FitCorner({
   contentRef: React.RefObject<HTMLElement | null>;
   headerRef: React.RefObject<HTMLElement | null>;
 }) {
+  // A borderless `.resizable` window hands the outer ~15px of each corner to
+  // macOS's native resize hit-testing — pointer events there never reach the
+  // webview — so the grip must sit further in to stay clickable.
   return (
     <button
       type="button"
       aria-label="Fit window to content"
       title="Fit to content"
-      className="fit-corner no-drag absolute bottom-0 right-0 z-50 transition-opacity hover:opacity-100"
+      className="fit-corner no-drag absolute bottom-5 right-5 z-50 transition-opacity hover:opacity-100"
       onClick={() => {
         const content = contentRef.current;
         if (!content) return;
