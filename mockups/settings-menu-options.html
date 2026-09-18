@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings menu — regrouping options</title>
+<style>
+  :root {
+    --menu-bg: #fcfcfc;
+    --fg: #000;
+    --fg-2: #656565;
+    --fg-3: #979797;
+    --placeholder: #cacaca;
+    --border: #e3e3e3;
+    --hover: #e2e2e2;
+    --accent: #138af2;
+    --mono: "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 13px;
+    background: #e9e9ec;
+    color: var(--fg);
+    padding: 40px 32px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header.page { max-width: 1160px; margin: 0 auto 28px; }
+  header.page h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  header.page p { margin-top: 6px; color: var(--fg-2); max-width: 760px; line-height: 1.45; }
+  header.page .hint { margin-top: 10px; font-size: 12px; color: var(--fg-3); }
+  header.page kbd { font-family: var(--mono); }
+
+  .grid { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 24px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } body { padding: 24px 14px 60px; } }
+
+  .card { background: #fff; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.07); overflow: hidden; display: flex; flex-direction: column; }
+  .card > header { display: flex; gap: 12px; padding: 18px 20px 14px; align-items: flex-start; }
+  .tag { flex: none; width: 26px; height: 26px; border-radius: 8px; background: #f0f0f2; color: var(--fg-2); font-weight: 700; font-size: 12px; display: grid; place-items: center; }
+  .tag.rec { background: var(--accent); color: #fff; }
+  .card h2 { font-size: 15px; font-weight: 650; }
+  .card header p { margin-top: 3px; color: var(--fg-2); font-size: 12.5px; line-height: 1.4; }
+  .count { margin-left: auto; flex: none; font-size: 11px; color: var(--fg-3); background: #f5f5f6; border-radius: 99px; padding: 3px 9px; white-space: nowrap; }
+
+  .stage { position: relative; margin: 0 14px; border-radius: 12px; min-height: 380px; padding: 22px 0 26px;
+    background: linear-gradient(160deg, #dcdde2 0%, #cfd1d8 55%, #c6c8cf 100%); display: flex; justify-content: center; }
+  .stage.d-left { justify-content: flex-start; padding-left: 18px; }
+  .menu { width: 320px; align-self: flex-start; background: var(--menu-bg); border: 1px solid var(--border);
+    border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08); overflow: hidden; }
+
+  .menu-search { height: 36px; display: flex; align-items: center; border-bottom: 1px solid var(--border); padding: 0 12px; }
+  .menu-search input { width: 100%; border: 0; outline: 0; background: transparent; font: inherit; color: var(--fg); }
+  .menu-search input::placeholder { color: var(--placeholder); }
+
+  .menu-list { padding: 4px; max-height: 320px; overflow-y: auto; }
+  .page-hdr { display: flex; align-items: center; gap: 6px; padding: 4px 8px 6px; color: var(--fg-3); font-size: 11px; }
+  .page-hdr button { border: 0; background: transparent; color: var(--fg-2); font: inherit; font-size: 14px; line-height: 1;
+    cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  .page-hdr button:hover { background: var(--hover); }
+  .page-hdr .title { font-weight: 600; color: var(--fg-2); }
+  .page-hdr .note { margin-left: auto; }
+
+  .mi { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
+    font-size: 13px; cursor: pointer; color: var(--fg); }
+  .mi:hover, .mi.sel { background: var(--hover); }
+  .mi svg { width: 16px; height: 16px; flex: none; color: var(--fg-2); }
+  .mi.danger, .mi.danger svg { color: #b12424; }
+  .mi-label { flex: 1; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+  .mi-acc { font-size: 11px; color: var(--fg-3); display: flex; align-items: center; gap: 4px; }
+  .mi-acc .chev { width: 13px; height: 13px; color: var(--fg-3); }
+  .chip { font-size: 10px; line-height: 1; color: var(--fg-2); background: #ececee; border-radius: 5px; padding: 3px 6px; }
+  .sep { height: 1px; background: var(--border); margin: 4px 6px; }
+  .glabel { padding: 7px 10px 3px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); }
+  .empty { padding: 20px 12px; text-align: center; font-size: 12px; color: var(--fg-3); display: none; }
+
+  /* nested flyout submenu (option D) */
+  .submenu { display: none; position: absolute; left: calc(100% - 10px); top: -5px; width: 180px; z-index: 5;
+    background: var(--menu-bg); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.16); padding: 4px; }
+  .mi:hover > .submenu, .mi.open > .submenu { display: block; }
+
+  /* modal */
+  .overlay { position: absolute; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center;
+    background: rgba(30,30,34,.32); backdrop-filter: blur(3px); border-radius: 12px; }
+  .overlay.show { display: flex; }
+  .modal { width: 340px; max-width: calc(100% - 32px); background: var(--menu-bg); border: 1px solid var(--border);
+    border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.3); overflow: hidden; }
+  .modal-hdr { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .modal-hdr svg { width: 16px; height: 16px; color: var(--fg-2); }
+  .modal-hdr .t { font-weight: 650; font-size: 13px; }
+  .modal-hdr .x { margin-left: auto; border: 0; background: transparent; cursor: pointer; color: var(--fg-3);
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; }
+  .modal-hdr .x:hover { background: var(--hover); color: var(--fg); }
+  .modal-hdr .x svg { width: 13px; height: 13px; color: inherit; }
+  .modal-body { padding: 10px; }
+  .modal-ftr { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--fg-3); }
+
+  .srow { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+  .srow:hover { background: #f4f4f5; }
+  .srow .ic { width: 16px; height: 16px; color: var(--fg-2); flex: none; }
+  .srow .lab { flex: 1; }
+  .srow .lab small { display: block; color: var(--fg-3); font-size: 11px; margin-top: 1px; }
+  .keys { font-family: var(--mono); font-size: 11px; color: var(--fg-2); background: #f0f0f1;
+    border: 1px solid #e2e2e4; border-bottom-color: #d4d4d6; border-radius: 6px; padding: 3px 8px; min-width: 44px; text-align: center; }
+  .rec { border: 1px solid var(--border); background: #fff; border-radius: 7px; font: inherit; font-size: 11.5px;
+    padding: 4px 10px; cursor: pointer; color: var(--fg); min-width: 64px; }
+  .rec:hover { background: #f4f4f5; }
+  .rec.recording { border-color: var(--accent); color: var(--accent); animation: pulse 1.1s infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+
+  .tabs { display: flex; gap: 2px; padding: 6px; border-bottom: 1px solid var(--border); background: #f6f6f7; }
+  .tabs button { flex: 1; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 550;
+    color: var(--fg-2); padding: 5px 0; border-radius: 7px; cursor: pointer; }
+  .tabs button.on { background: #fff; color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+  .btn { border: 1px solid var(--border); background: #fff; border-radius: 7px; font: inherit; font-size: 12px;
+    padding: 5px 12px; cursor: pointer; }
+  .btn:hover { background: #f4f4f5; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #007fe4; }
+  .radios .mi .dot { margin-left: auto; }
+  .updates-stub { padding: 18px 14px; text-align: center; color: var(--fg-2); font-size: 12px; }
+  .updates-stub .big { font-size: 13px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+
+  .notes { list-style: none; padding: 14px 20px 18px; }
+  .notes li { position: relative; padding: 3px 0 3px 16px; font-size: 12px; color: var(--fg-2); line-height: 1.45; }
+  .notes li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 6px; height: 6px; border-radius: 2px; background: #d4d4d8; }
+  .notes li b { color: var(--fg); font-weight: 600; }
+  .notes li.pro::before { background: #7fbf8f; }
+  .notes li.con::before { background: #e0a080; }
+
+  kbd { font-family: var(--mono); font-size: 10.5px; background: #f0f0f1; border: 1px solid #e0e0e2;
+    border-radius: 5px; padding: 1px 5px; }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>Settings menu — regrouping options</h1>
+  <p>The current root menu has <b>8 items</b>, two of which are inline shortcut recorders and one a one-shot size reset.
+     These mockups explore consolidating them. Everything is clickable — sub-pages, modals, submenus and the
+     key recorders all work (<kbd>Esc</kbd> cancels recording / closes a modal, <kbd>⌫</kbd> on an empty search goes back).</p>
+  <p class="hint">Glyphs: ⌘ command · ⇧ shift · ⌥ option · ⌃ control · ↩ return</p>
+</header>
+
+<div class="grid">
+
+  <!-- ============ BASELINE ============ -->
+  <section class="card">
+    <header>
+      <div class="tag">0</div>
+      <div>
+        <h2>Current menu <span style="color:var(--fg-3);font-weight:500">(baseline)</span></h2>
+        <p>Flat list. Two rows record shortcuts in place; size reset sits between layout and appearance.</p>
+      </div>
+      <span class="count">8 items</span>
+    </header>
+    <div class="stage">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi" data-goto="layout"><svg data-ic="grid"></svg><span class="mi-label">Switch Layout…</span><span class="mi-acc">Wall</span></div>
+            <div class="mi"><svg data-ic="scaling"></svg><span class="mi-label">Restore Default Size</span></div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi"><svg data-ic="refresh"></svg><span class="mi-label">Refresh Command</span><span class="mi-acc">⌘↩</span></div>
+            <div class="mi"><svg data-ic="keyboard"></svg><span class="mi-label">Show/Hide Shortcut</span><span class="mi-acc">⌘⇧U</span></div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="layout" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Switch Layout</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi" data-goto="columns"><svg data-ic="grid"></svg><span class="mi-label">Wall<span class="chip">2</span></span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+            <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+            <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+            <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+          </div>
+          <div class="menu-page" data-page="columns" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Wall Columns</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi"><svg data-ic="rectv"></svg><span class="mi-label">1 Column</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">2 Columns</span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="cols3"></svg><span class="mi-label">3 Columns</span></div>
+            <div class="mi"><svg data-ic="cols4"></svg><span class="mi-label">4 Columns</span></div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="con">Root mixes <b>navigation</b> (accounts, updates), <b>view state</b> (layout, size, appearance) and <b>binding editors</b>.</li>
+      <li class="con">Shortcut rows are one-purpose: click → record → done. Two rows for what is really one feature ("keyboard shortcuts").</li>
+      <li class="con">"Restore Default Size" is a rare, destructive-ish action taking prime root position.</li>
+    </ul>
+  </section>
+
+  <!-- ============ OPTION A ============ -->
+  <section class="card">
+    <header>
+      <div class="tag">A</div>
+      <div>
+        <h2>"Keyboard Shortcuts…" → modal</h2>
+        <p>Both recorders collapse into one item that opens a small dialog with both bindings side by side.</p>
+      </div>
+      <span class="count">7 items</span>
+    </header>
+    <div class="stage">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi" data-goto="layout"><svg data-ic="grid"></svg><span class="mi-label">Switch Layout…</span><span class="mi-acc">Wall</span></div>
+            <div class="mi"><svg data-ic="scaling"></svg><span class="mi-label">Restore Default Size</span></div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi" data-modal="kbd-a"><svg data-ic="keyboard"></svg><span class="mi-label">Keyboard Shortcuts…</span><span class="mi-acc"><svg class="chev" data-ic="chev-r"></svg></span></div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="layout" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Switch Layout</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi" data-goto="columns"><svg data-ic="grid"></svg><span class="mi-label">Wall<span class="chip">2</span></span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+            <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+            <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+            <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+          </div>
+          <div class="menu-page" data-page="columns" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Wall Columns</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi"><svg data-ic="rectv"></svg><span class="mi-label">1 Column</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">2 Columns</span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="cols3"></svg><span class="mi-label">3 Columns</span></div>
+            <div class="mi"><svg data-ic="cols4"></svg><span class="mi-label">4 Columns</span></div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="overlay" data-modal-id="kbd-a">
+        <div class="modal">
+          <div class="modal-hdr"><svg data-ic="keyboard"></svg><span class="t">Keyboard Shortcuts</span><button class="x" data-close><svg data-ic="x"></svg></button></div>
+          <div class="modal-body">
+            <div class="srow"><svg class="ic" data-ic="eye"></svg><div class="lab">Show / Hide panel<small>Global toggle from anywhere</small></div><span class="keys">⌘⇧U</span><button class="rec" data-record>Record</button></div>
+            <div class="srow"><svg class="ic" data-ic="refresh"></svg><div class="lab">Refresh usage<small>While the panel is focused</small></div><span class="keys">⌘↩</span><button class="rec" data-record>Record</button></div>
+          </div>
+          <div class="modal-ftr"><button class="btn" data-reset>Restore Defaults</button><span style="margin-left:auto">Esc to cancel while recording</span></div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="pro"><b>One concept, one row.</b> Both bindings live together; room for descriptions, conflict warnings, a reset button, and future bindings.</li>
+      <li class="pro">Modal can stay open while you re-record — today each attempt re-opens the menu.</li>
+      <li class="con">Adds a new surface (dialog) inside a popover-based app; needs dismissal rules vs. the popover.</li>
+      <li class="con">Bindings are no longer searchable from the root search.</li>
+    </ul>
+  </section>
+
+  <!-- ============ OPTION B ============ -->
+  <section class="card">
+    <header>
+      <div class="tag">B</div>
+      <div>
+        <h2>"Layout…" page absorbs size</h2>
+        <p>Rename "Switch Layout…" to "Layout…"; its sub-page gains the column picker and Restore Default Size at the bottom.</p>
+      </div>
+      <span class="count">7 items</span>
+    </header>
+    <div class="stage">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi" data-goto="layout"><svg data-ic="grid"></svg><span class="mi-label">Layout…</span><span class="mi-acc">Wall</span></div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi"><svg data-ic="refresh"></svg><span class="mi-label">Refresh Command</span><span class="mi-acc">⌘↩</span></div>
+            <div class="mi"><svg data-ic="keyboard"></svg><span class="mi-label">Show/Hide Shortcut</span><span class="mi-acc">⌘⇧U</span></div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="layout" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Layout</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi" data-goto="columns"><svg data-ic="grid"></svg><span class="mi-label">Wall<span class="chip">2</span></span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+            <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+            <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+            <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+            <div class="sep"></div>
+            <div class="mi"><svg data-ic="scaling"></svg><span class="mi-label">Restore Default Size</span></div>
+          </div>
+          <div class="menu-page" data-page="columns" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Wall Columns</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi"><svg data-ic="rectv"></svg><span class="mi-label">1 Column</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">2 Columns</span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="cols3"></svg><span class="mi-label">3 Columns</span></div>
+            <div class="mi"><svg data-ic="cols4"></svg><span class="mi-label">4 Columns</span></div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="pro">Size reset sits next to the thing it resets — <b>discoverable in context</b>, out of the root list.</li>
+      <li class="pro">Everything under "Layout…" stays searchable (sub-page items are still in the command tree).</li>
+      <li class="con">Slightly deeper for a rarely-used action — acceptable trade-off.</li>
+      <li class="con">Name change "Switch Layout…" → "Layout…" needed so the page scope reads naturally.</li>
+    </ul>
+  </section>
+
+  <!-- ============ OPTION C ============ -->
+  <section class="card">
+    <header>
+      <div class="tag rec">C</div>
+      <div>
+        <h2>Both regroupings <span style="color:var(--accent);font-weight:600">· recommended</span></h2>
+        <p>"Layout…" sub-page (incl. size) + "Keyboard Shortcuts…" modal. Root drops to six items.</p>
+      </div>
+      <span class="count">6 items</span>
+    </header>
+    <div class="stage">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi" data-goto="layout"><svg data-ic="grid"></svg><span class="mi-label">Layout…</span><span class="mi-acc">Wall</span></div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi" data-modal="kbd-c"><svg data-ic="keyboard"></svg><span class="mi-label">Keyboard Shortcuts…</span><span class="mi-acc"><svg class="chev" data-ic="chev-r"></svg></span></div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="layout" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Layout</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi" data-goto="columns"><svg data-ic="grid"></svg><span class="mi-label">Wall<span class="chip">2</span></span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+            <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+            <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+            <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+            <div class="sep"></div>
+            <div class="mi"><svg data-ic="scaling"></svg><span class="mi-label">Restore Default Size</span></div>
+          </div>
+          <div class="menu-page" data-page="columns" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Wall Columns</span><span class="note">⌫ / Esc</span></div>
+            <div class="mi"><svg data-ic="rectv"></svg><span class="mi-label">1 Column</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">2 Columns</span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="cols3"></svg><span class="mi-label">3 Columns</span></div>
+            <div class="mi"><svg data-ic="cols4"></svg><span class="mi-label">4 Columns</span></div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="overlay" data-modal-id="kbd-c">
+        <div class="modal">
+          <div class="modal-hdr"><svg data-ic="keyboard"></svg><span class="t">Keyboard Shortcuts</span><button class="x" data-close><svg data-ic="x"></svg></button></div>
+          <div class="modal-body">
+            <div class="srow"><svg class="ic" data-ic="eye"></svg><div class="lab">Show / Hide panel<small>Global toggle from anywhere</small></div><span class="keys">⌘⇧U</span><button class="rec" data-record>Record</button></div>
+            <div class="srow"><svg class="ic" data-ic="refresh"></svg><div class="lab">Refresh usage<small>While the panel is focused</small></div><span class="keys">⌘↩</span><button class="rec" data-record>Record</button></div>
+          </div>
+          <div class="modal-ftr"><button class="btn" data-reset>Restore Defaults</button><span style="margin-left:auto">Esc to cancel while recording</span></div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="pro">Root reads as <b>Accounts · Layout · Appearance · Shortcuts · Updates · Quit</b> — each row a destination, no inline editors.</li>
+      <li class="pro">Consistent pattern: every "…" item opens a dedicated surface (page, window, or dialog).</li>
+      <li class="con">Largest change: touches both recording flow and layout page.</li>
+    </ul>
+  </section>
+
+  <!-- ============ OPTION D ============ -->
+  <section class="card">
+    <header>
+      <div class="tag">D</div>
+      <div>
+        <h2>macOS-style submenus</h2>
+        <p>Keep everything in one list; "Layout" and "Shortcuts" expand as flyout submenus on hover. Most native feel, least restructuring.</p>
+      </div>
+      <span class="count">7 items · hover to expand</span>
+    </header>
+    <div class="stage d-left">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi"><svg data-ic="grid"></svg><span class="mi-label">Layout</span><span class="mi-acc">Wall <svg class="chev" data-ic="chev-r"></svg></span>
+              <div class="submenu">
+                <div class="mi"><svg data-ic="grid"></svg><span class="mi-label">Wall<span class="chip">2</span></span><span class="mi-acc">✓</span></div>
+                <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+                <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+                <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+                <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+                <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+                <div class="sep"></div>
+                <div class="mi"><svg data-ic="scaling"></svg><span class="mi-label">Restore Default Size</span></div>
+              </div>
+            </div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi"><svg data-ic="keyboard"></svg><span class="mi-label">Shortcuts</span><span class="mi-acc"><svg class="chev" data-ic="chev-r"></svg></span>
+              <div class="submenu">
+                <div class="mi"><svg data-ic="eye"></svg><span class="mi-label">Show / Hide Panel</span><span class="mi-acc">⌘⇧U</span></div>
+                <div class="mi"><svg data-ic="refresh"></svg><span class="mi-label">Refresh Usage</span><span class="mi-acc">⌘↩</span></div>
+                <div class="sep"></div>
+                <div class="mi"><span class="mi-label" style="color:var(--fg-3);font-size:12px;padding-left:24px">Select a row, then press keys</span></div>
+              </div>
+            </div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="pro">Matches platform convention (context menus, main menu) — no modal, no page-stack.</li>
+      <li class="pro">Keeps one-level keyboard search; submenu rows could stay searchable too.</li>
+      <li class="con">Flyouts fight with the popover edge — the menu is pinned to the panel's right edge, so submenus must open <b>leftward</b> (shown here rightward for clarity).</li>
+      <li class="con">Recording inside a hover-submenu is fragile (pointer slip = cancel).</li>
+    </ul>
+  </section>
+
+  <!-- ============ OPTION E ============ -->
+  <section class="card">
+    <header>
+      <div class="tag">E</div>
+      <div>
+        <h2>"Preferences…" hub modal</h2>
+        <p>One destination for everything view-related: tabs for Layout and Shortcuts (Appearance could join later).</p>
+      </div>
+      <span class="count">5 items</span>
+    </header>
+    <div class="stage">
+      <div class="menu" data-menu>
+        <div class="menu-search"><input placeholder="Search for actions…"></div>
+        <div class="menu-list">
+          <div class="menu-page" data-page="root">
+            <div class="mi"><svg data-ic="users"></svg><span class="mi-label">Manage Accounts…</span></div>
+            <div class="mi" data-modal="pref-e"><svg data-ic="sliders"></svg><span class="mi-label">Preferences…</span><span class="mi-acc">⌘,</span></div>
+            <div class="mi"><svg data-ic="contrast"></svg><span class="mi-label">Appearance…</span></div>
+            <div class="mi" data-goto="updates"><svg data-ic="refresh"></svg><span class="mi-label">Updates…</span></div>
+            <div class="mi"><svg data-ic="power"></svg><span class="mi-label">Quit</span></div>
+            <div class="empty">No actions found.</div>
+          </div>
+          <div class="menu-page" data-page="updates" hidden>
+            <div class="page-hdr"><button data-back>‹</button><span class="title">Updates</span><span class="note">⌫ / Esc</span></div>
+            <div class="updates-stub"><div class="big">You're up to date</div>v1.4.2 · checked just now<br><br><button class="btn">Check for Updates</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="overlay" data-modal-id="pref-e">
+        <div class="modal" style="width:380px">
+          <div class="modal-hdr"><svg data-ic="sliders"></svg><span class="t">Preferences</span><button class="x" data-close><svg data-ic="x"></svg></button></div>
+          <div class="tabs">
+            <button class="on" data-tab="lay">Layout</button>
+            <button data-tab="kbd">Shortcuts</button>
+          </div>
+          <div class="modal-body" data-pane="lay">
+            <div class="mi"><svg data-ic="grid"></svg><span class="mi-label">Wall</span><span class="mi-acc">✓</span></div>
+            <div class="mi"><svg data-ic="layers"></svg><span class="mi-label">Grouped</span></div>
+            <div class="mi"><svg data-ic="llist"></svg><span class="mi-label">Stacked</span></div>
+            <div class="mi"><svg data-ic="justify"></svg><span class="mi-label">Ledger</span></div>
+            <div class="mi"><svg data-ic="rows"></svg><span class="mi-label">Strip</span></div>
+            <div class="mi"><svg data-ic="cols2"></svg><span class="mi-label">Focus</span></div>
+            <div class="sep"></div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px">
+              <span style="flex:1">Wall columns</span>
+              <button class="btn" style="min-width:28px">−</button><b style="min-width:14px;text-align:center">2</b><button class="btn" style="min-width:28px">+</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px">
+              <span style="flex:1">Panel size</span>
+              <button class="btn">Restore Default</button>
+            </div>
+          </div>
+          <div class="modal-body" data-pane="kbd" hidden>
+            <div class="srow"><svg class="ic" data-ic="eye"></svg><div class="lab">Show / Hide panel<small>Global toggle from anywhere</small></div><span class="keys">⌘⇧U</span><button class="rec" data-record>Record</button></div>
+            <div class="srow"><svg class="ic" data-ic="refresh"></svg><div class="lab">Refresh usage<small>While the panel is focused</small></div><span class="keys">⌘↩</span><button class="rec" data-record>Record</button></div>
+            <div style="padding:8px"><button class="btn" data-reset>Restore Defaults</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li class="pro">Shortest root; frees ⌘, for a standard Preferences convention.</li>
+      <li class="pro">Layout picker becomes a real control surface — room for column stepper, previews, per-layout options.</li>
+      <li class="con">Heaviest lift: a second windowed surface (alongside the Appearance window) and loses cmdk search over preference items.</li>
+      <li class="con">"Wall · 2 cols" no longer visible at a glance from the root.</li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+/* ---------- lucide-ish inline icons ---------- */
+const ICONS = {
+  users:   '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  grid:    '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  scaling: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
+  contrast:'<circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z" fill="currentColor" stroke="none"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  keyboard:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M6 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M18 12h.01"/><path d="M7 16h10"/>',
+  power:   '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>',
+  layers:  '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  llist:   '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><path d="M14 4h7"/><path d="M14 9h7"/><path d="M14 15h7"/><path d="M14 20h7"/>',
+  justify: '<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
+  rows:    '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/>',
+  cols2:   '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/>',
+  cols3:   '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+  cols4:   '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7.5 3v18"/><path d="M12 3v18"/><path d="M16.5 3v18"/>',
+  rectv:   '<rect width="12" height="18" x="6" y="3" rx="2"/>',
+  eye:     '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  sliders: '<line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/>',
+  x:       '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'chev-r':'<path d="m9 18 6-6-6-6"/>',
+};
+for (const svg of document.querySelectorAll('svg[data-ic]')) {
+  const n = svg.dataset.ic;
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.innerHTML = ICONS[n] || '';
+}
+
+/* ---------- menu page navigation ---------- */
+document.querySelectorAll('[data-menu]').forEach(menu => {
+  const stack = ['root'];
+  const show = (name) => {
+    menu.querySelectorAll('.menu-page').forEach(p => p.hidden = p.dataset.page !== name);
+    const input = menu.querySelector('.menu-search input');
+    if (input) { input.value = ''; filter(menu, ''); }
+  };
+  menu.addEventListener('click', e => {
+    const go = e.target.closest('[data-goto]');
+    if (go) { const p = go.dataset.goto; if (stack[stack.length-1] !== p) stack.push(p); show(p); return; }
+    const back = e.target.closest('[data-back]');
+    if (back) { if (stack.length > 1) stack.pop(); show(stack[stack.length-1]); return; }
+    const mi = e.target.closest('.mi');
+    if (mi && !e.target.closest('.submenu')) {
+      menu.querySelectorAll('.menu-page:not([hidden]) .mi').forEach(x => x.classList.remove('sel'));
+      mi.classList.add('sel');
+    }
+  });
+  const input = menu.querySelector('.menu-search input');
+  input.addEventListener('input', () => filter(menu, input.value));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && input.value === '' && stack.length > 1) { stack.pop(); show(stack[stack.length-1]); }
+    if (e.key === 'Escape' && stack.length > 1) { stack.pop(); show(stack[stack.length-1]); e.stopPropagation(); }
+  });
+  function filter(menu, q) {
+    q = q.trim().toLowerCase();
+    const page = menu.querySelector('.menu-page:not([hidden])');
+    if (!page) return;
+    let visible = 0;
+    page.querySelectorAll(':scope > .mi').forEach(mi => {
+      const hit = !q || mi.textContent.toLowerCase().includes(q);
+      mi.style.display = hit ? '' : 'none';
+      if (hit) visible++;
+    });
+    const empty = page.querySelector('.empty');
+    if (empty) empty.style.display = visible ? 'none' : '';
+  }
+});
+
+/* ---------- modals ---------- */
+let openOverlay = null;
+document.querySelectorAll('[data-modal]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    const stage = el.closest('.stage');
+    const ov = stage.querySelector(`[data-modal-id="${el.dataset.modal}"]`);
+    if (ov) { ov.classList.add('show'); openOverlay = ov; }
+  });
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) closeOverlay(ov); });
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeOverlay(ov)));
+});
+function closeOverlay(ov) { ov.classList.remove('show'); if (openOverlay === ov) openOverlay = null; stopRecording(); }
+
+/* ---------- preference modal tabs ---------- */
+document.querySelectorAll('.tabs').forEach(tabs => {
+  tabs.addEventListener('click', e => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    tabs.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    const modal = tabs.closest('.modal');
+    modal.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
+  });
+});
+
+/* ---------- key recorder ---------- */
+let rec = null;
+document.querySelectorAll('[data-record]').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (rec && rec.btn === btn) { stopRecording(); return; }
+    stopRecording();
+    rec = { btn, keysEl: btn.closest('.srow').querySelector('.keys') };
+    btn.classList.add('recording');
+    btn.textContent = 'Press keys…';
+  });
+});
+document.querySelectorAll('[data-reset]').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const modal = btn.closest('.modal');
+    const defs = ['⌘⇧U', '⌘↩'];
+    modal.querySelectorAll('.srow .keys').forEach((k, i) => k.textContent = defs[i] || k.textContent);
+    stopRecording();
+  });
+});
+function stopRecording() {
+  if (!rec) return;
+  rec.btn.classList.remove('recording');
+  rec.btn.textContent = 'Record';
+  rec = null;
+}
+const KEYMAP = { Enter:'↩', ' ':'␣', ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→', Tab:'⇥', Backspace:'⌫', Delete:'⌦', ',':',', '.':'.' };
+window.addEventListener('keydown', e => {
+  if (rec) {
+    e.preventDefault(); e.stopPropagation();
+    if (e.key === 'Escape') { stopRecording(); return; }
+    if (['Meta','Control','Alt','Shift'].includes(e.key)) return;
+    let acc = '';
+    if (e.ctrlKey) acc += '⌃';
+    if (e.altKey) acc += '⌥';
+    if (e.shiftKey) acc += '⇧';
+    if (e.metaKey) acc += '⌘';
+    acc += KEYMAP[e.key] || (e.key.length === 1 ? e.key.toUpperCase() : e.key);
+    rec.keysEl.textContent = acc;
+    stopRecording();
+    return;
+  }
+  if (e.key === 'Escape' && openOverlay) { e.stopPropagation(); e.preventDefault(); closeOverlay(openOverlay); }
+}, true);
+</script>
+</body>
+</html>
