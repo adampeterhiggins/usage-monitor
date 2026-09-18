@@ -218,18 +218,16 @@ pub(crate) fn make_panel_key(app: &AppHandle, as_foreground: bool) {
     }
 }
 
-/// Hide the panel. When `keep_active` is false, also resign app activation so
-/// the accessory app fully retreats to the menu bar.
-pub(crate) fn hide_panel(app: &AppHandle, keep_active: bool) {
+/// Hide the panel and resign app activation so the accessory app fully
+/// retreats to the menu bar.
+pub(crate) fn hide_panel(app: &AppHandle) {
     if let Ok(panel) = app.get_webview_panel("main") {
         if panel.is_visible() {
             panel.resign_key_window();
             panel.hide();
         }
     }
-    if !keep_active {
-        resign_app_activation();
-    }
+    resign_app_activation();
 }
 
 fn apply_dock_icon() {

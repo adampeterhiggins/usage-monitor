@@ -7,6 +7,7 @@ import { Plus, RefreshCw } from "lucide-react";
 
 import { AccountDialog } from "../components/accounts/AccountDialog";
 import { AccountManagementDialog } from "../components/accounts/AccountManagementDialog";
+import { AppearanceDialog } from "../components/appearance/AppearanceDialog";
 import { DeploymentInfoButton } from "../components/settings/DeploymentInfo";
 import { SettingsPopover } from "../components/settings/SettingsPopover";
 import { FitCorner } from "../components/ui/FitCorner";
@@ -35,10 +36,11 @@ export function PanelApp() {
   const [focusSelectedId, setFocusSelectedId] = React.useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [manageOpen, setManageOpen] = React.useState(false);
+  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AccountPublic | null>(null);
-  const blockingOverlay = dialogOpen || manageOpen || settingsOpen;
-  const accountModalOpen = dialogOpen || manageOpen;
+  const blockingOverlay = dialogOpen || manageOpen || appearanceOpen || settingsOpen;
+  const accountModalOpen = dialogOpen || manageOpen || appearanceOpen;
   const headerRef = React.useRef<HTMLElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -216,6 +218,7 @@ export function PanelApp() {
             wallColumns={wallColumns}
             onWallColumnsChange={changeWallColumns}
             onManageAccounts={() => setManageOpen(true)}
+            onAppearance={() => setAppearanceOpen(true)}
             dialogOpen={blockingOverlay}
             onOpenChange={setSettingsOpen}
           />
@@ -234,6 +237,7 @@ export function PanelApp() {
         onEditAccount={openEdit}
       />
       <AccountDialog open={dialogOpen} onOpenChange={setDialogOpen} account={editing} />
+      <AppearanceDialog open={appearanceOpen} onOpenChange={setAppearanceOpen} />
     </div>
   );
 }

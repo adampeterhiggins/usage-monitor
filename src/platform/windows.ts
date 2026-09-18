@@ -1,6 +1,5 @@
 /** Panel window capabilities — lifecycle, drag, resize, and the modal-open
- *  bridge that keeps tray hide-on-blur off while a dialog is up. The
- *  Appearance window's lifecycle lives in `appearance-window.ts`. */
+ *  bridge that keeps tray hide-on-blur off while a dialog is up. */
 
 import { invoke } from "@tauri-apps/api/core";
 import { currentMonitor, getCurrentWindow, LogicalPosition, LogicalSize } from "@tauri-apps/api/window";

@@ -101,8 +101,8 @@ The repository is public, so the updater works anonymously. The manifest lives o
 
 ```
 src/
-  AppRoot.tsx        QueryClient, window selection, global hosts
-  windows/           PanelApp + AppearanceApp — distinct lifecycles
+  AppRoot.tsx        QueryClient, global hosts
+  windows/           PanelApp — the tray panel (all dialogs live inside it)
   state/             observable stores (accounts, usage, appearance,
                      updates, preferences) — no rendering
   hooks/             React/browser lifecycle (panel keys, lifecycle,

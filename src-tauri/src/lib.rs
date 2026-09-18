@@ -44,8 +44,6 @@ pub fn run() {
             commands::show_window,
             commands::toggle_window,
             commands::open_settings_popover,
-            commands::prepare_open_appearance,
-            commands::appearance_window_closed,
             commands::set_account_modal_open,
             commands::read_home_file,
             commands::read_keychain_password,

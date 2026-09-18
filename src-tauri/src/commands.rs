@@ -30,18 +30,6 @@ pub(crate) fn open_settings_popover(app: AppHandle) {
     panel::open_settings(&app);
 }
 
-/// Call before creating/focusing an auxiliary window (Appearance, provider
-/// login) so the tray panel's blur-to-hide path does not NSApp.hide() it away.
-#[tauri::command]
-pub(crate) fn prepare_open_appearance(app: AppHandle) {
-    panel::prepare_aux_window(&app);
-}
-
-#[tauri::command]
-pub(crate) fn appearance_window_closed(app: AppHandle) {
-    panel::aux_window_closed(&app);
-}
-
 /// While Add Account or Manage Accounts is open, become a normal app (Dock /
 /// Cmd-Tab) and do not hide the panel when the browser takes focus.
 #[tauri::command]

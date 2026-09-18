@@ -1,6 +1,6 @@
 //! Tray panel lifecycle: placement, show/hide/toggle, and the focus/blur
 //! coordination that keeps a menu-bar popover behaving like a popover while
-//! auxiliary windows (Appearance, provider login) are open.
+//! in-panel modal dialogs (accounts, appearance, provider login) are open.
 //!
 //! Platform-specific mechanics live in `crate::macos` — this module holds the
 //! cross-platform policy and dispatches through thin `#[cfg]` seams.
@@ -17,12 +17,6 @@ const OPEN_SETTINGS_EVENT: &str = "settings:openPopover";
 
 pub(crate) fn main_window(app: &AppHandle) -> Option<WebviewWindow> {
     app.get_webview_window("main")
-}
-
-fn aux_window_visible(app: &AppHandle) -> bool {
-    app.webview_windows().iter().any(|(label, win)| {
-        (label == "appearance" || label.starts_with("login-")) && win.is_visible().unwrap_or(false)
-    })
 }
 
 fn position_under_tray(win: &WebviewWindow, tray: Rect) {
@@ -199,11 +193,7 @@ pub(crate) fn hide(app: &AppHandle) {
 
 #[cfg(target_os = "macos")]
 fn hide_platform(app: &AppHandle) {
-    // Never NSApp.hide while Appearance (or another settings window) needs to
-    // stay up — that call hides every window in the accessory app, not just
-    // the tray panel.
-    let keep_active = app.state::<PanelState>().keep_app_active() || aux_window_visible(app);
-    crate::macos::hide_panel(app, keep_active);
+    crate::macos::hide_panel(app);
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -233,25 +223,6 @@ pub(crate) fn open_settings(app: &AppHandle) {
     }
 }
 
-/// Call before creating/focusing an auxiliary window (Appearance, provider
-/// login) so the tray panel's blur-to-hide path does not NSApp.hide() it away.
-pub(crate) fn prepare_aux_window(app: &AppHandle) {
-    let state = app.state::<PanelState>();
-    state.arm_blur_shield();
-    state.set_keep_app_active(true);
-}
-
-/// An auxiliary window closed: keep the app active only while one is still
-/// visible.
-pub(crate) fn aux_window_closed(app: &AppHandle) {
-    let keep = aux_window_visible(app);
-    let state = app.state::<PanelState>();
-    state.set_keep_app_active(keep);
-    if !keep && !state.account_modal_open() {
-        state.release_blur_shield();
-    }
-}
-
 /// While Add Account or Manage Accounts is open, become a normal app (Dock /
 /// Cmd-Tab) and do not hide the panel when the browser takes focus.
 pub(crate) fn set_account_modal(app: &AppHandle, open: bool) {
@@ -261,7 +232,7 @@ pub(crate) fn set_account_modal(app: &AppHandle, open: bool) {
     }
     if open {
         state.arm_blur_shield();
-    } else if !state.keep_app_active() {
+    } else {
         state.release_blur_shield();
     }
     let handle = app.clone();

@@ -1,6 +1,6 @@
 ---
 name: headless-dev
-description: Run and test usage-monitor headlessly in a browser with mocked Tauri IPC. Use when an agent needs to verify UI behavior, take screenshots, or exercise the app without building the native shell. Covers dev:mock lifecycle, the ?window= surface switch, the __TAURI_MOCK__ driver handle, and fixture/stub maintenance.
+description: Run and test usage-monitor headlessly in a browser with mocked Tauri IPC. Use when an agent needs to verify UI behavior, take screenshots, or exercise the app without building the native shell. Covers dev:mock lifecycle, the __TAURI_MOCK__ driver handle, and fixture/stub maintenance.
 ---
 
 # Headless dev (browser mock)
@@ -13,8 +13,8 @@ no real keychain, no real network.
 
 ## Surfaces
 
-- `http://localhost:1427/` — the tray panel (Shell)
-- `http://localhost:1427/?window=appearance` — the Appearance editor window
+- `http://localhost:1427/` — the tray panel (Shell). Appearance is an
+  in-panel dialog: Settings (⌘K or the gear button) → Appearance….
 
 `data-mock-tauri="true"` is set on `<html>` when the mock bundle is active;
 assert on it to confirm you are not talking to a real build.
@@ -32,7 +32,7 @@ survive refresh — reset them with `reset()` or a fresh browser context.
 
 ## What is real vs. fake
 
-Real: all React rendering, routing between the two surfaces, provider usage
+Real: all React rendering, provider usage
 parsing (fixtures flow through `parseUsage`, `parseAuthJson`,
 `sessionCookieFromJwt`, etc.), the settings/theme persistence stack (mock
 LazyStore → localStorage), and the appearance-changed event bus.

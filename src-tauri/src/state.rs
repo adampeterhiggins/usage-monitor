@@ -1,12 +1,12 @@
 //! Shared application state.
 //!
-//! `PanelState` coordinates the tray panel with the app's auxiliary windows
-//! (Appearance, provider login). Its atomics form the "blur shield" protocol:
-//! `ignore_next_blur` is armed before the panel shows, moves or resizes, then
-//! released on a delay by `panel::schedule_release_blur_shield` — unless
-//! `keep_app_active` or `account_modal_open` says an auxiliary window still
-//! needs the app to stay active. The release also re-keys a panel that lost
-//! key status while shielded, so a swallowed blur cannot leave it pinned.
+//! `PanelState` coordinates the tray panel's focus lifecycle. Its atomics form
+//! the "blur shield" protocol: `ignore_next_blur` is armed before the panel
+//! shows, moves or resizes, then released on a delay by
+//! `panel::schedule_release_blur_shield` — unless `account_modal_open` says an
+//! in-panel dialog still needs the app to stay active. The release also
+//! re-keys a panel that lost key status while shielded, so a swallowed blur
+//! cannot leave it pinned.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -17,11 +17,9 @@ use crate::frame::WindowFrame;
 
 pub(crate) struct PanelState {
     ignore_next_blur: AtomicBool,
-    /// When true, hide the tray panel without calling NSApp.hide — used while the
-    /// Appearance window is open so it isn't swept away with the panel.
-    keep_app_active: AtomicBool,
-    /// Add Account / Manage Accounts is open: behave like a normal app so login
-    /// can Cmd-Tab back, and do not dismiss the panel on blur.
+    /// Add Account / Manage Accounts / Appearance is open: behave like a
+    /// normal app so login can Cmd-Tab back, and do not dismiss the panel on
+    /// blur.
     account_modal_open: AtomicBool,
     last_tray_rect: Mutex<Option<Rect>>,
     saved_frame: Mutex<Option<WindowFrame>>,
@@ -31,7 +29,6 @@ impl Default for PanelState {
     fn default() -> Self {
         Self {
             ignore_next_blur: AtomicBool::new(false),
-            keep_app_active: AtomicBool::new(false),
             account_modal_open: AtomicBool::new(false),
             last_tray_rect: Mutex::new(None),
             saved_frame: Mutex::new(None),
@@ -54,18 +51,9 @@ impl PanelState {
         self.ignore_next_blur.store(false, Ordering::SeqCst);
     }
 
-    /// An auxiliary window (Appearance, account modal) is holding app focus.
+    /// An in-panel modal dialog is holding app focus.
     pub(crate) fn holds_focus(&self) -> bool {
-        self.keep_app_active.load(Ordering::SeqCst)
-            || self.account_modal_open.load(Ordering::SeqCst)
-    }
-
-    pub(crate) fn keep_app_active(&self) -> bool {
-        self.keep_app_active.load(Ordering::SeqCst)
-    }
-
-    pub(crate) fn set_keep_app_active(&self, keep: bool) {
-        self.keep_app_active.store(keep, Ordering::SeqCst);
+        self.account_modal_open.load(Ordering::SeqCst)
     }
 
     pub(crate) fn account_modal_open(&self) -> bool {
