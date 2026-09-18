@@ -3,13 +3,17 @@ import { OPEN_SETTINGS_EVENT, WINDOW_SHOWN_EVENT } from "../../contracts/platfor
 import { subscribe } from "../../platform/events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronLeft,
   Contrast,
+  Eye,
+  Info,
   Keyboard,
   LayoutGrid,
   LayoutList,
   Layers,
   AlignJustify,
   Rows3,
+  RotateCcw,
   Columns2,
   Columns3,
   Columns4,
@@ -42,6 +46,7 @@ import { type Layout, type WallColumns } from "../../lib/settings/layout";
 import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { UpdatePanel } from "./UpdatePanel";
+import { DeploymentPanel } from "./DeploymentPanel";
 import { Button } from "../ui/button";
 import {
   MenuCommand,
@@ -52,11 +57,20 @@ import {
   MenuItem,
   MenuList,
   MenuRoot,
+  MenuSeparator,
   MenuTrigger,
 } from "../ui/menu";
 
 
-type Page = "root" | "layout" | "columns" | "updates";
+type Page = "root" | "layout" | "columns" | "shortcuts" | "updates" | "deployment";
+
+const PAGE_TITLES: Record<Exclude<Page, "root">, string> = {
+  layout: "Layout",
+  columns: "Wall Columns",
+  shortcuts: "Keyboard Shortcuts",
+  updates: "Updates",
+  deployment: "Deployment",
+};
 
 const LAYOUT_OPTIONS: Array<{ id: Layout; label: string; icon: LucideIcon }> = [
   { id: "wall", label: "Wall", icon: LayoutGrid },
@@ -215,6 +229,25 @@ export function SettingsPopover({
     (accelerator) => void applyShortcut(accelerator),
   );
 
+  async function restoreDefaultShortcuts() {
+    setRecordingShortcut(false);
+    setRecordingRefreshShortcut(false);
+    try {
+      const ok = await registerToggleShortcut(toGlobalShortcut(DEFAULT_TOGGLE_SHORTCUT));
+      if (!ok) {
+        toast.error("Couldn't restore the show/hide shortcut — it is already in use.");
+        return;
+      }
+      await setToggleShortcut(DEFAULT_TOGGLE_SHORTCUT);
+      setShortcut(DEFAULT_TOGGLE_SHORTCUT);
+      await setRefreshShortcut(DEFAULT_REFRESH_SHORTCUT);
+      queryClient.setQueryData(REFRESH_SHORTCUT_QUERY_KEY, DEFAULT_REFRESH_SHORTCUT);
+      toast.success("Shortcuts restored to defaults");
+    } catch (error) {
+      toast.error(`Failed to restore defaults: ${error}`);
+    }
+  }
+
   const currentLayoutLabel = LAYOUT_OPTIONS.find((o) => o.id === layout)?.label ?? "Wall";
   const goBack = () => setPage(page === "columns" ? "layout" : "root");
 
@@ -258,15 +291,26 @@ export function SettingsPopover({
             }
           }}
         >
-          {page !== "updates" ? (
+          {page !== "updates" && page !== "deployment" ? (
             <MenuInput
               placeholder="Search for actions…"
               value={query}
               onValueChange={setQuery}
             />
           ) : null}
+          {page !== "root" ? (
+            <div className="flex items-center gap-0.5 px-1.5 pb-0.5 pt-1">
+              <Button iconOnly variant="transparent" size="small" aria-label="Back" onClick={goBack}>
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <span className="text-[11px] font-semibold text-ui-secondary">{PAGE_TITLES[page]}</span>
+              <span className="ml-auto pr-1 text-[10.5px] text-ui-tertiary">⌫ / Esc</span>
+            </div>
+          ) : null}
           <MenuList className="h-auto max-h-[320px] min-h-0 overflow-y-auto p-1">
-            {page !== "updates" ? <MenuEmpty>No actions found.</MenuEmpty> : null}
+            {page !== "updates" && page !== "deployment" ? (
+              <MenuEmpty>No actions found.</MenuEmpty>
+            ) : null}
             {page === "root" && (
               <MenuGroup>
                 <MenuItem
@@ -279,17 +323,9 @@ export function SettingsPopover({
                 />
                 <MenuItem
                   icon={LayoutGrid}
-                  label="Switch Layout…"
+                  label="Layout…"
                   accessory={currentLayoutLabel}
                   onSelect={() => setPage("layout")}
-                />
-                <MenuItem
-                  icon={Scaling}
-                  label="Restore Default Size"
-                  onSelect={() => {
-                    void restoreDefaultPanelSize();
-                    setOpen(false);
-                  }}
                 />
                 <MenuItem
                   icon={Contrast}
@@ -300,20 +336,16 @@ export function SettingsPopover({
                   }}
                 />
                 <MenuItem
-                  icon={RefreshCw}
-                  label="Refresh Command"
-                  accessory={
-                    recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
-                  }
-                  onSelect={() => setRecordingRefreshShortcut((prev) => !prev)}
-                />
-                <MenuItem
                   icon={Keyboard}
-                  label="Show/Hide Shortcut"
-                  accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
-                  onSelect={() => setRecordingShortcut((prev) => !prev)}
+                  label="Keyboard Shortcuts…"
+                  onSelect={() => setPage("shortcuts")}
                 />
                 <MenuItem icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+                <MenuItem
+                  icon={Info}
+                  label="Deployment…"
+                  onSelect={() => setPage("deployment")}
+                />
                 <MenuItem
                   icon={Power}
                   label="Quit"
@@ -323,20 +355,32 @@ export function SettingsPopover({
                 />
               </MenuGroup>
             )}
-            {page === "layout" &&
-              LAYOUT_OPTIONS.map(({ id, label, icon }) => (
+            {page === "layout" && (
+              <>
+                {LAYOUT_OPTIONS.map(({ id, label, icon }) => (
+                  <MenuItem
+                    key={id}
+                    icon={icon}
+                    label={label}
+                    chip={id === "wall" ? String(wallColumns) : undefined}
+                    accessory={id === layout ? "✓" : undefined}
+                    onSelect={() => {
+                      onLayoutChange(id);
+                      setPage(id === "wall" ? "columns" : "root");
+                    }}
+                  />
+                ))}
+                <MenuSeparator />
                 <MenuItem
-                  key={id}
-                  icon={icon}
-                  label={label}
-                  chip={id === "wall" ? String(wallColumns) : undefined}
-                  accessory={id === layout ? "✓" : undefined}
+                  icon={Scaling}
+                  label="Restore Default Size"
                   onSelect={() => {
-                    onLayoutChange(id);
-                    setPage(id === "wall" ? "columns" : "root");
+                    void restoreDefaultPanelSize();
+                    setOpen(false);
                   }}
                 />
-              ))}
+              </>
+            )}
             {page === "columns" &&
               WALL_COLUMN_OPTIONS.map(({ id, label, icon }) => (
                 <MenuItem
@@ -350,9 +394,47 @@ export function SettingsPopover({
                   }}
                 />
               ))}
+            {page === "shortcuts" && (
+              <>
+                <MenuItem
+                  icon={Eye}
+                  label="Show / Hide Panel"
+                  accessory={recordingShortcut ? "Press keys… (Esc)" : formatAccelerator(shortcut)}
+                  onSelect={() => {
+                    setRecordingRefreshShortcut(false);
+                    setRecordingShortcut((prev) => !prev);
+                  }}
+                />
+                <MenuItem
+                  icon={RefreshCw}
+                  label="Refresh Usage"
+                  accessory={
+                    recordingRefreshShortcut ? "Press keys… (Esc)" : formatAccelerator(refreshShortcut)
+                  }
+                  onSelect={() => {
+                    setRecordingShortcut(false);
+                    setRecordingRefreshShortcut((prev) => !prev);
+                  }}
+                />
+                <MenuSeparator />
+                <MenuItem
+                  icon={RotateCcw}
+                  label="Restore Defaults"
+                  onSelect={() => {
+                    void restoreDefaultShortcuts();
+                    setOpen(false);
+                  }}
+                />
+              </>
+            )}
             {page === "updates" && (
               <div>
                 <UpdatePanel />
+              </div>
+            )}
+            {page === "deployment" && (
+              <div>
+                <DeploymentPanel />
               </div>
             )}
           </MenuList>

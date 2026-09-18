@@ -8,7 +8,6 @@ import { Plus, RefreshCw } from "lucide-react";
 import { AccountDialog } from "../components/accounts/AccountDialog";
 import { AccountManagementDialog } from "../components/accounts/AccountManagementDialog";
 import { AppearanceDialog } from "../components/appearance/AppearanceDialog";
-import { DeploymentInfoButton } from "../components/settings/DeploymentInfo";
 import { SettingsPopover } from "../components/settings/SettingsPopover";
 import { FitCorner } from "../components/ui/FitCorner";
 import { Tooltip } from "../components/ui/tooltip";
@@ -211,7 +210,6 @@ export function PanelApp() {
               </Button>
             </span>
           </Tooltip>
-          <DeploymentInfoButton />
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}

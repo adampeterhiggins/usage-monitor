@@ -9,11 +9,8 @@ export function UpdatePanel() {
   return (
     <div className="flex flex-col gap-2 px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-[12px] font-semibold">Updates</div>
-          <div className="text-[11px] text-ui-tertiary">
-            {state.currentVersion ? `Running ${state.currentVersion}` : "Reading version…"}
-          </div>
+        <div className="text-[11px] text-ui-tertiary">
+          {state.currentVersion ? `Running ${state.currentVersion}` : "Reading version…"}
         </div>
         <Button
           size="small"
