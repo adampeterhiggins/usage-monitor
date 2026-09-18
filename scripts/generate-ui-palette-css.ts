@@ -243,12 +243,6 @@ const THEME_BLOCK = `
     cursor: default;
   }
 
-  /* The standalone Appearance window is opaque — it paints its own canvas. */
-  html[data-window="appearance"],
-  html[data-window="appearance"] body {
-    background: var(--ui-menu-background);
-  }
-
   input,
   textarea {
     user-select: text;

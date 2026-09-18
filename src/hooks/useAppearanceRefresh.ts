@@ -1,6 +1,6 @@
 import * as React from "react";
 import { subscribe } from "../platform/events";
-import { APPEARANCE_CHANGED_EVENT } from "../platform/appearance-window";
+import { APPEARANCE_CHANGED_EVENT } from "../contracts/platform";
 import {
   refreshAppliedAppearance,
   refreshAppearanceRespectingPreview,

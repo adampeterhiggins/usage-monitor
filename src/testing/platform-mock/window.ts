@@ -1,6 +1,7 @@
 /**
- * Mock `@tauri-apps/api/window`. `?window=appearance` renders the appearance
- * surface instead of the tray panel, so both windows are testable headlessly.
+ * Mock `@tauri-apps/api/window`. There is only the tray panel now — the
+ * Appearance editor is an in-panel dialog — but `?window=<label>` still sets
+ * the reported window label for future surfaces.
  */
 export class LogicalSize {
   width: number;

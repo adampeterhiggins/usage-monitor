@@ -32,7 +32,6 @@ import {
   setRefreshShortcut,
   setToggleShortcut,
 } from "../../lib/settings/index";
-import { openAppearanceWindow } from "../../platform/appearance-window";
 import { restoreDefaultPanelSize } from "../../platform/windows";
 import {
   acceleratorFromKeyDown,
@@ -119,6 +118,7 @@ interface SettingsPopoverProps {
   wallColumns: WallColumns;
   onWallColumnsChange: (columns: WallColumns) => void;
   onManageAccounts: () => void;
+  onAppearance: () => void;
   dialogOpen: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -129,6 +129,7 @@ export function SettingsPopover({
   wallColumns,
   onWallColumnsChange,
   onManageAccounts,
+  onAppearance,
   dialogOpen,
   onOpenChange,
 }: SettingsPopoverProps) {
@@ -331,7 +332,7 @@ export function SettingsPopover({
                   label="Appearance…"
                   onSelect={() => {
                     setOpen(false);
-                    void openAppearanceWindow();
+                    onAppearance();
                   }}
                 />
                 <MenuItem

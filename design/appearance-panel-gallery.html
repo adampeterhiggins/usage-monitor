@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Appearance → In-Panel — Design Options</title>
+<style>
+  /* ================================================================
+     Gallery chrome (the page itself, not the mockups)
+     ================================================================ */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #131316;
+    color: #e8e8ea;
+    -webkit-font-smoothing: antialiased;
+    padding: 48px 32px 96px;
+  }
+  .gallery { max-width: 960px; margin: 0 auto; }
+  .gallery > header { margin-bottom: 40px; }
+  .gallery h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .gallery > header p { color: #9a9aa0; font-size: 14px; line-height: 1.55; margin: 0; max-width: 720px; }
+  .gallery > header code { background: #26262b; border-radius: 5px; padding: 1px 5px; font-size: 12px; }
+
+  .option { margin-bottom: 72px; }
+  .option-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .option-num {
+    font-size: 11px; font-weight: 700; color: #131316; background: #8ec2ff;
+    border-radius: 999px; padding: 3px 9px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .option-num.rec { background: #7bd88f; }
+  .option h2 { font-size: 19px; font-weight: 620; margin: 0; letter-spacing: -0.01em; }
+  .option-tag { color: #8a8a90; font-size: 13px; }
+  .option-notes {
+    display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 18px;
+    color: #9a9aa0; font-size: 12.5px; line-height: 1.5;
+  }
+  .option-notes div { max-width: 290px; }
+  .option-notes b { color: #d5d5da; font-weight: 600; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .option-notes code { background: #26262b; border-radius: 4px; padding: 0 4px; font-size: 11px; }
+  .spec { margin-top: 12px; color: #6d6d74; font-size: 11.5px; font-family: "SF Mono", Menlo, monospace; }
+
+  /* ================================================================
+     Stage: desktop backdrop + tray panel glass shell
+     ================================================================ */
+  .stage {
+    border-radius: 20px;
+    padding: 44px 48px;
+    background:
+      radial-gradient(1200px 500px at 15% -10%, rgba(255,255,255,.16), transparent 55%),
+      linear-gradient(135deg, #5f7d9b 0%, #c4a574 46%, #7d8f62 100%);
+    display: flex; justify-content: center; overflow-x: auto;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 18px 50px rgba(0,0,0,.45);
+  }
+  .panel {
+    position: relative;
+    width: 820px; height: 480px; flex: none;
+    border-radius: 16px; overflow: hidden;
+    background: rgba(255,255,255,.42);
+    backdrop-filter: blur(28px) saturate(1.7);
+    -webkit-backdrop-filter: blur(28px) saturate(1.7);
+    box-shadow: 0 22px 60px rgba(0,0,0,.35), 0 0 0 .5px rgba(255,255,255,.5);
+    color: #000;
+    font-size: 13px;
+  }
+  .panel-head {
+    height: 52px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+  }
+  .panel-title { font-size: 18px; font-weight: 500; letter-spacing: -0.011px; }
+  .panel-head .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .panel-head .right { display: flex; align-items: center; gap: 6px; }
+  .glass-circle {
+    width: 32px; height: 32px; border-radius: 999px; border: 0; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fff; color: #000;
+    box-shadow: 0 1px 2px rgba(0,0,0,.12), inset 0 0 0 .5px #e6e6e6;
+    cursor: pointer;
+  }
+  .glass-circle.small { width: 28px; height: 28px; }
+  .panel-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 6px 16px 16px; align-content: start; }
+
+  /* ================================================================
+     Stock light palette — mirrors src/index.css tokens (menu/card surfaces)
+     ================================================================ */
+  .ui {
+    --t1:#000000; --t2:#656565; --t3:#979797; --t4:#cacaca;
+    --border:#e3e3e3;
+    --control:#e3e3e3; --control-hover:#e2e2e2; --control-pressed:#d4d4d4;
+    --accent:#138af2; --accent-hover:#007fe4;
+    --input-bg:#fcfcfc; --input-border:#e3e3e3; --input-ph:#cacaca;
+    --selection:#e0eefb; --track:#ebebeb;
+    --menu-bg:#fcfcfc; --card-bg:#fcfcfc;
+    --ok:#006b4f; --warn:#f8a300; --high:#c75d07; --crit:#b12424;
+    --prov-orange-bg:#f7ece4; --prov-orange-fg:#ae4f00;
+    --prov-green-bg:#e3eeeb; --prov-green-fg:#006b4f;
+    --prov-blue-bg:#e5f1fb; --prov-blue-fg:#006cc4;
+    --prov-purple-bg:#eeeaf8; --prov-purple-fg:#6d4bd8;
+    color: var(--t1);
+  }
+
+  /* ---- account cards (panel content behind the scrim) ---- */
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; min-width: 0;
+  }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .badge {
+    display: inline-flex; align-items: center; height: 18px; padding: 0 5px;
+    border-radius: 5px; font-size: 10px; font-weight: 500; line-height: 1; flex: none;
+  }
+  .badge.orange { background: var(--prov-orange-bg); color: var(--prov-orange-fg); }
+  .badge.green  { background: var(--prov-green-bg);  color: var(--prov-green-fg); }
+  .badge.blue   { background: var(--prov-blue-bg);   color: var(--prov-blue-fg); }
+  .badge.purple { background: var(--prov-purple-bg); color: var(--prov-purple-fg); }
+  .card-head .name { font-size: 14px; font-weight: 550; letter-spacing: -0.01em; }
+  .card-head .plan { font-size: 12px; color: var(--t3); }
+  .ubar { margin-bottom: 9px; }
+  .ubar .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .ubar .lbl { font-size: 12px; color: var(--t2); }
+  .ubar .pct { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .ubar .track { height: 5px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .ubar .fill { height: 100%; border-radius: 999px; }
+  .ubar .cap { font-size: 10.5px; color: var(--t3); display: block; margin-top: 3px; }
+  .fill.ok { background: var(--ok); } .fill.warn { background: var(--warn); }
+  .fill.high { background: var(--high); } .fill.crit { background: var(--crit); }
+  .card .meta { font-size: 11px; color: var(--t4); margin-top: 2px; }
+
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.25); z-index: 40; }
+
+  /* ================================================================
+     Shared dialog + control kit (mirrors ui/ + appearance/ components)
+     ================================================================ */
+  .dialog {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 50; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--menu-bg); border-radius: 16px; padding: 20px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.28), 0 0 0 .5px var(--border);
+    max-height: calc(100% - 28px);
+  }
+  .dlg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex: none; }
+  .dlg-title { font-size: 16px; font-weight: 600; }
+  .dlg-desc { font-size: 12px; color: var(--t2); margin-top: 4px; line-height: 1.45; }
+  .dlg-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; flex: none; }
+  .dlg-body { min-height: 0; flex: 1; overflow-y: auto; margin-top: 14px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 0; border-radius: 999px; font-family: inherit; cursor: pointer;
+    height: 32px; padding: 0 12px; font-size: 13px; white-space: nowrap;
+  }
+  .btn.small { height: 28px; padding: 0 10px; font-size: 11px; }
+  .btn.filled { background: var(--control); color: var(--t1); }
+  .btn.filled:hover { background: var(--control-hover); }
+  .btn.accent { background: var(--accent); color: #fff; }
+  .btn.accent:hover { background: var(--accent-hover); }
+  .btn.glass {
+    background: #fff; color: #000;
+    box-shadow: 0 1px 2px rgba(0,0,0,.12), inset 0 0 0 .5px var(--border);
+  }
+  .btn.transparent { background: transparent; color: var(--t3); }
+  .btn.transparent:hover { background: var(--control-hover); color: var(--t1); }
+  .btn.icon { width: 28px; height: 28px; padding: 0; }
+  .btn.icon.small { width: 24px; height: 24px; }
+  .btn svg { display: block; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding: 6px 10px; margin: 0 -20px; flex: none; }
+  .dlg .tabs { margin: 14px -20px 0; }
+  .tab {
+    border: 0; background: transparent; font-family: inherit; cursor: pointer;
+    border-radius: 8px; padding: 5px 10px; font-size: 12px; color: var(--t2);
+  }
+  .tab:hover { background: var(--control-hover); }
+  .tab.on { background: var(--control); color: var(--t1); }
+  [data-tab-content] { display: none; }
+  [data-tab-content].on { display: block; }
+
+  .sect { margin-bottom: 16px; }
+  .sect > h4 { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--t3); margin: 0 0 8px; }
+  .sect p { font-size: 12px; color: var(--t3); margin: 0 0 8px; line-height: 1.45; }
+
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .seg button {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 0; border-radius: 8px; padding: 8px 0; font-size: 12px; font-family: inherit;
+    background: transparent; color: var(--t1); cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .seg button.on { background: var(--control); }
+
+  .trow {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border: 0; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; background: transparent; color: var(--t1);
+  }
+  .trow:hover { background: var(--control-hover); }
+  .trow.on { background: var(--control); }
+  .trow .l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .trow .l span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .ck { color: var(--t1); font-size: 12px; flex: none; }
+  .trow.dim .nm { color: var(--t3); }
+  .trow .mini { font-size: 11px; color: var(--t4); }
+
+  .sw { display: inline-flex; gap: 2px; flex: none; }
+  .sw i { width: 10px; height: 10px; border-radius: 999px; display: block; box-shadow: inset 0 0 0 .5px var(--border); }
+
+  .field {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    height: 32px; border-radius: 8px; border: 1px solid var(--input-border);
+    background: var(--input-bg); padding: 0 8px; font-size: 13px; color: var(--t1);
+    width: 100%;
+  }
+  .field .ph { color: var(--input-ph); }
+  .field svg { color: var(--t3); flex: none; }
+  label.flabel { display: grid; gap: 4px; font-size: 12px; color: var(--t2); margin-bottom: 8px; }
+
+  .srow { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--t2); margin-bottom: 4px; }
+  .srow .v { font-variant-numeric: tabular-nums; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: transparent; margin: 0; display: block; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 999px; background: var(--track); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 999px; background: #fff;
+    margin-top: -5px; box-shadow: 0 1px 3px rgba(0,0,0,.25), 0 0 0 .5px rgba(0,0,0,.08);
+  }
+  input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 0; border-radius: 999px; background: var(--control); color: var(--t2); font-size: 11px; padding: 4px 10px; font-family: inherit; cursor: pointer; }
+
+  .search { position: relative; flex: 1; min-width: 0; }
+  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--t3); pointer-events: none; }
+  .search input {
+    width: 100%; height: 36px; border-radius: 8px; border: 1px solid var(--input-border);
+    background: var(--input-bg); padding: 0 12px 0 32px; font-size: 13px; font-family: inherit;
+    color: var(--t1); outline: none;
+  }
+  .search input::placeholder { color: var(--input-ph); }
+
+  .xrow {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    border-radius: 8px; padding: 8px 10px;
+  }
+  .xrow:hover, .xrow.on { background: var(--control); }
+  .xrow .nm { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+  .xrow .meta { font-size: 11px; color: var(--t3); margin-top: 2px; overflow-wrap: anywhere; }
+  .xrow .acts { display: flex; align-items: center; gap: 4px; flex: none; }
+
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+  /* ---- mini usage-monitor preview (AppearancePreview) ---- */
+  .mini {
+    position: relative; min-height: 0; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(135deg, #5f7d9b 0%, #c4a574 46%, #7d8f62 100%);
+    display: flex; flex-direction: column;
+  }
+  .mini-panel {
+    flex: 1; margin: 10px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+    background: rgba(255,255,255,.42); backdrop-filter: blur(16px) saturate(1.6);
+    box-shadow: 0 8px 24px rgba(0,0,0,.12), 0 0 0 .5px rgba(255,255,255,.5);
+  }
+  .mini-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 6px; }
+  .mini-head .t { font-size: 12px; font-weight: 500; letter-spacing: -0.02em; }
+  .mini-head .cs { display: flex; gap: 4px; }
+  .mini-head .c { width: 20px; height: 20px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12), inset 0 0 0 .5px #e6e6e6; display: flex; align-items: center; justify-content: center; }
+  .mini-cards { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 10px; overflow: hidden; }
+  .mini-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+  .mini-card .ch { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+  .mini-card .badge { height: 13px; font-size: 8.5px; padding: 0 4px; border-radius: 4px; }
+  .mini-card .nm { font-size: 10.5px; font-weight: 500; }
+  .mini-card .pl { font-size: 8.5px; color: var(--t3); }
+  .mini-ubar { margin-bottom: 6px; }
+  .mini-ubar .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .mini-ubar .lbl { font-size: 8.5px; color: var(--t2); }
+  .mini-ubar .pct { font-size: 8.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .mini-ubar .track { height: 3.5px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .mini-ubar .cap { font-size: 7.5px; color: var(--t3); display: block; margin-top: 2px; }
+  .mini-card .meta { font-size: 7.5px; color: var(--t4); }
+
+  /* ================================================================
+     Option-specific layouts
+     ================================================================ */
+
+  /* 1 — centered dialog, tabs inside */
+  .dlg-tabs { width: min(560px, calc(100% - 32px)); }
+
+  /* 2 — wide dialog with preview rail */
+  .dlg-wide { width: min(716px, calc(100% - 32px)); }
+  .dlg-wide .cols { display: flex; min-height: 0; flex: 1; margin-top: 14px; }
+  .dlg-wide .col-l { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dlg-wide .col-l .dlg-body { margin-top: 10px; }
+  .rail {
+    width: 208px; flex: none; margin-left: 16px; padding: 10px;
+    border-left: 1px solid var(--border); background: rgba(227,227,227,.35);
+    display: flex; flex-direction: column; margin-right: -20px; margin-bottom: -20px; margin-top: 0;
+    border-bottom-right-radius: 16px;
+  }
+  .rail .cap { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .rail .cap .t { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--t3); }
+  .rail .cap .c { font-size: 10px; color: var(--t3); }
+  .rail .mini { flex: 1; }
+
+  /* 3 — full-panel page */
+  .page { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; }
+  .page-tabs { padding: 0 16px; }
+  .page-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
+  .twocol { columns: 2; column-gap: 20px; }
+  .twocol .sect { break-inside: avoid; }
+
+  /* 4 — bottom sheet */
+  .sheet {
+    position: absolute; left: 10px; right: 10px; bottom: 0; z-index: 50;
+    height: 86%; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--menu-bg); border-radius: 16px 16px 0 0; padding: 8px 20px 16px;
+    box-shadow: 0 -12px 44px rgba(0,0,0,.3), 0 0 0 .5px var(--border);
+  }
+  .grab { width: 36px; height: 4px; border-radius: 999px; background: var(--control-pressed); margin: 2px auto 10px; flex: none; }
+
+  /* 5 — settings popover drill-in */
+  .pop {
+    position: absolute; top: 56px; right: 14px; z-index: 50; width: 320px;
+    background: var(--menu-bg); border-radius: 16px; padding: 6px;
+    box-shadow: 0 18px 48px rgba(0,0,0,.28), 0 0 0 .5px var(--border);
+    display: flex; flex-direction: column; max-height: calc(100% - 70px);
+  }
+  .pop .search input { height: 32px; }
+  .pop-list { overflow-y: auto; padding: 4px 0; }
+  .mi {
+    display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent;
+    font-family: inherit; cursor: pointer; text-align: left;
+    border-radius: 8px; padding: 7px 8px; font-size: 13px; color: var(--t1);
+  }
+  .mi:hover { background: var(--control-hover); }
+  .mi svg { color: var(--t3); flex: none; }
+  .mi .acc { margin-left: auto; font-size: 12px; color: var(--t3); }
+  .mi .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pop .seg { padding: 4px 8px 8px; }
+  .pop .seg button { padding: 6px 0; font-size: 11px; }
+  .pop .trow { padding: 6px 8px; }
+  .pop .trow .nm { font-size: 12.5px; }
+
+  /* 6 — sidebar dialog */
+  .dlg-side { width: min(660px, calc(100% - 32px)); }
+  .dlg-side .cols { display: flex; min-height: 0; flex: 1; margin-top: 14px; gap: 0; }
+  .side-nav {
+    width: 148px; flex: none; border-right: 1px solid var(--border);
+    padding-right: 12px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .side-nav .mi, .nav-list .mi { font-size: 12.5px; }
+  .side-nav .mi.on, .nav-list .mi.on { background: var(--control); }
+  .side-detail { flex: 1; min-width: 0; overflow-y: auto; padding-left: 16px; }
+
+  /* 7 — three-column dialog (nav | controls | preview) */
+  .dlg-3col { width: min(768px, calc(100% - 24px)); height: min(448px, calc(100% - 24px)); }
+  .dlg-3col .cols { display: flex; min-height: 0; flex: 1; margin-top: 12px; }
+  .dlg-3col .side-nav { width: 124px; }
+  .dlg-3col .side-detail { padding: 0 14px; }
+  .dlg-3col .rail { width: 190px; margin-left: 12px; }
+
+  /* 8 — nav + preview stacked rail */
+  .dlg-stack { width: min(736px, calc(100% - 24px)); height: min(448px, calc(100% - 24px)); }
+  .dlg-stack .cols { display: flex; min-height: 0; flex: 1; margin-top: 12px; }
+  .rail-l { width: 196px; flex: none; border-right: 1px solid var(--border); padding-right: 12px; display: flex; flex-direction: column; }
+  .nav-list { display: flex; flex-direction: column; gap: 2px; }
+  .pv-cap { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .pv-cap .t { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--t3); }
+  .pv-cap .c { font-size: 10px; color: var(--t3); }
+  .rail-l .mini { flex: 1; min-height: 0; }
+  .dlg-stack .side-detail { padding-left: 16px; }
+
+  /* comparison table */
+  table.matrix { width: 100%; border-collapse: collapse; font-size: 12.5px; color: #c9c9cf; }
+  .matrix th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: #7d7d85; padding: 8px 10px; border-bottom: 1px solid #333338; font-weight: 600; }
+  .matrix td { padding: 9px 10px; border-bottom: 1px solid #232327; vertical-align: top; line-height: 1.45; }
+  .matrix tr td:first-child { color: #ececf0; font-weight: 550; white-space: nowrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; }
+  .dot.y { background: #7bd88f; } .dot.m { background: #e8c566; } .dot.n { background: #55555c; }
+</style>
+</head>
+<body>
+<div class="gallery">
+
+  <header>
+    <h1>Appearance, moved in-panel — design options</h1>
+    <p>
+      The Appearance editor currently lives in a separate 760×820 native window with its own chrome.
+      These mockups explore ways to bring it into the tray panel using the same language as
+      <code>AccountManagementDialog</code> — <code>bg-ui-scrim</code> overlay, centered
+      <code>rounded-2xl</code> card on the <code>menu</code> surface, 13&nbsp;px controls.
+      Each frame is the real panel size (820×480 default; 560×280 minimum) over a desktop backdrop.
+      Tabs, segmented controls, theme rows, and sliders are clickable.
+    </p>
+  </header>
+
+  <!-- ================= REFERENCE ================= -->
+  <section class="option" id="ref">
+    <div class="option-head">
+      <span class="option-num" style="background:#55555c;color:#e8e8ea">Ref</span>
+      <h2>Manage Accounts — the existing pattern</h2>
+      <span class="option-tag">what we're matching</span>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog" style="width:min(440px,calc(100% - 32px))">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Manage Accounts</div>
+            <div class="dlg-desc">Add, edit, hide, remove, or drag to reorder. Order applies to Wall and Ledger layouts.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="dlg-body" style="display:grid;gap:6px">
+          <div class="card" style="display:flex;align-items:center;gap:6px;padding:6px">
+            <span style="display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <div style="flex:1;min-width:0"><span class="badge orange">Claude</span> <span style="font-size:13px">adam@focaldata.com</span></div>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+            <button class="btn icon small transparent" style="color:var(--crit)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+          <div class="card" style="display:flex;align-items:center;gap:6px;padding:6px">
+            <span style="display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <div style="flex:1;min-width:0"><span class="badge green">Codex</span> <span style="font-size:13px">adam@focaldata.com</span></div>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+            <button class="btn icon small transparent" style="color:var(--crit)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+          <div class="card" style="display:flex;align-items:center;gap:6px;padding:6px;opacity:.7">
+            <span style="display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <div style="flex:1;min-width:0"><span class="badge purple">Devin</span> <span style="font-size:13px;color:var(--t3)">adam@focaldata.com</span><div style="font-size:11px;color:var(--t4);margin-top:2px">Hidden from layouts</div></div>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/></svg></button>
+            <button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+            <button class="btn icon small transparent" style="color:var(--crit)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn small accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>Add Account</button>
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">Dialog.Root → Dialog.Overlay(bg-ui-scrim, rounded-16) + Dialog.Content(data-ui-surface="menu", rounded-2xl, p-5, ring-ui-subtle, w-[min(440px,…)]) · useModalOpenBridge keeps panel visible</div>
+  </section>
+
+  <!-- ================= OPTION 1 ================= -->
+  <section class="option" id="opt1">
+    <div class="option-head">
+      <span class="option-num">1</span>
+      <h2>Centered dialog, tabs inside</h2>
+      <span class="option-tag">direct parity with Manage Accounts</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b><code>Dialog.Root</code>, scrim, menu surface, existing tab row — the whole <code>AppearancePanel</code> content tree drops in nearly unchanged.</div>
+      <div><b>Why it works</b>Edits re-theme the real panel live behind the scrim — the miniature preview rail becomes redundant, so the dialog stays narrow.</div>
+      <div><b>Watch out</b>Needs <code>useModalOpenBridge</code> so blur-hide doesn't dismiss mid-edit (file import opens a native picker). Controls scroll below ~440&nbsp;px panel height.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog dlg-tabs" data-tabs data-default="themes">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Appearance</div>
+            <div class="dlg-desc">Theme, mode, marketplace, and interface controls. Changes apply instantly.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="tabs">
+          <button class="tab on" data-tab="themes">Themes</button>
+          <button class="tab" data-tab="openvsx">Open VSX</button>
+          <button class="tab" data-tab="controls">Controls</button>
+        </div>
+        <div class="dlg-body">
+          <div data-tab-content="themes" class="on" data-mount="themes"></div>
+          <div data-tab-content="openvsx" data-mount="openvsx"></div>
+          <div data-tab-content="controls" data-mount="controls"></div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn small accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>Create Theme</button>
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">w=min(560px, 100%−2rem) · same chrome as Manage Accounts · footer-left = primary action (Create Theme), right = Done</div>
+  </section>
+
+  <!-- ================= OPTION 2 ================= -->
+  <section class="option" id="opt2">
+    <div class="option-head">
+      <span class="option-num">2</span>
+      <h2>Wide dialog + preview rail</h2>
+      <span class="option-tag">conservative port — keeps the miniature preview</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>Everything in option 1 plus the existing <code>AppearancePreview</code> rail (shrunk to ~200&nbsp;px) docked inside the dialog.</div>
+      <div><b>Why it works</b>Preserves the current window's information architecture 1:1 — tabs left, live miniature right, including Open&nbsp;VSX theme previews.</div>
+      <div><b>Watch out</b>716&nbsp;px wide barely fits the 820 default and must collapse the rail under ~700&nbsp;px panel width; preview duplicates what the real panel already shows.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog dlg-wide" data-tabs data-default="themes" style="padding-bottom:0">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Appearance</div>
+            <div class="dlg-desc">Theme, mode, marketplace, and interface controls.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="cols">
+          <div class="col-l">
+            <div class="tabs" style="margin:0">
+              <button class="tab on" data-tab="themes">Themes</button>
+              <button class="tab" data-tab="openvsx">Open VSX</button>
+              <button class="tab" data-tab="controls">Controls</button>
+            </div>
+            <div class="dlg-body">
+              <div data-tab-content="themes" class="on" data-mount="themes"></div>
+              <div data-tab-content="openvsx" data-mount="openvsx"></div>
+              <div data-tab-content="controls" data-mount="controls"></div>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="cap"><span class="t">Preview</span><span class="c">Default</span></div>
+            <div class="mini" data-mount="preview"></div>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:flex-end;padding-bottom:20px">
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">w=min(716px, 100%−2rem) · preview rail = AppearancePreview @ ~208px · rail collapses below ~700px panel width</div>
+  </section>
+
+  <!-- ================= OPTION 3 ================= -->
+  <section class="option" id="opt3">
+    <div class="option-head">
+      <span class="option-num">3</span>
+      <h2>Full-panel page</h2>
+      <span class="option-tag">in-place navigation, no modal at all</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>The panel itself becomes the editor — header swaps to a back button + title; the content area hosts the tab tree. Nothing overlays anything.</div>
+      <div><b>Why it works</b>Maximum room for controls (the panel resizes to 560–∞&nbsp;px), zero scrim so the entire UI restyles live as you pick themes. Feels like iOS/macOS settings navigation.</div>
+      <div><b>Watch out</b>Account list state must be restored on back; needs the same blur-shield treatment as dialogs during file import. Biggest departure from the dialog pattern.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="page">
+        <div class="panel-head">
+          <div class="left">
+            <button class="glass-circle small"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <span class="panel-title">Appearance</span>
+          </div>
+          <div class="right"><button class="btn glass small" style="height:28px">Done</button></div>
+        </div>
+        <div class="page-tabs" data-tabs data-default="themes">
+          <div class="tabs" style="margin:0 -4px;border-bottom:0">
+            <button class="tab on" data-tab="themes">Themes</button>
+            <button class="tab" data-tab="openvsx">Open VSX</button>
+            <button class="tab" data-tab="controls">Controls</button>
+          </div>
+          <div class="page-body" style="padding:12px 0 0">
+            <div data-tab-content="themes" class="on"><div class="twocol" data-mount="themes"></div></div>
+            <div data-tab-content="openvsx" data-mount="openvsx"></div>
+            <div data-tab-content="controls"><div class="twocol" data-mount="controls"></div></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">Settings → Appearance… pushes this page · ‹ back returns to the account list · sections flow into 2 columns when the panel is wide</div>
+  </section>
+
+  <!-- ================= OPTION 4 ================= -->
+  <section class="option" id="opt4">
+    <div class="option-head">
+      <span class="option-num">4</span>
+      <h2>Bottom sheet</h2>
+      <span class="option-tag">popover-native, thumb-friendly</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>Scrim + menu surface like the dialog, but anchored to the panel's bottom edge with a grab handle — reads as "the panel opens up".</div>
+      <div><b>Why it works</b>Keeps the toolbar visible (title context stays "AI Usage"), slides down to dismiss, partial-height states possible (half = quick theme switch, full = all controls).</div>
+      <div><b>Watch out</b>Bottom sheets are an iOS idiom — charming in a menu-bar popover but less macOS-conventional than a centered dialog. Needs drag physics to feel right.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="sheet" data-tabs data-default="controls">
+        <div class="grab"></div>
+        <div class="dlg-head" style="align-items:center">
+          <div class="dlg-title">Appearance</div>
+          <button class="btn glass small" style="height:28px">Done</button>
+        </div>
+        <div class="tabs" style="margin:10px -20px 0">
+          <button class="tab" data-tab="themes">Themes</button>
+          <button class="tab" data-tab="openvsx">Open VSX</button>
+          <button class="tab on" data-tab="controls">Controls</button>
+        </div>
+        <div class="dlg-body">
+          <div data-tab-content="themes" data-mount="themes"></div>
+          <div data-tab-content="openvsx" data-mount="openvsx"></div>
+          <div data-tab-content="controls" class="on" data-mount="controls"></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">sheet h=86% of panel · rounded-t-2xl · drag handle · swipe-down / Esc / scrim-click dismisses</div>
+  </section>
+
+  <!-- ================= OPTION 5 ================= -->
+  <section class="option" id="opt5">
+    <div class="option-head">
+      <span class="option-num">5</span>
+      <h2>Settings-menu drill-in</h2>
+      <span class="option-tag">quick switcher inside the ⌘K popover</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>The existing <code>SettingsPopover</code> page stack (like Switch Layout → Columns). "Appearance…" pushes a submenu page: mode + theme list.</div>
+      <div><b>Why it works</b>Zero new surfaces — the 90% case (switch theme / mode) is two clicks from ⌘K. "Open VSX…" and "More Controls…" escalate to a dialog (options 1–4) for the rest.</div>
+      <div><b>Watch out</b>Not a full replacement — sliders, fonts, presets, and marketplace don't fit a 320&nbsp;px menu. Best used <i>alongside</i> one of the other options, not instead of.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="glass-circle" style="box-shadow:0 1px 2px rgba(0,0,0,.12), inset 0 0 0 1.5px #138af2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="pop ui">
+        <div class="search" style="padding:2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search for actions…" /></div>
+        <div class="pop-list">
+          <button class="mi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span class="grow" style="font-weight:550">Appearance</span><span class="acc">esc</span></button>
+          <div class="seg">
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Auto</button>
+            <button class="on"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Light</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Dark</button>
+          </div>
+          <div class="divider" style="margin:4px 8px"></div>
+          <button class="trow on"><span class="l"><span class="sw"><i style="background:#fff"></i><i style="background:#fcfcfc"></i><i style="background:#138af2"></i><i style="background:#000"></i></span><span class="nm">Default</span></span><span class="ck">✓</span></button>
+          <button class="trow"><span class="l"><span class="sw"><i style="background:#faf3f9"></i><i style="background:#f5eaf3"></i><i style="background:#d4008f"></i><i style="background:#552049"></i></span><span class="nm">T3 Chat</span></span></button>
+          <button class="trow"><span class="l"><span class="sw"><i style="background:#f2f8f2"></i><i style="background:#e8f2e9"></i><i style="background:#2e7d4f"></i><i style="background:#1d3d29"></i></span><span class="nm">Grove</span></span></button>
+          <button class="trow"><span class="l"><span class="sw"><i style="background:#f4f8fc"></i><i style="background:#e9f1f8"></i><i style="background:#3d6fbf"></i><i style="background:#1c3a5e"></i></span><span class="nm">Ocean</span></span></button>
+          <button class="trow"><span class="l"><span class="sw"><i style="background:#faf6f3"></i><i style="background:#f4ece5"></i><i style="background:#b35100"></i><i style="background:#4a2c17"></i></span><span class="nm">Ember</span></span></button>
+          <button class="trow"><span class="l"><span class="sw"><i style="background:#f8f5fb"></i><i style="background:#f0eaf8"></i><i style="background:#7d4fd0"></i><i style="background:#3d2a5e"></i></span><span class="nm">Iris</span></span></button>
+          <div class="divider" style="margin:4px 8px"></div>
+          <button class="mi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg><span class="grow">Open VSX Marketplace…</span></button>
+          <button class="mi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="grow">More Controls…</span><span class="acc">⌘K</span></button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">MenuContent page like "layout"/"columns" · theme rows = MenuItem w/ swatch chip · esc / Backspace pops back · advanced items open a dialog</div>
+  </section>
+
+  <!-- ================= OPTION 6 ================= -->
+  <section class="option" id="opt6">
+    <div class="option-head">
+      <span class="option-num">6</span>
+      <h2>Sidebar dialog</h2>
+      <span class="option-tag">macOS System Settings idiom, shrunk to panel scale</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>Dialog chrome from option 1, but tabs become a left rail — Themes / Marketplace / Typography / Configurations as permanent nav.</div>
+      <div><b>Why it works</b>Scales better than tabs if the section count grows (each control group is already a <code>Section</code>); the rail doubles as an overview of what's editable.</div>
+      <div><b>Watch out</b>148&nbsp;px rail eats into a 660&nbsp;px dialog — detail column ends up narrower than option 1's. Slightly heavier visual structure for only 3–4 destinations.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog dlg-side" data-tabs data-default="openvsx">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Appearance</div>
+            <div class="dlg-desc">Theme, mode, marketplace, and interface controls.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="cols">
+          <div class="side-nav">
+            <button class="mi" data-tab="themes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg><span class="grow">Themes</span></button>
+            <button class="mi on" data-tab="openvsx"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg><span class="grow">Marketplace</span></button>
+            <button class="mi" data-tab="controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="grow">Controls</span></button>
+          </div>
+          <div class="side-detail">
+            <div data-tab-content="themes" data-mount="themes"></div>
+            <div data-tab-content="openvsx" class="on" data-mount="openvsx"></div>
+            <div data-tab-content="controls" data-mount="controls"></div>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:flex-end">
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">nav rail 148px · detail column scrolls · Marketplace shown active (same content as Open VSX tab)</div>
+  </section>
+
+  <!-- ================= OPTION 7 ================= -->
+  <section class="option" id="opt7">
+    <div class="option-head">
+      <span class="option-num rec">7 · Recommended</span>
+      <h2>Sidebar + preview rail</h2>
+      <span class="option-tag">option 6's nav, option 2's miniature</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>The option-6 dialog skeleton plus <code>AppearancePreview</code> as a third column — nav, controls, and preview all visible at once.</div>
+      <div><b>Why it works</b>The miniature isn't just theme feedback — it's how Open&nbsp;VSX previews work (the eye icon stages a theme <i>before</i> install). Dropping the rail orphans that feature.</div>
+      <div><b>Watch out</b>768&nbsp;px is snug inside the 820 default; below ~700&nbsp;px panel width the rail should collapse to a header toggle or drop to option&nbsp;8's stacked layout.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog dlg-3col" data-tabs data-default="themes" style="padding-bottom:0">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Appearance</div>
+            <div class="dlg-desc">Theme, mode, marketplace, and interface controls. Changes apply instantly.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="cols">
+          <div class="side-nav">
+            <button class="mi on" data-tab="themes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg><span class="grow">Themes</span></button>
+            <button class="mi" data-tab="openvsx"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg><span class="grow">Marketplace</span></button>
+            <button class="mi" data-tab="controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="grow">Controls</span></button>
+          </div>
+          <div class="side-detail">
+            <div data-tab-content="themes" class="on" data-mount="themes"></div>
+            <div data-tab-content="openvsx" data-mount="openvsx"></div>
+            <div data-tab-content="controls" data-mount="controls"></div>
+          </div>
+          <div class="rail">
+            <div class="cap"><span class="t">Preview</span><span class="c">Default</span></div>
+            <div class="mini" data-mount="preview"></div>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:flex-end;padding-bottom:20px">
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">w=min(768px, 100%−24px) · nav 124px · detail ~300px scroll col · rail 190px = AppearancePreview · rail collapses to a header toggle under ~700px</div>
+  </section>
+
+  <!-- ================= OPTION 8 ================= -->
+  <section class="option" id="opt8">
+    <div class="option-head">
+      <span class="option-num">8</span>
+      <h2>Nav rail with preview docked below</h2>
+      <span class="option-tag">widest control column, preview pinned in the rail</span>
+    </div>
+    <div class="option-notes">
+      <div><b>Reuses</b>Same dialog chrome; the left rail becomes a composite — nav items up top, <code>AppearancePreview</code> docked beneath them.</div>
+      <div><b>Why it works</b>The detail column keeps ~500&nbsp;px — the widest of any sidebar variant — so marketplace rows and sliders breathe. Preview stays permanently visible like option&nbsp;7.</div>
+      <div><b>Watch out</b>Preview shares the rail with nav, so it can't detach independently on narrow panels, and ~170&nbsp;px of preview height clips the second mock card.</div>
+    </div>
+    <div class="stage"><div class="panel ui">
+      <div class="panel-head">
+        <div class="left"><span class="panel-title">AI Usage</span></div>
+        <div class="right"><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="glass-circle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+      </div>
+      <div class="panel-body" data-mount="cards"></div>
+      <div class="scrim"></div>
+      <div class="dialog dlg-stack" data-tabs data-default="controls" style="padding-bottom:0">
+        <div class="dlg-head">
+          <div>
+            <div class="dlg-title">Appearance</div>
+            <div class="dlg-desc">Theme, mode, marketplace, and interface controls.</div>
+          </div>
+          <button class="btn icon small transparent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="cols">
+          <div class="rail-l">
+            <div class="nav-list">
+              <button class="mi" data-tab="themes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg><span class="grow">Themes</span></button>
+              <button class="mi" data-tab="openvsx"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg><span class="grow">Marketplace</span></button>
+              <button class="mi on" data-tab="controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="grow">Controls</span></button>
+            </div>
+            <div style="display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px">
+              <div class="pv-cap"><span class="t">Preview</span><span class="c">Default</span></div>
+              <div class="mini" data-mount="preview"></div>
+            </div>
+          </div>
+          <div class="side-detail">
+            <div data-tab-content="themes" data-mount="themes"></div>
+            <div data-tab-content="openvsx" data-mount="openvsx"></div>
+            <div data-tab-content="controls" class="on" data-mount="controls"></div>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:flex-end;padding-bottom:20px">
+          <button class="btn glass">Done</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="spec">w=min(736px, 100%−24px) · composite rail 196px (nav + preview) · detail ~500px — widest sidebar variant</div>
+  </section>
+
+  <!-- ================= MATRIX ================= -->
+  <section class="option" id="matrix">
+    <div class="option-head"><h2>At a glance</h2></div>
+    <table class="matrix">
+      <tr><th>Option</th><th>Pattern</th><th>Live preview</th><th>Room for controls</th><th>Impl. lift</th><th>Notes</th></tr>
+      <tr><td>1 · Centered dialog</td><td>Radix Dialog (parity)</td><td><span class="dot y"></span> real panel behind scrim</td><td><span class="dot m"></span> 560px scroll col</td><td><span class="dot y"></span> lowest</td><td>Direct answer to "like Manage Accounts". Preview rail dropped — the panel itself previews.</td></tr>
+      <tr><td>2 · Dialog + rail</td><td>Radix Dialog</td><td><span class="dot y"></span> miniature + live</td><td><span class="dot m"></span> ~450px col</td><td><span class="dot y"></span> low</td><td>1:1 port of current layout. Rail must collapse on narrow panels.</td></tr>
+      <tr><td>3 · Full-panel page</td><td>In-place nav</td><td><span class="dot y"></span> whole panel, un-dimmed</td><td><span class="dot y"></span> full panel, resizable</td><td><span class="dot m"></span> medium</td><td>Most room, most native-feeling nav; furthest from the dialog pattern.</td></tr>
+      <tr><td>4 · Bottom sheet</td><td>Anchored sheet</td><td><span class="dot y"></span> behind scrim</td><td><span class="dot m"></span> full width, 86% h</td><td><span class="dot m"></span> medium</td><td>Needs drag/dismiss physics to feel right; iOS idiom.</td></tr>
+      <tr><td>5 · Menu drill-in</td><td>Popover page</td><td><span class="dot y"></span> live</td><td><span class="dot n"></span> theme+mode only</td><td><span class="dot y"></span> low</td><td>Complement, not replacement — pair with 1–4 for advanced controls.</td></tr>
+      <tr><td>6 · Sidebar dialog</td><td>Dialog + nav rail</td><td><span class="dot y"></span> behind scrim</td><td><span class="dot m"></span> ~460px col</td><td><span class="dot m"></span> medium</td><td>System-Settings feel; scales if sections grow, heavier for only 3–4 tabs.</td></tr>
+      <tr><td>7 · Sidebar + rail</td><td>Dialog, 3-col</td><td><span class="dot y"></span> miniature + live</td><td><span class="dot m"></span> ~300px detail col</td><td><span class="dot m"></span> medium</td><td><b>Recommended.</b> Keeps Open&nbsp;VSX pre-install preview. Rail → header toggle under ~700px.</td></tr>
+      <tr><td>8 · Stacked rail</td><td>Dialog, 2-col</td><td><span class="dot y"></span> miniature + live</td><td><span class="dot y"></span> ~500px detail col</td><td><span class="dot m"></span> medium</td><td>Widest controls; preview pinned under nav, shorter and can't detach on narrow panels.</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<!-- ================================================================
+     Shared content fragments (stamped into each mockup)
+     ================================================================ -->
+<template id="t-cards">
+  <div class="card">
+    <div class="card-head"><span class="badge orange">Claude</span><span class="name">adam@focaldata.com</span><span class="plan">· Signed in</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">Current session</span><span class="pct">91%</span></div><div class="track"><div class="fill crit" style="width:91%"></div></div><span class="cap">resets in 21 min</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">Weekly · All models</span><span class="pct">51%</span></div><div class="track"><div class="fill warn" style="width:51%"></div></div><span class="cap">resets in 2 d 23 hr</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">Weekly · Fable</span><span class="pct">88%</span></div><div class="track"><div class="fill high" style="width:88%"></div></div><span class="cap">resets in 2 d 23 hr</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">Extra usage</span><span class="pct">14%</span></div><div class="track"><div class="fill ok" style="width:14%"></div></div><span class="cap">£202.97 of £1500.00</span></div>
+    <div class="meta">cached · updated just now</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="badge green">Codex</span><span class="name">adam@focaldata.com</span><span class="plan">· Team</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">5h limit</span><span class="pct">0%</span></div><div class="track"><div class="fill ok" style="width:2%"></div></div><span class="cap">resets in 4 hr 59 min</span></div>
+    <div class="ubar"><div class="row"><span class="lbl">Weekly limit</span><span class="pct">36%</span></div><div class="track"><div class="fill ok" style="width:36%"></div></div><span class="cap">resets in 5 d 2 hr</span></div>
+    <div class="meta">cached · updated just now</div>
+  </div>
+</template>
+
+<template id="t-themes">
+  <div class="sect">
+    <h4>Mode</h4>
+    <div class="seg">
+      <button><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Auto</button>
+      <button class="on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Light</button>
+      <button><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Dark</button>
+    </div>
+  </div>
+  <div class="sect">
+    <h4>Auto mix (halves)</h4>
+    <p>When mode is Auto, use different themes for light and dark system appearance.</p>
+    <label class="flabel">Light half<span class="field"><span class="ph">Same as selected theme</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></label>
+    <label class="flabel">Dark half<span class="field"><span class="ph">Same as selected theme</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></label>
+  </div>
+  <div class="sect">
+    <h4>Built-in</h4>
+    <div style="display:grid;gap:4px">
+      <button class="trow on"><span class="l"><span class="sw"><i style="background:#fff"></i><i style="background:#fcfcfc"></i><i style="background:#138af2"></i><i style="background:#000"></i></span><span class="nm">Default</span></span><span class="ck">✓</span></button>
+      <button class="trow"><span class="l"><span class="sw"><i style="background:#faf3f9"></i><i style="background:#f5eaf3"></i><i style="background:#d4008f"></i><i style="background:#552049"></i></span><span class="nm">T3 Chat</span></span></button>
+      <button class="trow"><span class="l"><span class="sw"><i style="background:#f2f8f2"></i><i style="background:#e8f2e9"></i><i style="background:#2e7d4f"></i><i style="background:#1d3d29"></i></span><span class="nm">Grove</span></span></button>
+      <button class="trow"><span class="l"><span class="sw"><i style="background:#f4f8fc"></i><i style="background:#e9f1f8"></i><i style="background:#3d6fbf"></i><i style="background:#1c3a5e"></i></span><span class="nm">Ocean</span></span></button>
+      <button class="trow"><span class="l"><span class="sw"><i style="background:#faf6f3"></i><i style="background:#f4ece5"></i><i style="background:#b35100"></i><i style="background:#4a2c17"></i></span><span class="nm">Ember</span></span></button>
+      <button class="trow"><span class="l"><span class="sw"><i style="background:#f8f5fb"></i><i style="background:#f0eaf8"></i><i style="background:#7d4fd0"></i><i style="background:#3d2a5e"></i></span><span class="nm">Iris</span></span></button>
+    </div>
+  </div>
+  <div class="sect">
+    <h4>Custom</h4>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>Create</button>
+      <button class="btn small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></svg>Import</button>
+    </div>
+    <div style="display:grid;gap:4px">
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#ffffff"></i><i style="background:#f6f8fa"></i><i style="background:#0969da"></i><i style="background:#1f2328"></i></span><span class="nm">GitHub Default</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#ffffff"></i><i style="background:#f0f3f6"></i><i style="background:#0550ae"></i><i style="background:#0a0c10"></i></span><span class="nm">GitHub High Contrast</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#ffffff"></i><i style="background:#f6f8fa"></i><i style="background:#8250df"></i><i style="background:#1f2328"></i></span><span class="nm">GitHub Colorblind (Beta)</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#22272e"></i><i style="background:#2d333b"></i><i style="background:#539bf5"></i><i style="background:#adbac7"></i></span><span class="nm">GitHub Dark Dimmed</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#0d1117"></i><i style="background:#161b22"></i><i style="background:#58a6ff"></i><i style="background:#c9d1d9"></i></span><span class="nm">GitHub Dark</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+      <div class="trow"><span class="l"><span class="sw"><i style="background:#282c34"></i><i style="background:#21252b"></i><i style="background:#61afef"></i><i style="background:#abb2bf"></i></span><span class="nm">One Dark Pro</span></span><span style="display:flex;gap:2px"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span></div>
+    </div>
+  </div>
+</template>
+
+<template id="t-openvsx">
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <div class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search Open VSX themes…" /></div>
+    <button class="btn small transparent" style="height:36px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.8-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>Random</button>
+  </div>
+  <div class="chips" style="margin-bottom:12px">
+    <button class="chip">Dracula</button><button class="chip">Catppuccin</button><button class="chip">Nord</button><button class="chip">Tokyo Night</button>
+  </div>
+  <div style="display:grid;gap:4px">
+    <div class="xrow on">
+      <div style="min-width:0;flex:1"><div class="nm">Dracula Official</div><div class="meta">dracula-theme · 6.8M downloads · Official Dracula theme, dark mode for vampires</div></div>
+      <div class="acts"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="btn small filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>Install</button></div>
+    </div>
+    <div class="xrow">
+      <div style="min-width:0;flex:1"><div class="nm">Catppuccin for VSCode</div><div class="meta">Catppuccin · 5.1M downloads · Soothing pastel theme</div></div>
+      <div class="acts"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="btn small filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>Install</button></div>
+    </div>
+    <div class="xrow">
+      <div style="min-width:0;flex:1"><div class="nm">Nord Theme</div><div class="meta">nordtheme · 1.2M downloads · Arctic, north-bluish color palette</div></div>
+      <div class="acts"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="btn small filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>Install</button></div>
+    </div>
+    <div class="xrow">
+      <div style="min-width:0;flex:1"><div class="nm">Tokyo Night</div><div class="meta">enkia · 2.4M downloads · Clean dark theme celebrating Tokyo's neon</div></div>
+      <div class="acts"><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="btn small filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>Install</button></div>
+    </div>
+    <button class="btn transparent" style="justify-content:center">Load more</button>
+  </div>
+</template>
+
+<template id="t-controls">
+  <div class="sect">
+    <h4>Configurations</h4>
+    <p>Save the current theme, mode, and control settings, then click a name to restore it later.</p>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <span class="field" style="flex:1"><span class="ph">Configuration name…</span></span>
+      <button class="btn small filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save configuration</button>
+    </div>
+    <div style="display:grid;gap:4px">
+      <div class="trow on"><span class="nm">Work — high contrast<span class="mini" style="margin-left:6px">active</span></span><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>
+      <div class="trow"><span class="nm">Demo — large type</span><button class="btn icon small transparent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>
+    </div>
+  </div>
+  <div class="sect">
+    <h4>Contrast</h4>
+    <div class="srow"><span>Interface contrast</span><span class="v">100%</span></div>
+    <input type="range" min="50" max="150" value="100" />
+  </div>
+  <div class="sect">
+    <h4>Glass</h4>
+    <div class="srow"><span>Glass opacity</span><span class="v">80%</span></div>
+    <input type="range" min="20" max="100" value="80" />
+  </div>
+  <div class="sect">
+    <h4>Interface font</h4>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <span class="field" style="flex:1"><span>SF Pro Text<span style="margin-left:6px;font-size:11px;color:var(--t3)">default</span></span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+      <button class="btn icon transparent" style="width:32px;height:32px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--border)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+    </div>
+    <div class="srow"><span>Size</span><span class="v">13px</span></div>
+    <input type="range" min="10" max="18" value="13" />
+  </div>
+  <div class="sect">
+    <h4>Code / mono font</h4>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <span class="field" style="flex:1"><span style="font-family:'SF Mono',Menlo,monospace">SF Mono<span style="margin-left:6px;font-size:11px;color:var(--t3);font-family:inherit">default</span></span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+      <button class="btn icon transparent" style="width:32px;height:32px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--border)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+    </div>
+    <div class="srow"><span>Size</span><span class="v">12px</span></div>
+    <input type="range" min="9" max="16" value="12" />
+  </div>
+  <div class="sect">
+    <h4>Smoothing</h4>
+    <label style="display:flex;align-items:center;justify-content:space-between;font-size:13px">Antialiased font smoothing<input type="checkbox" checked /></label>
+  </div>
+  <button class="btn transparent" style="justify-content:center;width:100%">Reset to defaults</button>
+</template>
+
+<template id="t-preview">
+  <div class="mini-panel">
+    <div class="mini-head"><span class="t">AI Usage</span><span class="cs"><span class="c"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span><span class="c"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span></span></div>
+    <div class="mini-cards">
+      <div class="mini-card">
+        <div class="ch"><span class="badge orange">Claude</span><span class="nm">Work</span><span class="pl">· Max</span></div>
+        <div class="mini-ubar"><div class="row"><span class="lbl">Current session</span><span class="pct">42%</span></div><div class="track"><div class="fill warn" style="width:42%"></div></div><span class="cap">resets in 4 hr</span></div>
+        <div class="mini-ubar"><div class="row"><span class="lbl">Weekly · All models</span><span class="pct">71%</span></div><div class="track"><div class="fill high" style="width:71%"></div></div></div>
+        <div class="mini-ubar" style="margin-bottom:4px"><div class="row"><span class="lbl">Extra usage</span><span class="pct">18%</span></div><div class="track"><div class="fill ok" style="width:18%"></div></div></div>
+        <span class="meta">updated just now</span>
+      </div>
+      <div class="mini-card">
+        <div class="ch"><span class="badge blue">Cursor</span><span class="nm">Personal</span><span class="pl">· Pro</span></div>
+        <div class="mini-ubar"><div class="row"><span class="lbl">Cursor Models</span><span class="pct">58%</span></div><div class="track"><div class="fill warn" style="width:58%"></div></div></div>
+        <div class="mini-ubar"><div class="row"><span class="lbl">Other Models</span><span class="pct">93%</span></div><div class="track"><div class="fill crit" style="width:93%"></div></div><span class="cap">resets in 2d</span></div>
+        <div class="mini-ubar" style="margin-bottom:4px"><div class="row"><span class="lbl">Grok Bot</span><span class="pct">12%</span></div><div class="track"><div class="fill ok" style="width:12%"></div></div></div>
+        <span class="meta">updated just now</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  // Stamp shared fragments into each mockup.
+  document.querySelectorAll("[data-mount]").forEach((el) => {
+    const tpl = document.getElementById("t-" + el.dataset.mount);
+    if (tpl) el.appendChild(tpl.content.cloneNode(true));
+  });
+
+  // Restore default-active tabs declared via data-default.
+  document.querySelectorAll("[data-tabs]").forEach((scope) => {
+    const d = scope.dataset.default;
+    if (!d) return;
+    scope.querySelectorAll("[data-tab]").forEach((t) => t.classList.toggle("on", t.dataset.tab === d));
+    scope.querySelectorAll("[data-tab-content]").forEach((c) =>
+      c.classList.toggle("on", c.dataset.tabContent === d));
+  });
+
+  document.addEventListener("click", (e) => {
+    const nav = e.target.closest("[data-tab]");
+    if (nav) {
+      const scope = nav.closest("[data-tabs]");
+      if (!scope) return;
+      scope.querySelectorAll("[data-tab]").forEach((t) => t.classList.toggle("on", t === nav));
+      scope.querySelectorAll("[data-tab-content]").forEach((c) =>
+        c.classList.toggle("on", c.dataset.tabContent === nav.dataset.tab));
+      return;
+    }
+    const seg = e.target.closest(".seg button");
+    if (seg) {
+      seg.parentElement.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === seg));
+      return;
+    }
+    const row = e.target.closest(".trow");
+    if (row && row.tagName === "BUTTON" && row.querySelector(".sw")) {
+      const list = row.parentElement;
+      list.querySelectorAll(":scope > .trow").forEach((r) => {
+        r.classList.toggle("on", r === row);
+        const ck = r.querySelector(".ck");
+        if (ck) ck.remove();
+      });
+      const ck = document.createElement("span");
+      ck.className = "ck"; ck.textContent = "✓";
+      row.appendChild(ck);
+    }
+  });
+</script>
+</body>
+</html>
