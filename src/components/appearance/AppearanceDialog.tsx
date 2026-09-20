@@ -44,7 +44,7 @@ export function AppearanceDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const appearance = useAppearanceStore();
-  const [section, setSection] = React.useState<AppearanceSection>("themes");
+  const [section, setSection] = React.useState<AppearanceSection>("identity");
   const [previewOpen, setPreviewOpen] = React.useState(true);
   const marketplace = useThemeMarketplace({
     active: open && section === "openvsx",
