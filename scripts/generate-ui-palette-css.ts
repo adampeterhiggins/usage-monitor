@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { resolveUiPalette } from "../src/lib/theme/resolve-ui-palette";
 import { stockModeSpec } from "../src/lib/theme/stock-source";
 import { paletteToCssVariables } from "../src/lib/theme/ui-palette-css";
+import { DEFAULT_FORM_TOKENS, FORM_TOKENS, formVar } from "../src/lib/theme/form-tokens";
 import {
   UI_LOCAL_TOKENS,
   UI_PALETTE_VARIABLES,
@@ -42,6 +43,17 @@ function generatedSections(): string {
   lines.push(":root {");
   for (const token of UI_LOCAL_TOKENS) {
     lines.push(`  --local-${token}: var(--ui-canvas-${token});`);
+  }
+  lines.push("}");
+  lines.push("");
+
+  // --form-* defaults: the Standard identity. applyIdentity() overwrites
+  // these at boot; having them here keeps first paint on the shipped
+  // proportions instead of unresolved var()s.
+  lines.push("/* Visual identity (shape + type). Standard is the default set. */");
+  lines.push(":root {");
+  for (const token of FORM_TOKENS) {
+    lines.push(`  ${formVar(token)}: ${DEFAULT_FORM_TOKENS[token]};`);
   }
   lines.push("}");
   lines.push("");

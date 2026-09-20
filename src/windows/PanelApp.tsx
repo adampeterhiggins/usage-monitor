@@ -222,7 +222,11 @@ export function PanelApp() {
           />
         </div>
       </header>
-      <div className="@container min-h-0 flex-1">{scrolledBody}</div>
+      {/* The identity owns the usage surface's type family; the toolbar and
+          dialogs stay on the interface font. */}
+      <div className="@container min-h-0 flex-1 [font-family:var(--form-font-family)]">
+        {scrolledBody}
+      </div>
       <FitCorner contentRef={contentRef} headerRef={headerRef} />
       <AccountManagementDialog
         open={manageOpen}

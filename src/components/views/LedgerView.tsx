@@ -35,7 +35,7 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerV
                 <Badge color={meta.tone} size="small" className="shrink-0">
                   {meta.name}
                 </Badge>
-                <Text variant="strong" className="truncate">
+                <Text variant="usage-account" className="truncate">
                   {account.label}
                 </Text>
                 {snapshot?.planLabel ? (
@@ -92,21 +92,25 @@ function LedgerWindowRow({ window }: { window: UsageWindow }) {
 
   return (
     <div className="flex min-w-0 items-center gap-3 py-2">
-      <Text variant="small" color="secondary" className="w-36 shrink-0 truncate">
+      <Text variant="usage-label" color="secondary" className="w-36 shrink-0 truncate">
         {window.label}
       </Text>
-      <Text variant="mini" color="quaternary" className="hidden max-w-56 shrink-0 truncate text-right @lg:block">
+      <Text variant="usage-caption" color="quaternary" className="hidden max-w-56 shrink-0 truncate text-right @lg:block">
         {caption}
       </Text>
-      <div className="min-w-8 h-1.5 flex-1 overflow-hidden rounded-full bg-ui-control">
+      <div className="min-w-8 flex-1 overflow-hidden bg-ui-control [border-radius:var(--form-meter-radius)] [height:var(--form-meter-height)]">
         <div
-          className={cn("h-full rounded-full transition-[width] duration-300 ease-out", severityFillClass(pct))}
+          className={cn(
+            "relative h-full rounded-[inherit] transition-[width] duration-300 ease-out",
+            "after:absolute after:inset-0 after:[background-image:var(--form-meter-notch)]",
+            severityFillClass(pct),
+          )}
           style={{ width: pct === undefined ? "0%" : `${pct}%` }}
         />
       </div>
       <Text
-        variant="small-strong"
-        className={cn("w-12 shrink-0 text-right tabular-nums", pct !== undefined && severityTextClass(pct))}
+        variant="usage-value"
+        className={cn("w-12 shrink-0 text-right", pct !== undefined && severityTextClass(pct))}
       >
         {formatPercent(pct)}
       </Text>

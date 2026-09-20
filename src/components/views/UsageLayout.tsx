@@ -81,7 +81,10 @@ export function UsageLayout({
     case "grouped":
     case "stacked":
       return (
-        <div className="flex flex-col gap-5 p-4 pb-8">
+        <div
+          className="flex flex-col gap-5 pb-8"
+          style={{ padding: "var(--form-body-padding)", paddingBottom: "32px" }}
+        >
           {grouped.map((group) => (
             <section key={group.id} className="flex flex-col gap-2.5">
               <div className="flex items-baseline justify-between px-0.5">
@@ -93,9 +96,8 @@ export function UsageLayout({
                 </Text>
               </div>
               <div
-                className={
-                  layout === "stacked" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"
-                }
+                className={layout === "stacked" ? "grid grid-cols-1" : "grid grid-cols-2"}
+                style={{ gap: "var(--form-card-gap)" }}
               >
                 {group.accounts.map((account) => (
                   <AccountCard
@@ -114,7 +116,10 @@ export function UsageLayout({
     case "wall":
     default:
       return (
-        <div className={`grid gap-3 p-4 ${WALL_GRID_COLUMNS[wallColumns]}`}>
+        <div
+          className={`grid ${WALL_GRID_COLUMNS[wallColumns]}`}
+          style={{ gap: "var(--form-card-gap)", padding: "var(--form-body-padding)" }}
+        >
           {accounts.map((account) => (
             <AccountCard
               key={account.id}

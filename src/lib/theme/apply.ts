@@ -5,6 +5,8 @@ import {
   type AppearanceSettings,
 } from "./appearance";
 import { applyAppearanceFontVariables } from "./fonts";
+import { formTokensToCssVariables, FORM_TOKEN_VARIABLES } from "./form-tokens";
+import { resolveFormTokens } from "./identities";
 import type { ThemeHalves } from "./halves";
 import { resolveThemeHalf } from "./halves";
 import { applyThemePalette } from "./preview";
@@ -73,9 +75,28 @@ export function applyUsageMonitorTheme(
   root.classList.toggle("dark", resolved === "dark");
 }
 
+/** Paint the identity's `--form-*` set onto the root element.
+ *
+ *  Written after the font variables so the identity can read `--font-sans` /
+ *  `--font-mono`, and onto `:root` so every surface — panel, dialogs, and the
+ *  Appearance preview rail — inherits one set. */
+export function applyIdentity(settings: AppearanceSettings): void {
+  const root = document.documentElement;
+  if (!root?.style) return;
+  const vars = formTokensToCssVariables(
+    resolveFormTokens(settings.identity, { customSansFontStack: settings.fontFamilySans }),
+  );
+  for (const name of FORM_TOKEN_VARIABLES) {
+    const value = vars[name];
+    if (value !== undefined) root.style.setProperty(name, value);
+  }
+  root.setAttribute("data-identity", settings.identity);
+}
+
 export function applyAppearanceChrome(settings: AppearanceSettings): void {
   const root = document.documentElement;
   applyAppearanceFontVariables(root, settings);
+  applyIdentity(settings);
 }
 
 export function applyFullAppearance(state: ThemeBootState): void {

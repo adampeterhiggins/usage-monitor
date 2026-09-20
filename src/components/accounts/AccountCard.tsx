@@ -5,7 +5,6 @@ import { formatFetchedAt } from "../../lib/usage/format";
 import type { AccountFetchState } from "../../state/usage";
 import { AccountActionsMenu } from "./AccountActionsMenu";
 import { UsageProgress } from "../ui/UsageProgress";
-import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -25,24 +24,37 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
   const isError = state.status === "error";
   const stale = result?.stale === true;
 
+  // Every dimension below belongs to the active visual identity. The card fill
+  // prefers its provider's tint when the identity defines one —
+  // `--form-card-tint-*` is `initial` otherwise, so the var() falls back to
+  // the plain card surface.
   return (
     <div
       data-ui-surface="card"
-      className={cn(
-        "ui-surface flex min-w-0 flex-col gap-3 rounded-[18px] border border-ui-subtle p-3.5",
-        isError && !snapshot && "border-ui-status-critical/60",
-      )}
+      style={{
+        background: `var(--form-card-tint-${meta.tone}, var(--form-card-background))`,
+        borderRadius: "var(--form-card-radius)",
+        borderWidth: "var(--form-card-border-width)",
+        borderColor:
+          isError && !snapshot
+            ? "var(--local-status-critical-fill)"
+            : "var(--form-card-border-color)",
+        boxShadow: "var(--form-card-shadow)",
+        padding: "var(--form-card-padding)",
+        gap: "var(--form-card-inner-gap)",
+      }}
+      className="ui-surface flex min-w-0 flex-col border-solid"
     >
       <div className="flex min-w-0 items-center gap-2">
         <Badge color={meta.tone} className="shrink-0">
           {meta.name}
         </Badge>
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <Text variant="strong" className="max-w-full shrink-0 truncate">
+          <Text variant="usage-account" className="max-w-full shrink-0 truncate">
             {account.label}
           </Text>
           {snapshot?.planLabel ? (
-            <Text variant="small" color="tertiary" className="min-w-0 truncate">
+            <Text variant="usage-caption" color="tertiary" className="min-w-0 truncate">
               · {snapshot.planLabel}
             </Text>
           ) : null}
@@ -55,7 +67,7 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
       </div>
 
       {snapshot ? (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col" style={{ gap: "var(--form-window-gap)" }}>
           {snapshot.windows.map((window) => (
             <UsageProgress
               key={window.label}
@@ -81,7 +93,7 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col" style={{ gap: "var(--form-window-gap)" }}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex flex-col gap-1">
               <div className="h-3 w-24 animate-pulse rounded-full bg-ui-control" />
@@ -92,7 +104,7 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
       )}
 
       {snapshot ? (
-        <Text variant="mini" color="quaternary" className="pt-0.5 tabular-nums">
+        <Text variant="usage-caption" color="quaternary" className="pt-0.5 tabular-nums">
           {result?.cached ? "cached · " : ""}
           updated {formatFetchedAt(snapshot.fetchedAt)}
           {stale ? " · stale" : ""}
