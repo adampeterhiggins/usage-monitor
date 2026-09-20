@@ -95,6 +95,48 @@
   --local-provider-purple-foreground: var(--ui-canvas-provider-purple-foreground);
 }
 
+/* Visual identity (shape + type). Standard is the default set. */
+:root {
+  --form-card-background: var(--ui-card-background);
+  --form-card-radius: 18px;
+  --form-card-padding: 14px;
+  --form-card-border-width: 1px;
+  --form-card-border-color: var(--local-border-subtle);
+  --form-card-shadow: none;
+  --form-card-gap: 12px;
+  --form-card-inner-gap: 12px;
+  --form-body-padding: 16px;
+  --form-card-tint-orange: initial;
+  --form-card-tint-green: initial;
+  --form-card-tint-blue: initial;
+  --form-card-tint-purple: initial;
+  --form-meter-height: 6px;
+  --form-meter-radius: 9999px;
+  --form-meter-notch: none;
+  --form-meter-bar-display: block;
+  --form-meter-ring-display: none;
+  --form-meter-ring-size: 52px;
+  --form-meter-ring-width: 5px;
+  --form-window-gap: 10px;
+  --form-window-inner-gap: 4px;
+  --form-font-family: var(--font-sans);
+  --form-label-size: 11px;
+  --form-label-weight: 400;
+  --form-label-transform: none;
+  --form-label-tracking: 0;
+  --form-value-size: 12px;
+  --form-value-weight: 600;
+  --form-value-display: block;
+  --form-caption-size: 10px;
+  --form-account-size: 13px;
+  --form-account-weight: 600;
+  --form-badge-background: initial;
+  --form-badge-radius: 6px;
+  --form-badge-transform: none;
+  --form-badge-tracking: 0;
+  --form-badge-weight: 500;
+}
+
 [data-ui-surface="canvas"] {
   --local-background: var(--ui-canvas-background);
   --local-text-primary: var(--ui-canvas-text-primary);

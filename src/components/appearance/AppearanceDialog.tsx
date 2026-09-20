@@ -16,6 +16,7 @@ import {
   ThemeHalvesControl,
 } from "./AppearanceControls";
 import { AppearancePresets } from "./AppearancePresets";
+import { IdentityControl } from "./IdentityControl";
 import { AppearancePreview } from "./AppearancePreview";
 import { ThemeLibrary } from "./ThemeLibrary";
 import { ThemeMarketplace } from "./ThemeMarketplace";
@@ -151,6 +152,10 @@ export function AppearanceDialog({
                     mode={appearance.mode}
                     onModeChange={(next) => void appearance.setMode(next)}
                     onSelectTheme={(next) => void appearance.selectTheme(next)}
+                  />
+                  <IdentityControl
+                    identity={appearance.settings.identity}
+                    onSelect={(next) => void appearance.patchSettings({ identity: next })}
                   />
                   <ThemeLibrary
                     theme={appearance.theme}

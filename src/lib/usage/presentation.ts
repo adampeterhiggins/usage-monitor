@@ -49,6 +49,22 @@ export function severityFillClass(pct?: number): string {
   }
 }
 
+/** Ring stroke for a severity level — the arc twin of `severityFillClass`. */
+export function severityStrokeClass(pct?: number): string {
+  switch (severityStatusTone(pct)) {
+    case "critical":
+      return "stroke-ui-status-critical";
+    case "high":
+      return "stroke-ui-status-high";
+    case "warning":
+      return "stroke-ui-status-warning";
+    case "healthy":
+      return "stroke-ui-status-healthy";
+    default:
+      return "stroke-ui-control";
+  }
+}
+
 export function severityTextClass(pct?: number): string {
   switch (severityStatusTone(pct)) {
     case "critical":
