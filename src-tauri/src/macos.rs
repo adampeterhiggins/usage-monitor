@@ -5,6 +5,8 @@
 //! `NSSize`, …) into the enclosing module's scope, so everything that names
 //! those types must live in this file.
 
+use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use objc2_app_kit::{
@@ -13,6 +15,7 @@ use objc2_app_kit::{
 };
 use objc2_foundation::NSData;
 use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri_nspanel::objc2::runtime::{AnyClass, Imp, Sel};
 use tauri_nspanel::objc2::AnyThread;
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
@@ -141,6 +144,74 @@ fn interactive_collection_behavior() -> CollectionBehavior {
         .full_screen_auxiliary()
 }
 
+/// Side of the webview's `.fit-corner` button — keep in sync with index.css.
+const FIT_CORNER_SIZE: f64 = 24.0;
+
+type ResizeDirectionImpl = unsafe extern "C-unwind" fn(*mut AnyObject, Sel, NSPoint) -> isize;
+
+static FIT_PANEL: AtomicPtr<AnyObject> = AtomicPtr::new(std::ptr::null_mut());
+static ORIG_RESIZE_DIRECTION: OnceLock<ResizeDirectionImpl> = OnceLock::new();
+
+/// Swizzled `NSWindow._resizeDirectionForMouseLocation:`. A borderless
+/// `.resizable` window hands the outer ~15px of each corner to AppKit's resize
+/// hit-testing, so clicks there start a native resize instead of reaching the
+/// webview. Reporting "no direction" inside the fit button's rect hands the
+/// corner back to web content; every other edge and corner still resizes.
+unsafe extern "C-unwind" fn resize_direction_for_mouse_location(
+    this: *mut AnyObject,
+    sel: Sel,
+    point: NSPoint,
+) -> isize {
+    if std::ptr::eq(this, FIT_PANEL.load(Ordering::Relaxed)) {
+        let window = unsafe { &*(this as *const NSWindow) };
+        if point.x >= window.frame().size.width - FIT_CORNER_SIZE && point.y <= FIT_CORNER_SIZE
+        {
+            return -1;
+        }
+    }
+    match ORIG_RESIZE_DIRECTION.get() {
+        Some(original) => unsafe { original(this, sel, point) },
+        None => -1,
+    }
+}
+
+/// Keep the fit-to-content grip at the bottom-right corner *and* clickable: the
+/// native resize claim there is swapped out for the webview's hit region.
+fn reclaim_fit_corner_hit_region(panel: &NSPanel) {
+    if ORIG_RESIZE_DIRECTION.get().is_some() {
+        return;
+    }
+    FIT_PANEL.store(panel as *const NSPanel as *mut AnyObject, Ordering::Relaxed);
+    let sel = Sel::register(c"_resizeDirectionForMouseLocation:");
+    let class = unsafe { &*(panel as *const NSPanel as *const AnyObject) }.class();
+    let Some(method) = class.instance_method(sel) else {
+        return;
+    };
+    let original = method.implementation();
+    let swizzled: Imp = unsafe {
+        std::mem::transmute::<ResizeDirectionImpl, Imp>(resize_direction_for_mouse_location)
+    };
+    // class_addMethod installs the override on the panel subclass only —
+    // mutating the inherited NSWindow method entry would swizzle every window.
+    let added = unsafe {
+        tauri_nspanel::objc2::ffi::class_addMethod(
+            class as *const AnyClass as *mut AnyClass,
+            sel,
+            swizzled,
+            c"q@:{CGPoint=dd}".as_ptr(),
+        )
+    };
+    let delegated = if added.as_bool() {
+        original
+    } else {
+        // The class already implements it: replacing its own method entry is
+        // still scoped to the panel subclass.
+        unsafe { method.set_implementation(swizzled) }
+    };
+    let _ = ORIG_RESIZE_DIRECTION
+        .set(unsafe { std::mem::transmute::<Imp, ResizeDirectionImpl>(delegated) });
+}
+
 /// Convert the "main" window into a floating non-activating NSPanel and apply
 /// popover vibrancy. Called once during app setup.
 pub(crate) fn configure_main_panel(win: &WebviewWindow) {
@@ -153,6 +224,7 @@ pub(crate) fn configure_main_panel(win: &WebviewWindow) {
     panel.set_style_mask(style.into());
     panel.set_level(PanelLevel::Floating.into());
     panel.set_collection_behavior(tray_collection_behavior().into());
+    reclaim_fit_corner_hit_region(panel.as_panel());
 
     use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
     let _ = apply_vibrancy(
