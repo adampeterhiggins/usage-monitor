@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Download, Eye, EyeOff, Palette, SlidersHorizontal, X } from "lucide-react";
+import { Download, Eye, EyeOff, Palette, Shapes, SlidersHorizontal, X } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 import { useAppearanceStore } from "../../state/appearance";
@@ -23,13 +23,14 @@ import { ThemeMarketplace } from "./ThemeMarketplace";
 import { useThemeEditorStore } from "./themeEditorStore";
 import { useThemeMarketplace } from "./useThemeMarketplace";
 
-type AppearanceSection = "themes" | "openvsx" | "controls";
+type AppearanceSection = "identity" | "themes" | "openvsx" | "controls";
 
 const SECTIONS: ReadonlyArray<{
   id: AppearanceSection;
   label: string;
   icon: typeof Palette;
 }> = [
+  { id: "identity", label: "Identity", icon: Shapes },
   { id: "themes", label: "Themes", icon: Palette },
   { id: "openvsx", label: "Open VSX", icon: Download },
   { id: "controls", label: "Controls", icon: SlidersHorizontal },
@@ -145,6 +146,13 @@ export function AppearanceDialog({
             </nav>
 
             <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4">
+              {section === "identity" && (
+                <IdentityControl
+                  identity={appearance.settings.identity}
+                  onSelect={(next) => void appearance.patchSettings({ identity: next })}
+                />
+              )}
+
               {section === "themes" && (
                 <div className="grid gap-4">
                   <AppearanceModeControl
@@ -152,10 +160,6 @@ export function AppearanceDialog({
                     mode={appearance.mode}
                     onModeChange={(next) => void appearance.setMode(next)}
                     onSelectTheme={(next) => void appearance.selectTheme(next)}
-                  />
-                  <IdentityControl
-                    identity={appearance.settings.identity}
-                    onSelect={(next) => void appearance.patchSettings({ identity: next })}
                   />
                   <ThemeLibrary
                     theme={appearance.theme}

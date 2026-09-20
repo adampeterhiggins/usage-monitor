@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { RefreshCw, Settings } from "lucide-react";
 import type { ResolvedUiPalette } from "../../lib/theme/resolve-ui-palette";
 import { paletteToCssVariables } from "../../lib/theme/ui-palette-css";
-import { severityFillClass } from "../../lib/usage/presentation";
+import { severityFillClass, severityStrokeClass } from "../../lib/usage/presentation";
 import { cn } from "../../lib/utils";
 
 type MockBar = {
@@ -45,10 +45,44 @@ const MOCK_CARDS: ReadonlyArray<MockCard> = [
 ];
 
 const PROVIDER_TONES: Record<MockCard["providerTone"], string> = {
-  orange: "bg-ui-provider-orange text-ui-provider-orange-fg",
-  blue: "bg-ui-provider-blue text-ui-provider-blue-fg",
-  green: "bg-ui-provider-green text-ui-provider-green-fg",
+  orange: "text-ui-provider-orange-fg",
+  blue: "text-ui-provider-blue-fg",
+  green: "text-ui-provider-green-fg",
 };
+
+const PROVIDER_TONE_BACKGROUND: Record<MockCard["providerTone"], string> = {
+  orange: "var(--local-provider-orange-background)",
+  blue: "var(--local-provider-blue-background)",
+  green: "var(--local-provider-green-background)",
+};
+
+const PROVIDER_TONE_TINT: Record<MockCard["providerTone"], string> = {
+  orange: "var(--form-card-tint-orange, var(--form-card-background))",
+  blue: "var(--form-card-tint-blue, var(--form-card-background))",
+  green: "var(--form-card-tint-green, var(--form-card-background))",
+};
+
+/** This shell is a miniature, so identity sizes are taken down proportionally
+ *  rather than used raw — a Bold 11px meter would swamp a 190px rail. Shape
+ *  and type tokens (radius, notching, case, tracking, family) pass through
+ *  untouched, because those are what an identity actually reads as.
+ *
+ *  Only single-value tokens are scaled: `card-padding` can be a shorthand
+ *  (`14px 4px`), which calc() cannot multiply, so the miniature keeps its own
+ *  padding. */
+const scaled = (token: string, factor: number) => `calc(var(${token}) * ${factor})`;
+
+const PREVIEW_FORM = {
+  cardRadius: scaled("--form-card-radius", 0.7),
+  meterHeight: scaled("--form-meter-height", 0.5),
+  labelSize: scaled("--form-label-size", 0.75),
+  valueSize: scaled("--form-value-size", 0.72),
+  captionSize: scaled("--form-caption-size", 0.8),
+  accountSize: scaled("--form-account-size", 0.82),
+  ringSize: scaled("--form-meter-ring-size", 0.42),
+} as const;
+
+const RING_CIRCUMFERENCE = 2 * Math.PI * 22;
 
 /**
  * Miniature usage-monitor shell built from the same semantic utilities and
@@ -99,7 +133,7 @@ export function UsageMonitorPreview({
       style={{
         background: "color-mix(in srgb, var(--ui-panel-tint) calc(var(--ui-panel-opacity) * 100%), transparent)",
         color: "var(--ui-canvas-text-primary)",
-        fontFamily: "var(--font-sans)",
+        fontFamily: "var(--form-font-family)",
         fontSize: "var(--font-size-interface)",
         WebkitFontSmoothing: "inherit",
         colorScheme: palette?.appearance,
@@ -135,21 +169,44 @@ export function UsageMonitorPreview({
           <div
             key={`${card.provider}-${card.label}`}
             data-ui-surface="card"
-            className="ui-surface flex min-w-0 flex-col gap-2 rounded-[12px] border border-ui-subtle p-2"
+            className="ui-surface flex min-w-0 flex-col gap-2 border-solid p-2"
+            style={{
+              background: PROVIDER_TONE_TINT[card.providerTone],
+              borderRadius: PREVIEW_FORM.cardRadius,
+              borderWidth: "var(--form-card-border-width)",
+              borderColor: "var(--form-card-border-color)",
+              boxShadow: "var(--form-card-shadow)",
+            }}
           >
             <div className="flex min-w-0 items-center gap-1.5">
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[9px] font-medium leading-none",
+                  "inline-flex shrink-0 items-center px-1.5 py-px text-[9px] leading-none",
                   PROVIDER_TONES[card.providerTone],
                 )}
+                style={{
+                  background: `var(--form-badge-background, ${PROVIDER_TONE_BACKGROUND[card.providerTone]})`,
+                  borderRadius: "var(--form-badge-radius)",
+                  textTransform: "var(--form-badge-transform)" as CSSProperties["textTransform"],
+                  letterSpacing: "var(--form-badge-tracking)",
+                  fontWeight: "var(--form-badge-weight)" as CSSProperties["fontWeight"],
+                }}
               >
                 {card.provider}
               </span>
-              <span className="min-w-0 truncate text-[11px] font-medium leading-none">
+              <span
+                className="min-w-0 truncate leading-none"
+                style={{
+                  fontSize: PREVIEW_FORM.accountSize,
+                  fontWeight: "var(--form-account-weight)" as CSSProperties["fontWeight"],
+                }}
+              >
                 {card.label}
               </span>
-              <span className="min-w-0 truncate text-[9px] leading-none text-ui-tertiary">
+              <span
+                className="min-w-0 truncate leading-none text-ui-tertiary"
+                style={{ fontSize: PREVIEW_FORM.captionSize }}
+              >
                 · {card.plan}
               </span>
             </div>
@@ -158,21 +215,75 @@ export function UsageMonitorPreview({
               {card.bars.map((bar) => (
                 <div key={bar.label} className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="min-w-0 truncate text-[9px] leading-none text-ui-secondary">
+                    <span
+                      className="min-w-0 truncate leading-none text-ui-secondary"
+                      style={{
+                        fontSize: PREVIEW_FORM.labelSize,
+                        fontWeight: "var(--form-label-weight)" as CSSProperties["fontWeight"],
+                        textTransform: "var(--form-label-transform)" as CSSProperties["textTransform"],
+                        letterSpacing: "var(--form-label-tracking)",
+                      }}
+                    >
                       {bar.label}
                     </span>
-                    <span className="shrink-0 text-[9px] font-medium leading-none tabular-nums">
+                    <span
+                      className="shrink-0 leading-none tabular-nums"
+                      style={{
+                        fontSize: PREVIEW_FORM.valueSize,
+                        fontWeight: "var(--form-value-weight)" as CSSProperties["fontWeight"],
+                        display: "var(--form-value-display)",
+                      }}
+                    >
                       {bar.pct}%
                     </span>
                   </div>
-                  <div className="h-1 w-full overflow-hidden rounded-full bg-ui-track">
+                  <div
+                    className="w-full overflow-hidden bg-ui-track [display:var(--form-meter-bar-display)]"
+                    style={{
+                      height: PREVIEW_FORM.meterHeight,
+                      borderRadius: "var(--form-meter-radius)",
+                    }}
+                  >
                     <div
-                      className={cn("h-full rounded-full", severityFillClass(bar.pct))}
+                      className={cn(
+                        "relative h-full rounded-[inherit]",
+                        "after:absolute after:inset-0 after:[background-image:var(--form-meter-notch)]",
+                        severityFillClass(bar.pct),
+                      )}
                       style={{ width: `${bar.pct}%` }}
                     />
                   </div>
+                  {/* Arc twin, so a ring identity previews as a ring. */}
+                  <svg
+                    viewBox="0 0 52 52"
+                    className="mx-auto -rotate-90 [display:var(--form-meter-ring-display)]"
+                    style={{ width: PREVIEW_FORM.ringSize, height: PREVIEW_FORM.ringSize }}
+                  >
+                    <circle
+                      cx="26"
+                      cy="26"
+                      r="22"
+                      fill="none"
+                      className="stroke-ui-track"
+                      style={{ strokeWidth: "var(--form-meter-ring-width)" }}
+                    />
+                    <circle
+                      cx="26"
+                      cy="26"
+                      r="22"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={RING_CIRCUMFERENCE}
+                      strokeDashoffset={RING_CIRCUMFERENCE * (1 - bar.pct / 100)}
+                      className={severityStrokeClass(bar.pct)}
+                      style={{ strokeWidth: "var(--form-meter-ring-width)" }}
+                    />
+                  </svg>
                   {bar.caption ? (
-                    <span className="truncate text-[8px] leading-none text-ui-tertiary">
+                    <span
+                      className="truncate leading-none text-ui-tertiary"
+                      style={{ fontSize: PREVIEW_FORM.captionSize }}
+                    >
                       {bar.caption}
                     </span>
                   ) : null}
@@ -180,7 +291,10 @@ export function UsageMonitorPreview({
               ))}
             </div>
 
-            <span className="pt-0.5 text-[8px] leading-none text-ui-placeholder">
+            <span
+              className="truncate pt-0.5 leading-none text-ui-placeholder"
+              style={{ fontSize: PREVIEW_FORM.captionSize }}
+            >
               updated just now
             </span>
           </div>
