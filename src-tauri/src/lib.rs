@@ -9,6 +9,7 @@
 //! - `frame`: persisted window geometry
 //! - `credentials`: provider login reads (Keychain, Cursor IDE DB, home files)
 //! - `http`: native fetch so requests carry no webview Origin
+//! - `usage_history`: token usage scanned from local CLI transcripts
 
 mod commands;
 mod credentials;
@@ -20,6 +21,7 @@ mod oauth;
 mod panel;
 mod state;
 mod tray;
+mod usage_history;
 
 use state::PanelState;
 
@@ -51,6 +53,8 @@ pub fn run() {
             commands::cursor_ide_login_meta,
             commands::read_cursor_ide_access_token,
             commands::http_request,
+            commands::scan_usage_history,
+            commands::devin_model_catalog,
             commands::oauth_listen,
             commands::oauth_wait,
             commands::oauth_cancel

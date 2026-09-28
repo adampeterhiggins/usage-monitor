@@ -4786,6 +4786,7 @@ name = "usage-monitor"
 version = "0.2.5"
 dependencies = [
  "base64 0.22.1",
+ "memchr",
  "objc2-app-kit",
  "objc2-foundation",
  "reqwest 0.12.28",

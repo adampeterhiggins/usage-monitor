@@ -35,9 +35,9 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
-/// The frontend may only fetch hosts the providers and theme marketplace
-/// actually use. Anything else could turn a frontend compromise into an
-/// arbitrary exfiltration channel.
+/// The frontend may only fetch hosts the providers, theme marketplace, and
+/// usage-history rate table (LiteLLM on GitHub) actually use. Anything else
+/// could turn a frontend compromise into an arbitrary exfiltration channel.
 const ALLOWED_HOSTS: &[&str] = &[
     "claude.ai",
     "console.anthropic.com",
@@ -51,7 +51,11 @@ const ALLOWED_HOSTS: &[&str] = &[
     "server.codeium.com",
     "app.devin.ai",
     "open-vsx.org",
+    "raw.githubusercontent.com",
 ];
+
+/// GitHub raw content serves every public repo; only LiteLLM's is needed.
+const LITELLM_PATH_PREFIX: &str = "/BerriAI/litellm/";
 
 /// Pass `encoding: "base64"` for binary bodies (Open VSX VSIX packages).
 pub(crate) async fn request(
@@ -63,9 +67,11 @@ pub(crate) async fn request(
 ) -> Result<HttpResponse, String> {
     let parsed = reqwest::Url::parse(url).map_err(|e| format!("Invalid URL: {e}"))?;
     let allowed = parsed.scheme() == "https"
-        && parsed
-            .host_str()
-            .is_some_and(|host| ALLOWED_HOSTS.contains(&host));
+        && parsed.host_str().is_some_and(|host| {
+            ALLOWED_HOSTS.contains(&host)
+                && (host != "raw.githubusercontent.com"
+                    || parsed.path().starts_with(LITELLM_PATH_PREFIX))
+        });
     if !allowed {
         return Err(format!("http_request is restricted to known provider hosts: {url}"));
     }

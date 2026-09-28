@@ -6,9 +6,9 @@
 
 use std::collections::HashMap;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
-use crate::{credentials, http, oauth, panel};
+use crate::{credentials, http, oauth, panel, usage_history};
 
 #[tauri::command]
 pub(crate) fn hide_window(app: AppHandle) {
@@ -120,6 +120,34 @@ pub(crate) async fn oauth_wait(port: u16, timeout_secs: Option<u64>) -> Result<S
 #[tauri::command]
 pub(crate) fn oauth_cancel(port: u16) {
     oauth::cancel(port);
+}
+
+/// Scan local Claude Code / Codex transcripts into usage buckets for the
+/// periods delimited by `boundaries` (ascending epoch-ms edges).
+#[tauri::command]
+pub(crate) async fn scan_usage_history(
+    app: AppHandle,
+    boundaries: Vec<i64>,
+) -> Result<usage_history::UsageHistoryScan, String> {
+    let cache_path = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .map(|dir| dir.join("usage-history-cache.json"));
+    tauri::async_runtime::spawn_blocking(move || {
+        usage_history::scan(cache_path.as_deref(), &boundaries)
+    })
+    .await
+    .map_err(|e| format!("Usage history scan stopped unexpectedly: {e}"))?
+}
+
+/// The Devin CLI's model catalog (`devin models list --format json`), which
+/// carries the only published prices for Devin's own models.
+#[tauri::command]
+pub(crate) async fn devin_model_catalog() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(usage_history::devin_model_catalog)
+        .await
+        .map_err(|e| format!("Devin model catalog read stopped unexpectedly: {e}"))?
 }
 
 /// Fetch via the Rust side so requests carry no webview Origin.

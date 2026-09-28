@@ -3,6 +3,7 @@ import { OPEN_SETTINGS_EVENT, WINDOW_SHOWN_EVENT } from "../../contracts/platfor
 import { subscribe } from "../../platform/events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChartSpline,
   ChevronLeft,
   Contrast,
   Eye,
@@ -119,6 +120,7 @@ interface SettingsPopoverProps {
   onWallColumnsChange: (columns: WallColumns) => void;
   onManageAccounts: () => void;
   onAppearance: () => void;
+  onUsageHistory: () => void;
   dialogOpen: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -130,6 +132,7 @@ export function SettingsPopover({
   onWallColumnsChange,
   onManageAccounts,
   onAppearance,
+  onUsageHistory,
   dialogOpen,
   onOpenChange,
 }: SettingsPopoverProps) {
@@ -319,6 +322,14 @@ export function SettingsPopover({
                   onSelect={() => {
                     onManageAccounts();
                     setOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon={ChartSpline}
+                  label="Usage History…"
+                  onSelect={() => {
+                    setOpen(false);
+                    onUsageHistory();
                   }}
                 />
                 <MenuItem

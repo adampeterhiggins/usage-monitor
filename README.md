@@ -35,7 +35,7 @@ On first launch the panel is empty. Add accounts from **Settings → Manage Acco
 | Cursor | Sign in, `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
 | Devin | Sign in, `windsurf_api_key`, or blank | Reads the Devin CLI login from `~/.local/share/devin/credentials.toml` |
 
-Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and no third-party endpoint — the only hosts the app can reach are the providers' and Open VSX (theme marketplace).
+Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and nothing about you is sent anywhere else — the only hosts the app can reach are the providers', Open VSX (theme marketplace), and LiteLLM's public model price table on GitHub (a plain download used to price Usage History).
 
 Not affiliated with Anthropic, OpenAI, Cursor, or Cognition.
 
@@ -44,6 +44,14 @@ Not affiliated with Anthropic, OpenAI, Cursor, or Cognition.
 The app is an accessory — no Dock icon. Left-click the menu-bar icon or press the show/hide shortcut to open the panel. It hides when it loses focus, or when you press Escape.
 
 **⌘K** opens Settings. **Manage Accounts** lets you add, edit, hide, remove, and reorder accounts. You can also switch layout (Wall, Grouped, Stacked, Ledger, Strip, Focus), change theme, and rebind the shortcuts.
+
+**Usage History** (ported from [T3 Code](https://github.com/pingdotgg/t3code)'s Usage page) charts tokens and cost over the past 24 hours, 7, 30, or 90 days, broken down by provider and model:
+
+- **Claude Code and Codex** — the session transcripts they keep in `~/.claude/projects` and `~/.codex/sessions`.
+- **Devin** — the Devin CLI's `~/.local/share/devin/cli/sessions.db`, read incrementally through the system `sqlite3`. Devin's own models are priced from `devin models list`.
+- **Cursor** — the dashboard usage history of your (visible) Cursor accounts, with Cursor's own reported charge per request. Accounts signed in as the same Cursor user are counted once.
+
+Local history covers all CLI usage, not just what this app fetched, and parsed history is cached in the app's data directory so days survive a CLI pruning old sessions. Costs other than Cursor's are API-equivalent estimates at [LiteLLM](https://github.com/BerriAI/litellm) (or Devin catalog) rates, not what a subscription bills.
 
 ## Releasing and updating
 

@@ -4,6 +4,8 @@ import {
   MOCK_HTTP_ROUTES,
   MOCK_KEYCHAIN_ACCOUNTS,
   MOCK_KEYCHAIN_PASSWORDS,
+  MOCK_DEVIN_MODEL_CATALOG,
+  mockUsageHistoryScan,
 } from "./fixtures";
 
 interface NativeHttpResponse {
@@ -59,6 +61,12 @@ export function handleCommand(cmd: string, args: unknown): unknown {
       }
       return body;
     }
+    case "scan_usage_history": {
+      const boundaries = Array.isArray(a.boundaries) ? (a.boundaries as number[]) : [];
+      return mockUsageHistoryScan(boundaries);
+    }
+    case "devin_model_catalog":
+      return MOCK_DEVIN_MODEL_CATALOG;
     case "oauth_listen":
       return 51703;
     case "oauth_wait":
