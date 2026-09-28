@@ -1,15 +1,15 @@
 {
-  "version": "0.2.9",
-  "notes": "## What's Changed\n* Port setgist's local release workflow by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/52\n* Add Usage Resets to the account menu for Claude and Codex by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/53\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.7...v0.2.9\n\n## What's Changed\n* Add Usage Resets to the account menu for Claude and Codex by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/53\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.8...v0.2.9",
-  "pub_date": "2026-09-28T12:31:56Z",
+  "version": "0.2.10",
+  "notes": "## What's Changed\n* Port setgist's local release workflow by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/52\n* Add Usage Resets to the account menu for Claude and Codex by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/53\n* Add Usage History as a settings dialog, ported from t3code by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/54\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.7...v0.2.10",
+  "pub_date": "2026-09-28T13:09:30Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUp0TEpzVHdZRGp4clkyMGg2V2RyYzZNdlVnSnhzU29tdmZseEZhOEFTMEo4eDkrWmt5U09wWk10ekZiZWN1T3JxVEVLbDdxd0IrN3gyTS9wMWxBNXdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTk5NDEzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClJJUmpiWjRvMnY3V3BnMUtRbjBoU3RZWEJ2UGJmMDJ4WGI0cFg1dURyYjJYME85cWtjeGJVZkZHekVxYzNRblFTK3Fpb21DaFR6NjZUbEZtc0wyNkNRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595391925"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtGajB1WU03dU5HRE9XMnJKcDZIdDcxc2VxaHZIR05iRGpyTUhBOEhGZm41eGZpVWhFemJjK0NzVGs3cE8xWUFDSlhzRVlyT2pURlNiTTJEeEVJcFFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNjAwOTYzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CldjVUhHdzRoU3JybzNhVjdwUUdpb0NWYTZQbXVkaythckt0dDR3OXFCNmtFK1FBZVNVWlozeVEzVTZMU1M1Yk9WUjJPcEx5Z2J1bmlTQUs5ZkEzZkNBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595442341"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUp0TEpzVHdZRGp4clkyMGg2V2RyYzZNdlVnSnhzU29tdmZseEZhOEFTMEo4eDkrWmt5U09wWk10ekZiZWN1T3JxVEVLbDdxd0IrN3gyTS9wMWxBNXdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTk5NDEzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClJJUmpiWjRvMnY3V3BnMUtRbjBoU3RZWEJ2UGJmMDJ4WGI0cFg1dURyYjJYME85cWtjeGJVZkZHekVxYzNRblFTK3Fpb21DaFR6NjZUbEZtc0wyNkNRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595391925"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUtGajB1WU03dU5HRE9XMnJKcDZIdDcxc2VxaHZIR05iRGpyTUhBOEhGZm41eGZpVWhFemJjK0NzVGs3cE8xWUFDSlhzRVlyT2pURlNiTTJEeEVJcFFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNjAwOTYzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CldjVUhHdzRoU3JybzNhVjdwUUdpb0NWYTZQbXVkaythckt0dDR3OXFCNmtFK1FBZVNVWlozeVEzVTZMU1M1Yk9WUjJPcEx5Z2J1bmlTQUs5ZkEzZkNBPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595442341"
     }
   }
 }
