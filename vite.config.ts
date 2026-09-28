@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { resolveDeploymentMeta } from "./scripts/resolve-deployment-meta.mjs";
+import { distDir } from "./scripts/worktree-scratch.mjs";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -48,6 +49,8 @@ export default defineConfig(async ({ mode }) => {
       "import.meta.env.VITE_PR_NUMBER": JSON.stringify(deployment.prNumber),
       "import.meta.env.VITE_PR_URL": JSON.stringify(deployment.prUrl),
     },
+    // A linked worktree builds under node_modules/.cache (scripts/worktree-scratch.mjs).
+    build: { outDir: distDir(), emptyOutDir: true },
     clearScreen: false,
     server: {
       // Mock mode uses its own port range so it can run beside `tauri dev`.

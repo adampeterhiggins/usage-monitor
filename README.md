@@ -24,6 +24,27 @@ npm run tauri dev      # develop — the panel is hidden until you press ⌘⇧U
 make app               # build and install into /Applications
 ```
 
+### Working in worktrees
+
+In a linked git worktree, `make`, `npm run tauri` and `npm run build` build out
+of the worktree's way, so worktrees stay small and can be deleted without
+losing anything (`scripts/worktree-scratch.mjs` decides). Cargo's intermediate
+artifacts, the gigabytes, go to `~/Library/Caches/usage-monitor/cargo-build`,
+which every worktree shares, so a new worktree reuses the dependencies another
+one already compiled. What the worktree keeps goes under
+`node_modules/.cache/usage-monitor/`: the built binaries and bundles in
+`target/`, and Vite's output in `dist/`. T3 Code's automatic worktree cleanup
+(**Settings → Storage**) skips any worktree holding ignored files other than
+`node_modules`. Tauri's `src-tauri/gen/schemas` is committed for the same
+reason.
+
+The main checkout and the release worktree keep `dist` and `src-tauri/target`.
+Worktrees building at once wait on each other for the shared cache's lock.
+`make clean-shared` empties the cache when it has grown, and the next build
+starts cold. Running `cargo` itself (rust-analyzer included) bypasses all this
+and builds into `src-tauri/target`; set `CARGO_TARGET_DIR` for it if you need
+to.
+
 On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Each provider can **Sign in** to create a login session just for that account — the same idea as **Sign in with GitHub** for updates, and independent of your CLI logins. Leaving the credential blank still uses the local Claude Code / Codex / Cursor login when one exists.
 
 ### Providers
