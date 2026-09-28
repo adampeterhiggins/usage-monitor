@@ -86,8 +86,13 @@ The chain is: version gate → bump → `npm run check` → commit → tag → p
 | `YES=1` | accept prompts; required in a non-interactive shell |
 | `PUSH=0` | stop after tagging |
 | `WATCH=0` | don't follow the CI run |
+| `REF=<commit>` | `release-local`: release this merged commit instead of the checkout's |
 
-Other useful targets: `make version` (reports drift across the three files), `make set-version-0.3.0`, `make app` (build and install into `/Applications`, verifying the installed version), `make runs`, `make watch`, `make verify-release`, and `make release-local` if CI is broken and you need to publish from your laptop.
+Other useful targets: `make version` (reports drift across the three files), `make set-version-0.3.0`, `make app` (build and install into `/Applications`, verifying the installed version), `make runs`, `make watch`, and `make verify-release`.
+
+If CI is unavailable, `make release-local` does the whole release from your machine, of the commit this checkout is on. Nothing newer is pulled from origin, so pull first if you want the latest `main`. The commit must already be on `main`, and it is built in a worktree of its own under `~/Library/Caches/usage-monitor/`, so this checkout is never touched and other work in it carries on. There it runs the checks, bumps the patch version past the latest tag, commits the bump on top of the commit and tags it, builds the signed universal bundle, pushes the tag, publishes the GitHub release, writes the manifest, updates the Homebrew tap and verifies the result. The bump stays off `main`: only the tag points at it, so nothing is pushed to `main` and PRs merging mid-release cannot get in the way. `REF=abc1234` releases another merged commit instead, leaving out anything after it. `PUSH=0` stops after the build. If a run stops partway, it prints a `REF=vX.Y.Z` to retry with. `make local-release-0.3.0` releases an exact version in place, and `make manifest-X.Y.Z` regenerates the manifest for an existing release.
+
+`make release` also copes with PRs merging while it runs: if the push of the release commit is rejected because `main` moved, it replays the commit onto the new tip, moves the tag with it and tries again (up to three times).
 
 The workflow then builds a signed **universal** macOS bundle, publishes a GitHub Release with the `.dmg`, `.app.tar.gz` and `.app.tar.gz.sig`, updates the `usage-monitor` cask in [adampeterhiggins/homebrew-tap](https://github.com/adampeterhiggins/homebrew-tap), and commits a `latest.json` to the `releases` branch. The running app picks it up on its next check — 15 seconds after launch, then every 6 hours — or immediately via **Settings → Updates → Check now**.
 
