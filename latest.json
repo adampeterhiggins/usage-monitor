@@ -1,15 +1,15 @@
 {
-  "version": "0.2.7",
-  "notes": "## What's Changed\n* Add visual identity as an Appearance setting by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/51\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.6...v0.2.7",
-  "pub_date": "2026-09-20T12:11:36Z",
+  "version": "0.2.8",
+  "notes": "## What's Changed\n* Port setgist's local release workflow by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/52\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.7...v0.2.8",
+  "pub_date": "2026-09-28T10:50:16Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUdWdE9jQTU3dWF3aUhDVlp4K2tuWGlpa0pwTHVNOU1EMnc5WndVRkZVa3doRTdHOWVjSWN3ejZXUi9hcXVWQnpyZVQySW5oTDZ4S1JYbC8zMWFXV2dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5OTA2MjkxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CitGS0hYQVQrVkw3OFM3S3YxbXlTcngySFRscGFHZTRwbVNtbldySUlTSUhPNFh2V3ZVeXk4R1ZzOG04ZFgyTzFHaDczSTR1WFk3a3hyRi95aDhQaEJRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/576754917"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUJoeEJrQVg1dGhySEdYY3BsL20yUzFlSDVJTFBabmFvSDhNb2NGbmkrU2JJMlJBbllNaDc4ZkN3Wk53RG5QK3ByVlU5ZXNKYThuUWhjejBJM2YwbHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTkyNjEwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm8vU2pLQjlsTDlLRUVOUElkQ0NhZ1hlVDdYeGVBcmlmYjVhaktZdEFJa1hSS0pESktPWkhZSzAvVVpGZkV5RGJnUjByZ3I5SFRTL29BUnA3RVA4T0NnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595175745"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUdWdE9jQTU3dWF3aUhDVlp4K2tuWGlpa0pwTHVNOU1EMnc5WndVRkZVa3doRTdHOWVjSWN3ejZXUi9hcXVWQnpyZVQySW5oTDZ4S1JYbC8zMWFXV2dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5OTA2MjkxCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6CitGS0hYQVQrVkw3OFM3S3YxbXlTcngySFRscGFHZTRwbVNtbldySUlTSUhPNFh2V3ZVeXk4R1ZzOG04ZFgyTzFHaDczSTR1WFk3a3hyRi95aDhQaEJRPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/576754917"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUJoeEJrQVg1dGhySEdYY3BsL20yUzFlSDVJTFBabmFvSDhNb2NGbmkrU2JJMlJBbllNaDc4ZkN3Wk53RG5QK3ByVlU5ZXNKYThuUWhjejBJM2YwbHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTkyNjEwCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm8vU2pLQjlsTDlLRUVOUElkQ0NhZ1hlVDdYeGVBcmlmYjVhaktZdEFJa1hSS0pESktPWkhZSzAvVVpGZkV5RGJnUjByZ3I5SFRTL29BUnA3RVA4T0NnPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595175745"
     }
   }
 }
