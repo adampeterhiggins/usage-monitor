@@ -1,9 +1,11 @@
 import * as React from "react";
-import { Compass, Ellipsis, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Compass, Ellipsis, Pencil, RefreshCw, Ticket, Trash2 } from "lucide-react";
 import { openExternal } from "../../platform/external";
 import { useAccountsStore } from "../../state/accounts";
 import { toast } from "../ui/toast";
 import { PROVIDERS } from "../../providers/metadata";
+import { supportsResetCredits } from "../../providers/registry";
+import { ResetCreditsDialog } from "./ResetCreditsDialog";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { Button } from "../ui/button";
@@ -39,6 +41,7 @@ export function AccountActionsMenu({
 }: AccountActionsMenuProps) {
   const [open, setOpen] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
+  const [showResets, setShowResets] = React.useState(false);
   const meta = PROVIDERS[account.provider];
 
   async function handleRemove() {
@@ -92,6 +95,16 @@ export function AccountActionsMenu({
                   onEdit(account);
                 }}
               />
+              {supportsResetCredits(account.provider) ? (
+                <MenuItem
+                  icon={Ticket}
+                  label="Usage Resets"
+                  onSelect={() => {
+                    setOpen(false);
+                    setShowResets(true);
+                  }}
+                />
+              ) : null}
               <MenuItem
                 icon={Compass}
                 label="Open Dashboard"
@@ -118,6 +131,14 @@ export function AccountActionsMenu({
           </MenuCommand>
         </MenuContent>
       </MenuRoot>
+
+      {showResets ? (
+        <ResetCreditsDialog
+          account={account}
+          onClose={() => setShowResets(false)}
+          onReset={onRefresh}
+        />
+      ) : null}
 
       {confirmRemove ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-ui-scrim p-6">

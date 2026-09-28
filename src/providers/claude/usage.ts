@@ -195,13 +195,8 @@ async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapsh
   return fetchViaAccessToken(token, planLabel);
 }
 
-async function fetchViaStoredOauth(
-  cred: string,
-  hooks?: UsageFetchHooks,
-): Promise<UsageSnapshot> {
-  if (cred.startsWith("sk-ant-oat")) {
-    return fetchViaAccessToken(cred, "Signed in");
-  }
+async function storedOauthAccessToken(cred: string, hooks?: UsageFetchHooks): Promise<string> {
+  if (cred.startsWith("sk-ant-oat")) return cred;
   const stored = parseClaudeOauthCredentials(cred, "Saved Claude login");
   const { tokens, refreshed } = await resolveClaudeOauthTokens(stored.claudeAiOauth);
   if (refreshed) {
@@ -211,7 +206,28 @@ async function fetchViaStoredOauth(
       // Usage still works this session even if the store write fails.
     }
   }
-  return fetchViaAccessToken(tokens.accessToken, "Signed in");
+  return tokens.accessToken;
+}
+
+async function fetchViaStoredOauth(
+  cred: string,
+  hooks?: UsageFetchHooks,
+): Promise<UsageSnapshot> {
+  return fetchViaAccessToken(await storedOauthAccessToken(cred, hooks), "Signed in");
+}
+
+/** The OAuth access token behind an account, or undefined for a claude.ai
+ *  session-key account, which has no OAuth login. */
+export async function resolveClaudeAccessToken(
+  account: Account,
+  hooks?: UsageFetchHooks,
+): Promise<string | undefined> {
+  const cred = authCredential(account.auth).trim();
+  if (cred === "") return (await readClaudeCodeToken(authLocalSelector(account.auth))).token;
+  if (isClaudeOauthJson(cred) || /^sk-ant-oat/.test(cred)) {
+    return storedOauthAccessToken(cred, hooks);
+  }
+  return undefined;
 }
 
 export async function fetchClaudeUsage(
