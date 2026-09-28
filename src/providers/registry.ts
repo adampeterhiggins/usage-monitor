@@ -3,8 +3,12 @@
  *  login-session mechanics live in shared/. */
 
 import type { Account } from "../contracts/accounts";
+import type { ProviderId } from "../contracts/providers";
+import type { ResetCredits, ResetOutcome } from "../contracts/resets";
 import type { UsageFetchHooks, UsageSnapshot } from "../contracts/usage";
+import { consumeClaudeResetCredit, fetchClaudeResetCredits } from "./claude/resets";
 import { fetchClaudeUsage } from "./claude/usage";
+import { consumeCodexResetCredit, fetchCodexResetCredits } from "./codex/resets";
 import { fetchCodexUsage } from "./codex/usage";
 import { fetchCursorUsage } from "./cursor/usage";
 import { fetchDevinUsage } from "./devin/usage";
@@ -22,5 +26,38 @@ export function fetchProviderUsage(
       return fetchCursorUsage(account);
     case "devin":
       return fetchDevinUsage(account);
+  }
+}
+
+export function supportsResetCredits(provider: ProviderId): boolean {
+  return provider === "claude" || provider === "codex";
+}
+
+export function fetchProviderResetCredits(
+  account: Account,
+  hooks: UsageFetchHooks,
+): Promise<ResetCredits> {
+  switch (account.provider) {
+    case "claude":
+      return fetchClaudeResetCredits(account, hooks);
+    case "codex":
+      return fetchCodexResetCredits(account, hooks);
+    default:
+      return Promise.reject(new Error("This provider has no usage resets."));
+  }
+}
+
+export function consumeProviderResetCredit(
+  account: Account,
+  input: { creditId?: string; requestId: string },
+  hooks: UsageFetchHooks,
+): Promise<ResetOutcome> {
+  switch (account.provider) {
+    case "claude":
+      return consumeClaudeResetCredit(account, { grantId: input.creditId, requestId: input.requestId }, hooks);
+    case "codex":
+      return consumeCodexResetCredit(account, input, hooks);
+    default:
+      return Promise.reject(new Error("This provider has no usage resets."));
   }
 }

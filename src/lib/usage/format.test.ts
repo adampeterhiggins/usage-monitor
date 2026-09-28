@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formatFetchedAt, formatPercent, formatReset, shortLabel } from "./format";
+import { formatExpiry, formatFetchedAt, formatPercent, formatReset, shortLabel } from "./format";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -43,8 +43,20 @@ describe("formatReset", () => {
     expect(formatReset(now + 30 * 60_000)).toBe("resets in 30 min");
     expect(formatReset(now + 90 * 60_000)).toBe("resets in 1 hr 30 min");
     expect(formatReset(now + (3 * 24 + 2) * 3_600_000)).toBe("resets in 3 d 2 hr");
+    expect(formatReset(now + 4 * 24 * 3_600_000 - 60_000)).toBe("resets in 4 d 0 hr");
     expect(formatReset(now - 1)).toBe("resetting…");
     expect(formatReset(undefined)).toBeUndefined();
+  });
+});
+
+describe("formatExpiry", () => {
+  it("describes the time until a credit expires", () => {
+    const now = new Date("2026-09-10T12:00:00Z").getTime();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    expect(formatExpiry(now + (24 * 24 + 8) * 3_600_000)).toBe("expires in 24 d 8 hr");
+    expect(formatExpiry(now - 1)).toBe("expired");
+    expect(formatExpiry(undefined)).toBeUndefined();
   });
 });
 

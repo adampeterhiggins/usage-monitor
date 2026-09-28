@@ -11,16 +11,27 @@ export function shortLabel(label: string): string {
   return label.length > 14 ? `${label.slice(0, 13)}…` : label;
 }
 
+function formatDuration(ms: number): string {
+  const totalMin = Math.round(ms / 60000);
+  if (totalMin < 60) return `${totalMin} min`;
+  const totalHr = totalMin / 60;
+  if (totalHr < 48) return `${Math.floor(totalHr)} hr ${totalMin % 60} min`;
+  const roundedHr = Math.round(totalHr);
+  return `${Math.floor(roundedHr / 24)} d ${roundedHr % 24} hr`;
+}
+
 export function formatReset(resetsAt?: number): string | undefined {
   if (resetsAt === undefined) return undefined;
   const ms = resetsAt - Date.now();
   if (ms <= 0) return "resetting…";
-  const totalMin = Math.round(ms / 60000);
-  if (totalMin < 60) return `resets in ${totalMin} min`;
-  const totalHr = totalMin / 60;
-  if (totalHr < 48) return `resets in ${Math.floor(totalHr)} hr ${totalMin % 60} min`;
-  const days = Math.floor(totalHr / 24);
-  return `resets in ${days} d ${Math.round(totalHr % 24)} hr`;
+  return `resets in ${formatDuration(ms)}`;
+}
+
+export function formatExpiry(expiresAt?: number): string | undefined {
+  if (expiresAt === undefined) return undefined;
+  const ms = expiresAt - Date.now();
+  if (ms <= 0) return "expired";
+  return `expires in ${formatDuration(ms)}`;
 }
 
 export function formatFetchedAt(fetchedAt: number): string {

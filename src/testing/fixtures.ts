@@ -160,13 +160,28 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
           utilization: 44.8,
           currency: "USD",
         },
+        cedar_ember: {
+          eligible: true,
+          next_grant_id: "mock_grant",
+          grants: [
+            { id: "mock_grant", resets_left: 1, usable_now: true, ends_at: inHours(24 * 20) },
+          ],
+        },
       },
     },
   ],
   [
     "api.anthropic.com/api/oauth/profile",
-    { status: 200, body: { email: "dev@example.com", account: { email: "dev@example.com" } } },
+    {
+      status: 200,
+      body: {
+        email: "dev@example.com",
+        account: { email: "dev@example.com" },
+        organization: { uuid: "mock-org" },
+      },
+    },
   ],
+  ["/reset_rate_limits", { status: 200, body: { result: "reset" } }],
   [
     "api.anthropic.com/v1/oauth/token",
     {
@@ -175,6 +190,28 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
         access_token: "mock-claude-refreshed-token",
         refresh_token: "mock-claude-refresh-token",
         expires_in: 86_400,
+      },
+    },
+  ],
+  [
+    "chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume",
+    { status: 200, body: { code: "reset", windows_reset: 2 } },
+  ],
+  [
+    "chatgpt.com/backend-api/wham/rate-limit-reset-credits",
+    {
+      status: 200,
+      body: {
+        available_count: 1,
+        credits: [
+          {
+            id: "mock-credit",
+            reset_type: "codex_rate_limits",
+            status: "available",
+            granted_at: inHours(-24),
+            expires_at: inHours(24 * 24),
+          },
+        ],
       },
     },
   ],

@@ -27,7 +27,7 @@ interface WhamUsage {
   credits?: { balance?: string | null; unlimited?: boolean | null } | null;
 }
 
-interface CodexCreds {
+export interface CodexCreds {
   accessToken: string;
   accountId?: string;
 }
@@ -124,10 +124,16 @@ export function toWindow(
   };
 }
 
-async function fetchWham(creds: CodexCreds): Promise<WhamUsage> {
+export function codexHeaders(creds: CodexCreds): Record<string, string> {
   const headers: Record<string, string> = { Authorization: `Bearer ${creds.accessToken}` };
   if (creds.accountId) headers["ChatGPT-Account-Id"] = creds.accountId;
-  return fetchJson<WhamUsage>("https://chatgpt.com/backend-api/wham/usage", { headers });
+  return headers;
+}
+
+async function fetchWham(creds: CodexCreds): Promise<WhamUsage> {
+  return fetchJson<WhamUsage>("https://chatgpt.com/backend-api/wham/usage", {
+    headers: codexHeaders(creds),
+  });
 }
 
 async function refreshStoredCodex(
@@ -151,27 +157,31 @@ async function refreshStoredCodex(
   return { accessToken: next.accessToken, accountId: next.accountId };
 }
 
+/** Run a ChatGPT backend request with the account's credentials, refreshing a
+ *  saved login once if the token has expired. */
+export async function withCodexCreds<T>(
+  account: Account,
+  hooks: UsageFetchHooks | undefined,
+  request: (creds: CodexCreds) => Promise<T>,
+): Promise<T> {
+  const creds = await resolveCreds(account);
+  try {
+    return await request(creds);
+  } catch (e) {
+    if (e instanceof Error && /HTTP 401/.test(e.message)) {
+      const refreshed = await refreshStoredCodex(authCredential(account.auth).trim(), hooks).catch(() => null);
+      if (refreshed) return request(refreshed);
+      throw new Error("Codex token expired. Sign in again on this account, or run `codex login` and retry.");
+    }
+    throw e;
+  }
+}
+
 export async function fetchCodexUsage(
   account: Account,
   hooks?: UsageFetchHooks,
 ): Promise<UsageSnapshot> {
-  const creds = await resolveCreds(account);
-
-  let data: WhamUsage;
-  try {
-    data = await fetchWham(creds);
-  } catch (e) {
-    if (e instanceof Error && /HTTP 401/.test(e.message)) {
-      const refreshed = await refreshStoredCodex(authCredential(account.auth).trim(), hooks).catch(() => null);
-      if (refreshed) {
-        data = await fetchWham(refreshed);
-      } else {
-        throw new Error("Codex token expired. Sign in again on this account, or run `codex login` and retry.");
-      }
-    } else {
-      throw e;
-    }
-  }
+  const data = await withCodexCreds(account, hooks, fetchWham);
 
   const windows: UsageWindow[] = [];
   const primary = toWindow(data.rate_limit?.primary_window, "Usage limit");
