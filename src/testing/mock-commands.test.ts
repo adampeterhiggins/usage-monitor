@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { parseAuthJson } from "../providers/codex/usage";
 import { parseUsage } from "../providers/claude/usage";
 import { sessionCookieFromJwt } from "../providers/cursor/usage";
+import type { UsageHistoryScan } from "../contracts/usageHistory";
+import {
+  isModelCostUnknown,
+  LITELLM_RATES_URL,
+  makeUsageWindow,
+  parseRateTable,
+  summarizeUsage,
+} from "../lib/usageHistory";
 import { MOCK_CURSOR_SESSION_JWT } from "./fixtures";
 import { handleCommand } from "./mock-commands";
 
@@ -27,6 +35,7 @@ const ARGS: Record<string, unknown> = {
   list_keychain_accounts: { service: "Claude Code-credentials" },
   read_keychain_password: { service: "Claude Code-credentials" },
   read_home_file: { relPath: ".codex/auth.json" },
+  scan_usage_history: { boundaries: [0, 86_400_000] },
 };
 
 describe("mock invoke coverage", () => {
@@ -57,6 +66,18 @@ describe("fixtures parse through the real parsers", () => {
   it("codex auth.json fixture feeds parseAuthJson", () => {
     const raw = handleCommand("read_home_file", { relPath: ".codex/auth.json" }) as string;
     expect(parseAuthJson(raw, "mock").accountId).toBe("acct_mock_codex");
+  });
+
+  it("usage history scan and rates feed summarizeUsage", () => {
+    const window = makeUsageWindow(30, new Date(2026, 8, 28, 12));
+    const scan = handleCommand("scan_usage_history", {
+      boundaries: window.boundaries,
+    }) as UsageHistoryScan;
+    const rates = handleCommand("http_request", { url: LITELLM_RATES_URL }) as { body: string };
+    const summary = summarizeUsage(scan, window, parseRateTable(JSON.parse(rates.body)));
+    expect(summary.providers.map((p) => p.provider)).toEqual(["claude", "codex", "devin"]);
+    expect(summary.costUsd).toBeGreaterThan(0);
+    expect(summary.models.some(isModelCostUnknown)).toBe(true);
   });
 
   it("cursor session JWT feeds sessionCookieFromJwt", () => {

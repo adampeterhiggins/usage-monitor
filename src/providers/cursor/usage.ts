@@ -242,9 +242,16 @@ async function resolveNativeCookie(pin?: string): Promise<string> {
   );
 }
 
+/** The `WorkosCursorSessionToken` value (`userId::jwt`) for an account:
+ *  its pasted or signed-in credential, else the local Cursor login. */
+export async function resolveCursorCookie(account: Account): Promise<string> {
+  const pasted = authCredential(account.auth).trim();
+  return pasted ? cookieFromPasted(pasted) : resolveNativeCookie(authLocalSelector(account.auth));
+}
+
 export async function fetchCursorUsage(account: Account): Promise<UsageSnapshot> {
   const pasted = authCredential(account.auth).trim();
-  const cookie = pasted ? cookieFromPasted(pasted) : await resolveNativeCookie(authLocalSelector(account.auth));
+  const cookie = await resolveCursorCookie(account);
   const headers = {
     Cookie: `WorkosCursorSessionToken=${cookie}`,
     Origin: "https://cursor.com",
