@@ -2,7 +2,7 @@ import * as React from "react";
 import { LoaderCircle, Ticket } from "lucide-react";
 import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
-import type { ResetCredits, ResetOutcome } from "../../contracts/resets";
+import type { ResetCredit, ResetCredits, ResetOutcome } from "../../contracts/resets";
 import { formatExpiry } from "../../lib/usage/format";
 import { readResetCredits, redeemResetCredit } from "../../lib/usage/resets";
 import { toast } from "../ui/toast";
@@ -21,6 +21,16 @@ type LoadState =
   | { status: "ok"; credits: ResetCredits }
   | { status: "error"; message: string };
 
+/** A redeemable row. `creditId` is absent when the provider sent only a
+ *  count, and the provider then picks the credit. */
+interface ResetRow {
+  key: string;
+  creditId?: string;
+  label: string;
+  detail?: string;
+  usable: boolean;
+}
+
 interface ResetCreditsDialogProps {
   account: AccountPublic;
   onClose: () => void;
@@ -34,13 +44,33 @@ export function resetCreditsSummary(credits: ResetCredits): string {
   return `${credits.availableCount} ${noun} banked${expiry ? ` · next ${expiry}` : ""}`;
 }
 
-/** Banked usage resets for one account. Redeeming spends a credit the
- *  provider granted, so it never fires without a second confirm. */
+function creditRow(credit: ResetCredit): ResetRow {
+  const label =
+    credit.title ?? (credit.resetsLeft === 1 ? "Reset credit" : `${credit.resetsLeft} resets`);
+  const detail = [
+    credit.title && credit.resetsLeft > 1 ? `${credit.resetsLeft} resets` : undefined,
+    credit.usable ? undefined : "not usable yet",
+    formatExpiry(credit.expiresAt) ?? "no expiry",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return { key: credit.id, creditId: credit.id, label, detail, usable: credit.usable };
+}
+
+function resetRows(credits: ResetCredits): ResetRow[] {
+  if (credits.credits.length > 0) return credits.credits.map(creditRow);
+  if (credits.availableCount === 0) return [];
+  return [{ key: "any", label: resetCreditsSummary(credits), usable: true }];
+}
+
+/** Banked usage resets for one account, one button per credit. Redeeming
+ *  spends a credit the provider granted, so it never fires without a second
+ *  confirm. */
 export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDialogProps) {
   const meta = PROVIDERS[account.provider];
   const [state, setState] = React.useState<LoadState>({ status: "loading" });
-  const [confirming, setConfirming] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
+  const [confirming, setConfirming] = React.useState<ResetRow | null>(null);
+  const [busyKey, setBusyKey] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
@@ -56,12 +86,12 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
     void load();
   }, [load]);
 
-  async function redeem(credits: ResetCredits) {
-    setConfirming(false);
-    setBusy(true);
+  async function redeem(row: ResetRow) {
+    setConfirming(null);
+    setBusyKey(row.key);
     setStatus(null);
     try {
-      const outcome = await redeemResetCredit(account.id, credits);
+      const outcome = await redeemResetCredit(account.id, row.creditId);
       setStatus(OUTCOME_TEXT[outcome]);
       if (outcome === "reset") {
         toast.success("Usage reset", { description: `${meta.name} · ${account.label}` });
@@ -71,12 +101,12 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Could not use the reset credit.");
     } finally {
-      setBusy(false);
+      setBusyKey(null);
     }
   }
 
-  const credits = state.status === "ok" ? state.credits : undefined;
-  const canRedeem = !!credits && credits.availableCount > 0 && !busy;
+  const busy = busyKey !== null;
+  const rows = state.status === "ok" ? resetRows(state.credits) : [];
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center rounded-[16px] bg-ui-scrim p-6">
@@ -95,25 +125,68 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
             : `${meta.name} · ${account.label}`}
         </p>
 
-        {confirming ? null : (
-          <div className="mt-3 flex min-h-[40px] items-center gap-2">
+        {confirming ? (
+          <div className="mt-3 flex items-center gap-2">
+            <Ticket className="size-4 shrink-0 text-ui-tertiary" />
+            <Text variant="small" className="tabular-nums">
+              {confirming.detail ? `${confirming.label} · ${confirming.detail}` : confirming.label}
+            </Text>
+          </div>
+        ) : (
+          <div className="mt-3 flex min-h-[40px] flex-col justify-center gap-2">
             {state.status === "loading" ? (
-              <>
+              <div className="flex items-center gap-2">
                 <LoaderCircle className="size-4 animate-spin text-ui-tertiary" />
                 <Text variant="small" color="secondary">
                   Checking banked resets…
                 </Text>
-              </>
+              </div>
             ) : state.status === "error" ? (
               <Text variant="small" color="red" className="line-clamp-3">
                 {state.message}
               </Text>
             ) : (
               <>
-                <Ticket className="size-4 shrink-0 text-ui-tertiary" />
-                <Text variant="small" className="tabular-nums">
-                  {resetCreditsSummary(state.credits)}
-                </Text>
+                {rows.length > 1 || rows[0]?.creditId ? (
+                  <Text variant="small" color="secondary" className="tabular-nums">
+                    {resetCreditsSummary(state.credits)}
+                  </Text>
+                ) : null}
+                {rows.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <Ticket className="size-4 shrink-0 text-ui-tertiary" />
+                    <Text variant="small">{resetCreditsSummary(state.credits)}</Text>
+                  </div>
+                ) : (
+                  <ul className="-mx-1 flex max-h-[240px] flex-col gap-1 overflow-y-auto">
+                    {rows.map((row) => (
+                      <li
+                        key={row.key}
+                        className="flex items-center gap-2 rounded-lg px-1 py-1"
+                      >
+                        <Ticket className="size-4 shrink-0 text-ui-tertiary" />
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <Text variant="small" className="truncate tabular-nums">
+                            {row.label}
+                          </Text>
+                          {row.detail ? (
+                            <Text variant="mini" color="secondary" className="truncate tabular-nums">
+                              {row.detail}
+                            </Text>
+                          ) : null}
+                        </div>
+                        <Button
+                          variant="accent"
+                          size="small"
+                          disabled={busy || !row.usable}
+                          onClick={() => setConfirming(row)}
+                        >
+                          {busyKey === row.key ? "Using…" : "Use"}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </>
             )}
           </div>
@@ -128,10 +201,10 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
         <div className="mt-4 flex justify-end gap-2">
           {confirming ? (
             <>
-              <Button variant="glass" onClick={() => setConfirming(false)}>
+              <Button variant="glass" onClick={() => setConfirming(null)}>
                 Cancel
               </Button>
-              <Button variant="accent" onClick={() => credits && void redeem(credits)}>
+              <Button variant="accent" onClick={() => void redeem(confirming)}>
                 Use credit
               </Button>
             </>
@@ -144,9 +217,6 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
               ) : null}
               <Button variant="glass" disabled={busy} onClick={onClose}>
                 Close
-              </Button>
-              <Button variant="accent" disabled={!canRedeem} onClick={() => setConfirming(true)}>
-                {busy ? "Using…" : "Use reset"}
               </Button>
             </>
           )}

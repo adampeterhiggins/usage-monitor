@@ -1,6 +1,6 @@
 /** Reading and redeeming banked usage resets. Redeeming is an account-level
- *  action, so each account keeps one pending idempotency key and one queue:
- *  overlapping confirms wait their turn instead of spending two credits, and
+ *  action, so each account keeps one queue: overlapping confirms wait their
+ *  turn instead of racing. Each credit keeps one pending idempotency key, so
  *  a retry after an unanswered attempt re-sends the same attempt. */
 
 import type { Account } from "../../contracts/accounts";
@@ -28,25 +28,23 @@ export async function readResetCredits(accountId: string): Promise<ResetCredits>
   return fetchProviderResetCredits(account, hooks);
 }
 
-export function redeemResetCredit(accountId: string, credits: ResetCredits): Promise<ResetOutcome> {
+/** Without a `creditId`, the provider spends whichever credit it picks. */
+export function redeemResetCredit(accountId: string, creditId?: string): Promise<ResetOutcome> {
+  const key = `${accountId}\u0000${creditId ?? ""}`;
   const previous = queues.get(accountId) ?? Promise.resolve();
   const run = previous
     .catch(() => undefined)
     .then(async () => {
       const { account, hooks } = await loadAccount(accountId);
-      const requestId = pendingKeys.get(accountId) ?? crypto.randomUUID();
-      pendingKeys.set(accountId, requestId);
+      const requestId = pendingKeys.get(key) ?? crypto.randomUUID();
+      pendingKeys.set(key, requestId);
       try {
-        const outcome = await consumeProviderResetCredit(
-          account,
-          { creditId: credits.nextCreditId, requestId },
-          hooks,
-        );
-        pendingKeys.delete(accountId);
+        const outcome = await consumeProviderResetCredit(account, { creditId, requestId }, hooks);
+        pendingKeys.delete(key);
         if (outcome === "reset") invalidate(accountId);
         return outcome;
       } catch (e) {
-        if (e instanceof ResetCreditError && e.settled) pendingKeys.delete(accountId);
+        if (e instanceof ResetCreditError && e.settled) pendingKeys.delete(key);
         throw e;
       }
     });

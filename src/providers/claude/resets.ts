@@ -4,7 +4,13 @@
 
 import { fetchJson, fetchText } from "../../platform/http";
 import type { Account } from "../../contracts/accounts";
-import { ResetCreditError, type ResetCredits, type ResetOutcome } from "../../contracts/resets";
+import {
+  bySoonestExpiry,
+  ResetCreditError,
+  type ResetCredit,
+  type ResetCredits,
+  type ResetOutcome,
+} from "../../contracts/resets";
 import type { UsageFetchHooks } from "../../contracts/usage";
 import { resolveClaudeAccessToken } from "./usage";
 
@@ -53,24 +59,26 @@ function headers(token: string): Record<string, string> {
   };
 }
 
-/** Grants that are paused, not yet usable, or past `ends_at` do not count. */
+/** Grants that are paused or not yet usable are listed but do not count;
+ *  expired, empty, and malformed grants are dropped. */
 export function parseCedarEmber(block: unknown, nowMs: number): ResetCredits {
   const parsed = (block ?? {}) as CedarEmber;
-  if (!parsed.eligible) return { availableCount: 0 };
-  const live = (parsed.grants ?? []).flatMap((grant) => {
+  if (!parsed.eligible) return { availableCount: 0, credits: [] };
+  const grants: ResetCredit[] = (parsed.grants ?? []).flatMap((grant) => {
     if (typeof grant.id !== "string" || !GRANT_ID.test(grant.id)) return [];
-    if (typeof grant.resets_left !== "number" || grant.resets_left < 0) return [];
-    if (grant.paused === true || grant.usable_now !== true) return [];
+    if (typeof grant.resets_left !== "number" || grant.resets_left <= 0) return [];
     const endsAt = typeof grant.ends_at === "string" ? Date.parse(grant.ends_at) : undefined;
     if (endsAt !== undefined && !(endsAt > nowMs)) return [];
-    return [{ id: grant.id, resetsLeft: grant.resets_left, endsAt }];
+    const usable = grant.paused !== true && grant.usable_now === true;
+    return [{ id: grant.id, resetsLeft: grant.resets_left, expiresAt: endsAt, usable }];
   });
-  const next = live.find((grant) => grant.id === parsed.next_grant_id);
-  if (!next) return { availableCount: 0 };
+  const next = grants.find((grant) => grant.usable && grant.id === parsed.next_grant_id);
+  if (!next) return { availableCount: 0, credits: [] };
   return {
-    availableCount: live.reduce((sum, grant) => sum + grant.resetsLeft, 0),
-    nextExpiresAt: next.endsAt,
+    availableCount: grants.reduce((sum, grant) => sum + (grant.usable ? grant.resetsLeft : 0), 0),
+    nextExpiresAt: next.expiresAt,
     nextCreditId: next.id,
+    credits: grants.sort(bySoonestExpiry),
   };
 }
 

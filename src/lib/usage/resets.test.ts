@@ -22,7 +22,7 @@ function account(id: string): Account {
   return { id, provider: "codex", label: id, auth: { kind: "local-auto" }, hidden: false };
 }
 
-const credits = { availableCount: 1, nextCreditId: "grant_1" };
+const credit = "grant_1";
 
 function requestIds(): string[] {
   return mockedConsume.mock.calls.map(([, input]) => input.requestId);
@@ -37,7 +37,7 @@ beforeEach(() => {
 describe("redeemResetCredit", () => {
   it("passes the credit id and invalidates cached usage after a reset", async () => {
     mockedConsume.mockResolvedValueOnce("reset");
-    await expect(redeemResetCredit("a", credits)).resolves.toBe("reset");
+    await expect(redeemResetCredit("a", credit)).resolves.toBe("reset");
     expect(mockedConsume.mock.calls[0][1].creditId).toBe("grant_1");
     expect(invalidate).toHaveBeenCalledWith("a");
   });
@@ -47,9 +47,9 @@ describe("redeemResetCredit", () => {
       .mockRejectedValueOnce(new ResetCreditError("timed out", false))
       .mockResolvedValueOnce("reset")
       .mockResolvedValueOnce("nothingToReset");
-    await expect(redeemResetCredit("b", credits)).rejects.toThrow("timed out");
-    await redeemResetCredit("b", credits);
-    await redeemResetCredit("b", credits);
+    await expect(redeemResetCredit("b", credit)).rejects.toThrow("timed out");
+    await redeemResetCredit("b", credit);
+    await redeemResetCredit("b", credit);
     const [first, retry, next] = requestIds();
     expect(retry).toBe(first);
     expect(next).not.toBe(first);
@@ -59,10 +59,28 @@ describe("redeemResetCredit", () => {
     mockedConsume
       .mockRejectedValueOnce(new ResetCreditError("cooling down", true))
       .mockResolvedValueOnce("reset");
-    await expect(redeemResetCredit("c", credits)).rejects.toThrow("cooling down");
-    await redeemResetCredit("c", credits);
+    await expect(redeemResetCredit("c", credit)).rejects.toThrow("cooling down");
+    await redeemResetCredit("c", credit);
     const [first, second] = requestIds();
     expect(second).not.toBe(first);
+  });
+
+  it("keeps a pending request id per credit", async () => {
+    mockedConsume
+      .mockRejectedValueOnce(new ResetCreditError("timed out", false))
+      .mockResolvedValueOnce("reset")
+      .mockResolvedValueOnce("reset");
+    await expect(redeemResetCredit("e", "grant_1")).rejects.toThrow("timed out");
+    await redeemResetCredit("e", "grant_2");
+    await redeemResetCredit("e", "grant_1");
+    const [first, other, retry] = requestIds();
+    expect(other).not.toBe(first);
+    expect(retry).toBe(first);
+    expect(mockedConsume.mock.calls.map(([, input]) => input.creditId)).toEqual([
+      "grant_1",
+      "grant_2",
+      "grant_1",
+    ]);
   });
 
   it("queues overlapping redeems for one account", async () => {
@@ -71,8 +89,8 @@ describe("redeemResetCredit", () => {
       () => new Promise((resolve) => (release = () => resolve("reset"))),
     );
     mockedConsume.mockResolvedValueOnce("nothingToReset");
-    const first = redeemResetCredit("d", credits);
-    const second = redeemResetCredit("d", credits);
+    const first = redeemResetCredit("d", credit);
+    const second = redeemResetCredit("d", credit);
     await vi.waitFor(() => expect(mockedConsume).toHaveBeenCalledTimes(1));
     release();
     await expect(first).resolves.toBe("reset");
