@@ -3,7 +3,13 @@
 
 import { fetchJson } from "../../platform/http";
 import type { Account } from "../../contracts/accounts";
-import { ResetCreditError, type ResetCredits, type ResetOutcome } from "../../contracts/resets";
+import {
+  bySoonestExpiry,
+  ResetCreditError,
+  type ResetCredit,
+  type ResetCredits,
+  type ResetOutcome,
+} from "../../contracts/resets";
 import type { UsageFetchHooks } from "../../contracts/usage";
 import { codexHeaders, withCodexCreds } from "./usage";
 
@@ -16,6 +22,7 @@ export interface CodexResetCreditsResponse {
     id?: string;
     status?: string;
     expires_at?: string | null;
+    title?: string | null;
   }> | null;
 }
 
@@ -27,13 +34,24 @@ const CONSUME_OUTCOMES: Record<string, ResetOutcome> = {
 };
 
 export function parseCodexResetCredits(data: CodexResetCreditsResponse): ResetCredits {
-  const expiries = (data.credits ?? [])
-    .filter((credit) => credit.status === "available" && credit.expires_at)
-    .map((credit) => Date.parse(credit.expires_at!))
-    .filter((value) => Number.isFinite(value));
+  const credits: ResetCredit[] = (data.credits ?? []).flatMap((credit) => {
+    if (credit.status !== "available" || !credit.id) return [];
+    const expiresAt = credit.expires_at ? Date.parse(credit.expires_at) : NaN;
+    return [
+      {
+        id: credit.id,
+        resetsLeft: 1,
+        expiresAt: Number.isFinite(expiresAt) ? expiresAt : undefined,
+        title: credit.title?.trim() || undefined,
+        usable: true,
+      },
+    ];
+  });
+  credits.sort(bySoonestExpiry);
   return {
     availableCount: Math.max(0, data.available_count ?? 0),
-    nextExpiresAt: expiries.length > 0 ? Math.min(...expiries) : undefined,
+    nextExpiresAt: credits.find((credit) => credit.expiresAt !== undefined)?.expiresAt,
+    credits,
   };
 }
 
@@ -49,10 +67,11 @@ export async function fetchCodexResetCredits(
   return parseCodexResetCredits(data);
 }
 
-/** `requestId` is the idempotency key: reuse it when retrying one attempt. */
+/** `requestId` is the idempotency key: reuse it when retrying one attempt.
+ *  Without a `creditId`, Codex picks the credit. */
 export async function consumeCodexResetCredit(
   account: Account,
-  input: { requestId: string },
+  input: { creditId?: string; requestId: string },
   hooks?: UsageFetchHooks,
 ): Promise<ResetOutcome> {
   let data: { code?: string };
@@ -65,7 +84,10 @@ export async function consumeCodexResetCredit(
           "User-Agent": "codex-cli",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ redeem_request_id: input.requestId }),
+        body: JSON.stringify({
+          redeem_request_id: input.requestId,
+          ...(input.creditId ? { credit_id: input.creditId } : {}),
+        }),
       }),
     );
   } catch (e) {
