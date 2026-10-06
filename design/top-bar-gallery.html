@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AI Usage — top bar options</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Inter", sans-serif); color: var(--foreground, #111); }
+  .wrap { display: flex; flex-direction: column; gap: 28px; padding: 4px 0 8px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .opt-head .n { font: 600 11px/1 var(--font-mono, ui-monospace, monospace); color: var(--muted-foreground, #777); border: 1px solid var(--border, #ddd); border-radius: 6px; padding: 3px 6px; }
+  .opt-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .opt-head .tag { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--success, #0a7a50); }
+  .opt-desc { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground, #666); max-width: 640px; }
+
+  /* ---------- Panel replica ---------- */
+  .panel { --ink:#141414; --mute:#8a8a8a; --faint:#bdbdbd; --track:#e9e9e9;
+    position: relative; background: #ebebeb; border: 1px solid #d4d4d4; border-radius: 18px;
+    overflow: hidden; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .crop { max-height: 250px; overflow: hidden; position: relative; }
+  .crop::after { content:""; position:absolute; inset:auto 0 0 0; height:56px; background:linear-gradient(to bottom, rgba(235,235,235,0), #ebebeb); pointer-events:none; }
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; }
+  .title { font-size: 16px; font-weight: 500; letter-spacing: -.1px; }
+  .btns { display: flex; gap: 6px; align-items: center; }
+  .gbtn { width: 32px; height: 32px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+    box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08); color: #222; }
+  .gbtn.sm { width: 26px; height: 26px; }
+  .gbtn.ghost { background: transparent; box-shadow: none; color: #555; }
+  .gbtn svg { width: 15px; height: 15px; }
+  .gbtn.sm svg { width: 13px; height: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 14px 14px; }
+  .card { background: #fafafa; border-radius: 16px; padding: 13px 15px 12px; box-shadow: 0 0 0 .5px rgba(0,0,0,.06); }
+  .ch { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; white-space: nowrap; overflow: hidden; }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 6px; }
+  .b-claude { background:#fbe7dc; color:#c2531c; } .b-codex { background:#dcefe6; color:#167150; } .b-cursor { background:#e0edfb; color:#2563b8; }
+  .email { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .meta { font-size: 10px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; }
+  .dots { margin-left: auto; color: var(--mute); letter-spacing: 1px; font-size: 12px; }
+  .row { margin-bottom: 9px; }
+  .rl { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px; }
+  .rl b { font-weight: 600; }
+  .track { height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .fill { height: 100%; border-radius: 3px; }
+  .sub { font-size: 10px; color: var(--mute); margin-top: 4px; }
+  .foot { font-size: 10px; color: var(--faint); margin-top: 4px; }
+  .red{background:#b3261e}.orange{background:#cc5d0e}.amber{background:#f0a000}.green{background:#0f6b4f}
+
+  /* Option-specific bits */
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: #c9c9c9; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 12px; background: #fff;
+    font-size: 11px; font-weight: 500; box-shadow: 0 0 0 .5px rgba(0,0,0,.1); white-space: nowrap; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .summary { font-size: 12.5px; color: #333; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .summary .sep { color: #c4c4c4; }
+  .pillbtn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 9px; border-radius: 14px; background: #fff;
+    box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.06); font-size: 12px; color: #333; }
+  .pillbtn svg { width: 13px; height: 13px; }
+  .seg { display: inline-flex; background: #dedede; border-radius: 9px; padding: 2px; gap: 2px; }
+  .seg span { font-size: 11px; padding: 4px 10px; border-radius: 7px; color: #555; }
+  .seg span.on { background: #fff; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+  .hero { display: flex; flex-direction: column; gap: 2px; }
+  .hero .k { font-size: 10.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .5px; }
+  .hero .v { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+  .hero .v em { font-style: normal; color: #b3261e; }
+  .dock { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; height: 38px; border-top: 1px solid #dcdcdc; font-size: 11px; color: #777; background:#e6e6e6; }
+  .note { position: absolute; font: 600 10px/1 var(--font-mono, ui-monospace, monospace); color: #d03a8a; }
+  .meas { position: absolute; left: 0; right: 0; border-top: 1px dashed #e06aa8; border-bottom: 1px dashed #e06aa8; background: rgba(224,106,168,.08); pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+const ICON_REFRESH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>';
+const ICON_GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
+const btn = (icon, cls = "") => `<span class="gbtn ${cls}">${icon}</span>`;
+const row = (label, pct, color, sub) => `
+  <div class="row"><div class="rl"><span>${label}</span><b>${pct}</b></div>
+  <div class="track"><div class="fill ${color}" style="width:${pct}"></div></div>
+  <div class="sub">${sub}</div></div>`;
+
+function cards({ footers = true, ellipsisOnly = false } = {}) {
+  const f = footers ? '<div class="foot">cached · updated just now</div>' : "";
+  return `<div class="grid">
+    <div class="card">
+      <div class="ch"><span class="badge b-claude">Claude</span><span class="email">adam@focaldata.com</span><span class="meta">· Signed in</span><span class="dots">•••</span></div>
+      ${row("Current session", "100%", "red", "resets in 3 hr 33 min")}
+      ${row("Weekly · All models", "54%", "amber", "resets in 5 d 13 hr")}
+      ${row("Weekly · Fable", "15%", "green", "resets in 5 d 13 hr")}
+      ${f}
+    </div>
+    <div class="card">
+      <div class="ch"><span class="badge b-codex">Codex</span><span class="email">adam@focaldata.com</span><span class="meta">· Team</span><span class="dots">•••</span></div>
+      ${row("5h limit", "85%", "orange", "resets in 6 min")}
+      ${row("Weekly limit", "33%", "green", "resets in 5 d 10 hr")}
+      ${f}
+    </div>
+  </div>`;
+}
+
+const options = [
+  {
+    n: "0", title: "Today", desc: "A 52px bar holding a title that repeats the window name, plus a 14px gap before the cards. Roughly 66px of chrome before any data shows up.",
+    html: `<div class="crop">
+      <div class="bar" style="height:52px"><span class="title">AI Usage</span><span class="btns">${btn(ICON_REFRESH)}${btn(ICON_GEAR)}</span></div>
+      <div style="height:14px"></div>${cards()}
+      <div class="meas" style="top:0;height:66px"></div><span class="note" style="top:28px;left:110px">66px before data</span>
+    </div>`
+  },
+  {
+    n: "A", title: "Slim grab strip", desc: "Drop the title and shrink the bar to 34px. A small grabber pill in the centre shows it's draggable, and the buttons become smaller ghost icons. Cards start almost straight away. This is the least disruptive change.",
+    html: `<div class="crop">
+      <div class="bar" style="height:34px;position:relative">
+        <span style="width:60px"></span><span class="grab"></span>
+        <span class="btns">${btn(ICON_REFRESH, "sm ghost")}${btn(ICON_GEAR, "sm ghost")}</span>
+      </div>${cards()}
+    </div>`
+  },
+  {
+    n: "B", title: "Freshness as the title", desc: "Swap the title for a refresh pill that says “Updated just now” (or “Updating…” with a spinner, or “Updated 4 min ago · 1 failed”). Clicking it refreshes everything. Because the pill covers freshness for every card, each card's “cached · updated just now” footer can go, so the cards get shorter too.",
+    tag: "Recommended",
+    html: `<div class="crop">
+      <div class="bar" style="height:42px">
+        <span class="pillbtn">${ICON_REFRESH}Updated just now</span>
+        <span class="btns">${btn(ICON_GEAR, "sm")}</span>
+      </div>${cards({ footers: false })}
+    </div>`
+  },
+  {
+    n: "C", title: "At-a-glance summary", desc: "Use the title area for a one-line rollup: how many accounts are maxed and when the next reset is due. You get the answer to “can I keep working?” without scanning four cards.",
+    html: `<div class="crop">
+      <div class="bar" style="height:42px">
+        <span class="summary"><span class="dot red"></span><b>2 at limit</b><span class="sep">·</span>next reset in 6 min<span class="sep">·</span><span style="color:#888">4 accounts</span></span>
+        <span class="btns">${btn(ICON_REFRESH, "sm")}${btn(ICON_GEAR, "sm")}</span>
+      </div>${cards()}
+    </div>`
+  },
+  {
+    n: "D", title: "Account chips", desc: "A row of chips, one per account, each with a dot coloured by its worst meter. Doubles as a legend and as quick navigation: clicking a chip scrolls to that card, or selects it in Focus layout. Gets crowded past about five accounts, so it would need to scroll horizontally.",
+    html: `<div class="crop">
+      <div class="bar" style="height:44px;gap:10px">
+        <span style="display:flex;gap:5px;overflow:hidden">
+          <span class="chip"><span class="dot red"></span>Claude</span>
+          <span class="chip"><span class="dot orange"></span>Codex</span>
+          <span class="chip"><span class="dot red"></span>Cursor · symphony</span>
+          <span class="chip"><span class="dot green"></span>Cursor · personal</span>
+        </span>
+        <span class="btns">${btn(ICON_REFRESH, "sm")}${btn(ICON_GEAR, "sm")}</span>
+      </div>${cards()}
+    </div>`
+  },
+  {
+    n: "E", title: "Most urgent constraint", desc: "Put the single most urgent fact in large type: the soonest-resetting maxed meter, or the highest one if nothing is maxed. Has the most personality of the options, but it's one more thing that changes every minute.",
+    html: `<div class="crop">
+      <div class="bar" style="height:54px">
+        <span class="hero"><span class="k">Claude session maxed</span><span class="v">Back in <em>3 h 33 m</em></span></span>
+        <span class="btns">${btn(ICON_REFRESH, "sm")}${btn(ICON_GEAR, "sm")}</span>
+      </div>${cards()}
+    </div>`
+  },
+  {
+    n: "F", title: "Layout switcher in the bar", desc: "Bring the Wall / Focus / List choice out of the settings menu and into a segmented control. Gives the bar a real job, but only if you switch layouts often.",
+    html: `<div class="crop">
+      <div class="bar" style="height:42px">
+        <span class="seg"><span class="on">Wall</span><span>Focus</span><span>List</span></span>
+        <span class="btns">${btn(ICON_REFRESH, "sm")}${btn(ICON_GEAR, "sm")}</span>
+      </div>${cards()}
+    </div>`
+  },
+  {
+    n: "G", title: "No top bar: bottom status dock", desc: "Cards start at the very top edge, which becomes the drag area. Refresh, freshness and settings move to a thin dock at the bottom, like a status bar. Gives the most room to data, but it's a bigger change and the controls are less discoverable.",
+    html: `<div>
+      <div style="height:14px" class=""></div>
+      <div style="max-height:200px;overflow:hidden">${cards({ footers: false })}</div>
+      <div class="dock"><span style="display:flex;align-items:center;gap:6px">${btn(ICON_REFRESH, "sm ghost")}Updated just now · 4 accounts</span>${btn(ICON_GEAR, "sm ghost")}</div>
+    </div>`
+  },
+];
+
+document.getElementById("root").innerHTML = options.map(o => `
+  <section>
+    <div class="opt-head"><span class="n">${o.n}</span><h3>${o.title}</h3>${o.tag ? `<span class="tag">${o.tag}</span>` : ""}</div>
+    <p class="opt-desc">${o.desc}</p>
+    <div class="panel">${o.html}</div>
+  </section>`).join("");
+</script>
+</body>
+</html>
