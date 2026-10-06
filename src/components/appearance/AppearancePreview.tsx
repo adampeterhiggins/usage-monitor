@@ -149,14 +149,11 @@ export function UsageMonitorPreview({
           <RefreshCw className="size-2.5 shrink-0 opacity-70" />
           <span className="truncate text-[9px] leading-none">Updated just now</span>
         </span>
-        <div className="flex items-center gap-1">
-          <span
-            className="glass-button flex size-5 items-center justify-center rounded-full"
-            style={{ fontSize: 0 }}
-          >
-            <Settings className="size-2.5 opacity-70" />
-          </span>
-        </div>
+        <span className="h-0.5 w-5 shrink-0 rounded-full bg-ui-placeholder" />
+        <span className="glass-button flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5">
+          <span className="text-[9px] leading-none">Settings</span>
+          <Settings className="size-2.5 shrink-0 opacity-70" />
+        </span>
       </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-2 pb-2.5">

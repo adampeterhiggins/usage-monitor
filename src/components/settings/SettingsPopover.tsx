@@ -269,8 +269,9 @@ export function SettingsPopover({
       <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
         <span className="inline-flex">
           <MenuTrigger asChild>
-            <Button ref={triggerRef} iconOnly variant="glass" size="large" aria-label="Settings">
-              <Settings className="size-4" />
+            <Button ref={triggerRef} variant="glass" size="medium" className="pr-2.5">
+              Settings
+              <Settings className="size-3.5 shrink-0" />
             </Button>
           </MenuTrigger>
         </span>
