@@ -180,7 +180,10 @@ export function SettingsPopover({
 
   React.useEffect(() => {
     if (!open) return;
-    contentRef.current?.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
+    const content = contentRef.current;
+    (
+      content?.querySelector<HTMLElement>("[cmdk-input]") ?? content?.querySelector<HTMLElement>("[cmdk-list]")
+    )?.focus();
   }, [open, page]);
 
   React.useEffect(() => {
@@ -252,7 +255,8 @@ export function SettingsPopover({
   }
 
   const currentLayoutLabel = LAYOUT_OPTIONS.find((o) => o.id === layout)?.label ?? "Wall";
-  const goBack = () => setPage(page === "columns" ? "layout" : "root");
+  const goBack = () =>
+    setPage(page === "columns" ? "layout" : page === "updates" ? "deployment" : "root");
 
   return (
     <MenuRoot
@@ -351,7 +355,6 @@ export function SettingsPopover({
                   label="Keyboard Shortcuts…"
                   onSelect={() => setPage("shortcuts")}
                 />
-                <MenuItem icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
                 <MenuItem
                   icon={Info}
                   label="Deployment…"
@@ -444,9 +447,13 @@ export function SettingsPopover({
               </div>
             )}
             {page === "deployment" && (
-              <div>
-                <DeploymentPanel />
-              </div>
+              <>
+                <div>
+                  <DeploymentPanel />
+                </div>
+                <MenuSeparator />
+                <MenuItem icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+              </>
             )}
           </MenuList>
         </MenuCommand>
