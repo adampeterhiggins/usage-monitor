@@ -1,15 +1,15 @@
 {
-  "version": "0.2.10",
-  "notes": "## What's Changed\n* Port setgist's local release workflow by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/52\n* Add Usage Resets to the account menu for Claude and Codex by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/53\n* Add Usage History as a settings dialog, ported from t3code by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/54\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.7...v0.2.10\n\n## What's Changed\n* Add Usage History as a settings dialog, ported from t3code by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/54\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.9...v0.2.10",
-  "pub_date": "2026-09-28T13:09:30Z",
+  "version": "0.2.11",
+  "notes": "## What's Changed\n* Port setgist's local release workflow by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/52\n* Add Usage Resets to the account menu for Claude and Codex by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/53\n* Add Usage History as a settings dialog, ported from t3code by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/54\n* Build worktrees out of their own way, so they stay small and T3 Code can clean them up by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/55\n* List every banked usage reset with its own redeem button by @adampeterhiggins in https://github.com/adampeterhiggins/usage-monitor/pull/56\n\n\n**Full Changelog**: https://github.com/adampeterhiggins/usage-monitor/compare/v0.2.7...v0.2.11",
+  "pub_date": "2026-10-06T21:57:20Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUp1VTVKTGxXdld6RHE3TDlrZWRHN1BLSDlHNlVvQ0FMWklkeWxkZWFjd1RXeFRMdG4yZUJZN1Y1UnZmbmcrak1SMFpOM1Z4UWVEeUpTZGE4ZGRrSHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNjAxMzk1CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm9zTFJDbGsva0RIUm9DVFhISmhpR0dMeE1pMlo0Vy9xaTkvQ1VOdEZxY1JsbFpCVmxiODFudTF0Y3pZeWt5VjlNejY4bkxYait5cEg2a2NCNnBQN0FBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595457000"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUVBVVnZDMWJ5UkNxdVZmd1MxdUJxTGhFYldWNHVNOUZCSVEyOXU4VTVYSzBkK1FIVEhkV2xBL3FsS1hRQmxHTHRkOWNDNS90QlZLMlJyMkxvNWtCRHdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzIzODMzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClRMcmdiL3N4WTR0NG1nSEw5SlNDeDlneE1MNW1sT0NHaGt1ay9JQUI3ZitTQTVVVFFWNEV5WVd1bklyWjlOWGZwOER3MFQvRkpRem5JMDVyQXhRbkJRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/616764557"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUUp1VTVKTGxXdld6RHE3TDlrZWRHN1BLSDlHNlVvQ0FMWklkeWxkZWFjd1RXeFRMdG4yZUJZN1Y1UnZmbmcrak1SMFpOM1Z4UWVEeUpTZGE4ZGRrSHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNjAxMzk1CWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6Cm9zTFJDbGsva0RIUm9DVFhISmhpR0dMeE1pMlo0Vy9xaTkvQ1VOdEZxY1JsbFpCVmxiODFudTF0Y3pZeWt5VjlNejY4bkxYait5cEg2a2NCNnBQN0FBPT0K",
-      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/595457000"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUbExnMlJHd2ViUVBVVnZDMWJ5UkNxdVZmd1MxdUJxTGhFYldWNHVNOUZCSVEyOXU4VTVYSzBkK1FIVEhkV2xBL3FsS1hRQmxHTHRkOWNDNS90QlZLMlJyMkxvNWtCRHdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzIzODMzCWZpbGU6VXNhZ2UgTW9uaXRvci5hcHAudGFyLmd6ClRMcmdiL3N4WTR0NG1nSEw5SlNDeDlneE1MNW1sT0NHaGt1ay9JQUI3ZitTQTVVVFFWNEV5WVd1bklyWjlOWGZwOER3MFQvRkpRem5JMDVyQXhRbkJRPT0K",
+      "url": "https://api.github.com/repos/adampeterhiggins/usage-monitor/releases/assets/616764557"
     }
   }
 }
