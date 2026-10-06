@@ -28,6 +28,7 @@ import { usePanelKeys } from "../hooks/usePanelKeys";
 import { useUpdaterPoller } from "../hooks/useUpdaterPoller";
 import { useAccountsStore } from "../state/accounts";
 import { acceleratorGlyphs } from "../lib/settings/shortcuts";
+import { summarizeFreshness } from "../lib/usage/freshness";
 import { startPanelDragging } from "../platform/windows";
 import { useLayout, useRefreshShortcut, useWallColumns } from "../state/preferences";
 import { useUsageStore } from "../state/usage";
@@ -50,6 +51,10 @@ export function PanelApp() {
   const fetchStates = useUsageStore((s) => s.states);
   const refreshingAll = useUsageStore((s) => s.refreshingAll);
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
+  const freshness = summarizeFreshness(
+    visibleAccounts.map((a) => a.id),
+    fetchStates,
+  );
 
   const [layout, changeLayout] = useLayout();
   const [wallColumns, changeWallColumns] = useWallColumns();
@@ -185,7 +190,7 @@ export function PanelApp() {
       <header
         ref={headerRef}
         data-ui-surface="toolbar"
-        className="ui-toolbar drag-region flex h-13 cursor-grab items-center justify-between px-4 active:cursor-grabbing"
+        className="ui-toolbar drag-region flex h-11 cursor-grab items-center justify-between gap-2 px-4 active:cursor-grabbing"
         data-tauri-drag-region
         onMouseDown={(event) => {
           if (event.button !== 0) return;
@@ -194,24 +199,24 @@ export function PanelApp() {
           startPanelDragging();
         }}
       >
-        <div data-tauri-drag-region className="min-w-0 flex-1">
-          <div className="text-[18px] font-medium leading-6 tracking-[-0.11px]">AI Usage</div>
-        </div>
-        <div className="no-drag flex items-center gap-1.5">
+        <div data-tauri-drag-region className="flex min-w-0 flex-1">
           <Tooltip label="Refresh All" shortcut={acceleratorGlyphs(refreshShortcut)}>
-            <span className="inline-flex">
+            <span className="inline-flex min-w-0">
               <Button
-                iconOnly
                 variant="glass"
-                size="large"
-                aria-label="Refresh all"
-                disabled={accounts.length === 0 || refreshingAll}
+                size="medium"
+                aria-label={`Refresh all. ${freshness.label}`}
+                className="min-w-0 pl-2.5 tabular-nums"
+                disabled={visibleAccounts.length === 0 || refreshingAll}
                 onClick={() => void refreshAll(true)}
               >
-                <RefreshCw className={`size-4 ${refreshingAll ? "animate-spin" : ""}`} />
+                <RefreshCw className={`size-3.5 shrink-0 ${freshness.updating ? "animate-spin" : ""}`} />
+                <span className="truncate">{freshness.label}</span>
               </Button>
             </span>
           </Tooltip>
+        </div>
+        <div className="no-drag flex items-center gap-1.5">
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}

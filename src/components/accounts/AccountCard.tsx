@@ -1,7 +1,6 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
-import { formatFetchedAt } from "../../lib/usage/format";
 import type { AccountFetchState } from "../../state/usage";
 import { AccountActionsMenu } from "./AccountActionsMenu";
 import { UsageProgress } from "../ui/UsageProgress";
@@ -102,14 +101,6 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
           ))}
         </div>
       )}
-
-      {snapshot ? (
-        <Text variant="usage-caption" color="quaternary" className="pt-0.5 tabular-nums">
-          {result?.cached ? "cached · " : ""}
-          updated {formatFetchedAt(snapshot.fetchedAt)}
-          {stale ? " · stale" : ""}
-        </Text>
-      ) : null}
     </div>
   );
 }

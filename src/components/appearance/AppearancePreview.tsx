@@ -145,16 +145,11 @@ export function UsageMonitorPreview({
         className="ui-toolbar flex items-center justify-between gap-2 px-2.5 pb-1.5 pt-2"
         style={{ color: "var(--local-text-primary)" }}
       >
-        <span className="truncate text-[12px] font-medium leading-none tracking-tight">
-          AI Usage
+        <span className="glass-button flex h-5 min-w-0 items-center gap-1 rounded-full px-1.5">
+          <RefreshCw className="size-2.5 shrink-0 opacity-70" />
+          <span className="truncate text-[9px] leading-none">Updated just now</span>
         </span>
         <div className="flex items-center gap-1">
-          <span
-            className="glass-button flex size-5 items-center justify-center rounded-full"
-            style={{ fontSize: 0 }}
-          >
-            <RefreshCw className="size-2.5 opacity-70" />
-          </span>
           <span
             className="glass-button flex size-5 items-center justify-center rounded-full"
             style={{ fontSize: 0 }}
@@ -290,13 +285,6 @@ export function UsageMonitorPreview({
                 </div>
               ))}
             </div>
-
-            <span
-              className="truncate pt-0.5 leading-none text-ui-placeholder"
-              style={{ fontSize: PREVIEW_FORM.captionSize }}
-            >
-              updated just now
-            </span>
           </div>
         ))}
         {palette ? (
