@@ -4783,7 +4783,7 @@ dependencies = [
 
 [[package]]
 name = "usage-monitor"
-version = "0.2.5"
+version = "0.2.12"
 dependencies = [
  "base64 0.22.1",
  "memchr",
