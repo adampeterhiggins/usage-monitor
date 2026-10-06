@@ -190,7 +190,7 @@ export function PanelApp() {
       <header
         ref={headerRef}
         data-ui-surface="toolbar"
-        className="ui-toolbar drag-region flex cursor-grab items-center justify-between gap-2 active:cursor-grabbing"
+        className="ui-toolbar drag-region group/toolbar flex cursor-grab items-center justify-between gap-2 active:cursor-grabbing"
         style={{
           // Matches the body's top padding below, so the 32px controls sit
           // centred between the panel edge and the first card.
@@ -223,7 +223,12 @@ export function PanelApp() {
             </span>
           </Tooltip>
         </div>
-        <div className="no-drag flex items-center gap-1.5">
+        <div
+          data-tauri-drag-region
+          aria-hidden
+          className="h-1 w-9 shrink-0 rounded-full bg-ui-placeholder transition-colors group-hover/toolbar:bg-ui-tertiary"
+        />
+        <div data-tauri-drag-region className="flex min-w-0 flex-1 justify-end">
           <SettingsPopover
             layout={layout}
             onLayoutChange={changeLayout}
