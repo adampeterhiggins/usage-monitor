@@ -190,7 +190,14 @@ export function PanelApp() {
       <header
         ref={headerRef}
         data-ui-surface="toolbar"
-        className="ui-toolbar drag-region flex h-11 cursor-grab items-center justify-between gap-2 px-4 active:cursor-grabbing"
+        className="ui-toolbar drag-region flex cursor-grab items-center justify-between gap-2 active:cursor-grabbing"
+        style={{
+          // Matches the body's top padding below, so the 32px controls sit
+          // centred between the panel edge and the first card.
+          height: "calc(var(--form-body-padding) + 32px)",
+          paddingTop: "var(--form-body-padding)",
+          paddingInline: "var(--form-body-padding)",
+        }}
         data-tauri-drag-region
         onMouseDown={(event) => {
           if (event.button !== 0) return;
