@@ -13,7 +13,8 @@ use std::time::UNIX_EPOCH;
 use serde::{Deserialize, Serialize};
 
 use super::parse::{
-    might_carry_usage, parse_claude_line, parse_codex_line, CodexScanState, Provider, UsageRecord,
+    might_carry_usage, parse_claude_line, parse_codex_line, parse_grok_line, CodexScanState, Provider,
+    UsageRecord,
 };
 
 pub(crate) struct TranscriptFile {
@@ -67,12 +68,19 @@ fn mtime_ms(metadata: &std::fs::Metadata) -> i64 {
         .unwrap_or(0)
 }
 
-/// Lists `.jsonl` transcripts under `root` modified at or after `since_ms`.
+/// Lists `.jsonl` transcripts under `root` modified at or after `since_ms`,
+/// restricted to one basename when `file_name` is set: Grok sessions keep
+/// multi-megabyte chat and event logs beside the `updates.jsonl` that carries
+/// usage.
 ///
 /// Errors on individual entries are swallowed: session files rotate and get
 /// removed mid-walk, and a partial listing beats failing the scan. Directory
 /// symlinks are not followed, so a link cycle cannot hang the walk.
-pub(crate) fn list_transcript_files(root: &Path, since_ms: i64) -> Vec<TranscriptFile> {
+pub(crate) fn list_transcript_files(
+    root: &Path,
+    since_ms: i64,
+    file_name: Option<&str>,
+) -> Vec<TranscriptFile> {
     let mut found = Vec::new();
     let mut pending = vec![root.to_path_buf()];
     while let Some(dir) = pending.pop() {
@@ -85,6 +93,9 @@ pub(crate) fn list_transcript_files(root: &Path, since_ms: i64) -> Vec<Transcrip
                 continue;
             }
             if path.extension().and_then(|ext| ext.to_str()) != Some("jsonl") {
+                continue;
+            }
+            if file_name.is_some_and(|name| entry.file_name() != name) {
                 continue;
             }
             let Ok(metadata) = std::fs::metadata(&path) else { continue };
@@ -130,7 +141,8 @@ fn parse_line(
     let record = match provider {
         Provider::Claude => parse_claude_line(line),
         Provider::Codex => parse_codex_line(line, state),
-        Provider::Devin => None,
+        Provider::Grok => return parse_grok_line(line, out),
+        Provider::Devin | Provider::OpenCode | Provider::Antigravity => None,
     };
     if let Some(record) = record {
         out.push(record);
@@ -251,6 +263,21 @@ mod tests {
         assert_eq!(outputs, vec![2, 3]);
         assert!(second.tail_records.is_empty());
         std::fs::remove_dir_all(path.parent().unwrap()).ok();
+    }
+
+    #[test]
+    fn lists_only_the_named_transcript_when_asked() {
+        let session = temp_file("grok").parent().unwrap().join("%2Ftmp/019fec1a");
+        std::fs::create_dir_all(&session).unwrap();
+        for name in ["updates.jsonl", "chat_history.jsonl", "events.jsonl"] {
+            std::fs::write(session.join(name), "{}\n").unwrap();
+        }
+        let root = session.parent().unwrap().parent().unwrap();
+        assert_eq!(list_transcript_files(root, 0, None).len(), 3);
+        let named = list_transcript_files(root, 0, Some("updates.jsonl"));
+        assert_eq!(named.len(), 1);
+        assert!(named[0].path.ends_with("updates.jsonl"));
+        std::fs::remove_dir_all(root).ok();
     }
 
     #[test]
