@@ -141,6 +141,17 @@ const MOCK_CURSOR_EVENTS = Array.from({ length: 120 }, (_, index) => {
 
 export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
   [
+    "status.claude.com/api/v2/status.json",
+    {
+      status: 200,
+      body: { status: { indicator: "minor", description: "Partially Degraded Service" } },
+    },
+  ],
+  [
+    "/api/v2/status.json",
+    { status: 200, body: { status: { indicator: "none", description: "All Systems Operational" } } },
+  ],
+  [
     "SeatManagementService/GetUserStatus",
     {
       status: 200,

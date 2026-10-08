@@ -1,18 +1,32 @@
 import * as React from "react";
-import { Compass, Ellipsis, Pencil, RefreshCw, Ticket, Trash2 } from "lucide-react";
+import {
+  Activity,
+  CircleAlert,
+  Compass,
+  Ellipsis,
+  Pencil,
+  RefreshCw,
+  Ticket,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { openExternal } from "../../platform/external";
 import { useAccountsStore } from "../../state/accounts";
 import { toast } from "../ui/toast";
 import { PROVIDERS } from "../../providers/metadata";
 import { supportsResetCredits } from "../../providers/registry";
+import { STATUS_PAGES, type StatusIndicator } from "../../providers/shared/status";
+import { useProviderIssue } from "../../state/providerStatus";
 import { ResetCreditsDialog } from "./ResetCreditsDialog";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { Button } from "../ui/button";
 import {
   MenuCommand,
+  MENU_TONE_TEXT,
   MenuContent,
   MenuItem,
+  type MenuItemTone,
   MenuList,
   MenuRoot,
   MenuSeparator,
@@ -25,6 +39,20 @@ const DASHBOARD_URLS: Record<ProviderId, string> = {
   cursor: "https://cursor.com/dashboard",
   devin: "https://app.devin.ai/settings/usage",
 };
+
+const STATUS_TONES: Record<StatusIndicator, MenuItemTone | undefined> = {
+  none: undefined,
+  maintenance: "info",
+  minor: "warning",
+  major: "high",
+  critical: "critical",
+};
+
+function openLink(url: string, failure: string) {
+  void openExternal(url).catch((e) =>
+    toast.error(failure, { description: e instanceof Error ? e.message : String(e) }),
+  );
+}
 
 interface AccountActionsMenuProps {
   account: AccountPublic;
@@ -43,6 +71,8 @@ export function AccountActionsMenu({
   const [confirmRemove, setConfirmRemove] = React.useState(false);
   const [showResets, setShowResets] = React.useState(false);
   const meta = PROVIDERS[account.provider];
+  const issue = useProviderIssue(account.provider);
+  const issueTone = issue && STATUS_TONES[issue.indicator];
 
   async function handleRemove() {
     try {
@@ -64,10 +94,15 @@ export function AccountActionsMenu({
             iconOnly
             variant="transparent"
             size={triggerSize}
-            aria-label="Account actions"
+            aria-label={issue ? `Account actions · ${meta.name}: ${issue.description}` : "Account actions"}
+            title={issue ? `${meta.name}: ${issue.description}` : undefined}
             className={open ? "bg-ui-control" : undefined}
           >
-            <Ellipsis className="size-4" />
+            {issueTone ? (
+              <CircleAlert className={`size-4 ${MENU_TONE_TEXT[issueTone]}`} />
+            ) : (
+              <Ellipsis className="size-4" />
+            )}
           </Button>
         </MenuTrigger>
         <MenuContent
@@ -110,11 +145,16 @@ export function AccountActionsMenu({
                 label="Open Dashboard"
                 onSelect={() => {
                   setOpen(false);
-                  void openExternal(DASHBOARD_URLS[account.provider]).catch((e) =>
-                    toast.error("Couldn’t open dashboard", {
-                      description: e instanceof Error ? e.message : String(e),
-                    }),
-                  );
+                  openLink(DASHBOARD_URLS[account.provider], "Couldn’t open dashboard");
+                }}
+              />
+              <MenuItem
+                icon={issue ? TriangleAlert : Activity}
+                label={issue ? issue.description : "Status Page"}
+                tone={issueTone}
+                onSelect={() => {
+                  setOpen(false);
+                  openLink(STATUS_PAGES[account.provider], "Couldn’t open status page");
                 }}
               />
               <MenuSeparator />

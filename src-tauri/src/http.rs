@@ -35,8 +35,9 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
-/// The frontend may only fetch hosts the providers, theme marketplace, and
-/// usage-history rate table (LiteLLM on GitHub) actually use. Anything else
+/// The frontend may only fetch hosts the providers, their public status
+/// pages, theme marketplace, and usage-history rate table (LiteLLM on GitHub)
+/// actually use. Anything else
 /// could turn a frontend compromise into an arbitrary exfiltration channel.
 const ALLOWED_HOSTS: &[&str] = &[
     "claude.ai",
@@ -50,6 +51,10 @@ const ALLOWED_HOSTS: &[&str] = &[
     "chatgpt.com",
     "server.codeium.com",
     "app.devin.ai",
+    "status.claude.com",
+    "status.openai.com",
+    "status.cursor.com",
+    "www.devinstatus.com",
     "open-vsx.org",
     "raw.githubusercontent.com",
 ];
