@@ -8,6 +8,9 @@ export function FitCorner({
   contentRef: React.RefObject<HTMLElement | null>;
   headerRef: React.RefObject<HTMLElement | null>;
 }) {
+  // macOS claims the outer ~15px of each corner of a borderless `.resizable`
+  // window for native resize hit-testing; macos.rs swizzles that claim away
+  // inside this button's 24×24 rect so the grip stays clickable at the corner.
   return (
     <button
       type="button"
