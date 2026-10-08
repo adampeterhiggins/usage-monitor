@@ -159,6 +159,6 @@ pub(crate) async fn http_request(
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
     encoding: Option<String>,
-) -> Result<http::HttpResponse, String> {
+) -> Result<http::HttpResponse, http::HttpFailure> {
     http::request(&url, method.as_deref(), headers, body, encoding.as_deref()).await
 }

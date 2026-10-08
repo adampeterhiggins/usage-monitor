@@ -29,4 +29,11 @@ export interface UsageFetchHooks {
 export type AccountFetchState =
   | { status: "loading"; previous?: UsageResult }
   | { status: "ok"; result: UsageResult }
-  | { status: "error"; message: string; previous?: UsageResult };
+  | {
+      status: "error";
+      message: string;
+      /** The fetch never reached the provider: the network is down, not the
+       *  account. */
+      offline?: boolean;
+      previous?: UsageResult;
+    };

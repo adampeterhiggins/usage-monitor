@@ -5,8 +5,8 @@ import { summarizeFreshness } from "./freshness";
 
 const NOW = new Date("2026-10-07T12:00:00Z").getTime();
 
-function result(ageMs: number): UsageResult {
-  return { snapshot: { windows: [], fetchedAt: NOW - ageMs }, cached: false, stale: false };
+function result(ageMs: number, cached = false): UsageResult {
+  return { snapshot: { windows: [], fetchedAt: NOW - ageMs }, cached, stale: false };
 }
 
 beforeEach(() => {
@@ -24,7 +24,11 @@ describe("summarizeFreshness", () => {
       a: { status: "ok", result: result(10_000) },
       b: { status: "ok", result: result(5 * 60_000) },
     };
-    expect(summarizeFreshness(["a", "b"], states)).toEqual({ updating: false, label: "Updated 5 min ago" });
+    expect(summarizeFreshness(["a", "b"], states)).toEqual({
+      updating: false,
+      offline: false,
+      label: "Updated 5 min ago",
+    });
   });
 
   it("is updating while any account is loading or has no state yet", () => {
@@ -51,5 +55,31 @@ describe("summarizeFreshness", () => {
       hidden: { status: "error", message: "nope" },
     };
     expect(summarizeFreshness(["a"], states).label).toBe("Updated just now");
+  });
+
+  it("reports offline when every fetch that ran failed for want of a network", () => {
+    const states: Record<string, AccountFetchState> = {
+      a: { status: "error", message: "dns", offline: true, previous: result(5 * 60_000) },
+      b: { status: "ok", result: result(60_000, true) },
+    };
+    expect(summarizeFreshness(["a", "b"], states)).toEqual({
+      updating: false,
+      offline: true,
+      label: "Offline · updated 5 min ago",
+    });
+    expect(summarizeFreshness(["a"], { a: { status: "error", message: "dns", offline: true } }).label).toBe(
+      "Offline",
+    );
+  });
+
+  it("isn't offline when another account just reached its provider", () => {
+    const states: Record<string, AccountFetchState> = {
+      a: { status: "error", message: "timed out", offline: true, previous: result(0) },
+      b: { status: "ok", result: result(0) },
+    };
+    expect(summarizeFreshness(["a", "b"], states)).toMatchObject({
+      offline: false,
+      label: "Updated just now · 1 failed",
+    });
   });
 });

@@ -15,6 +15,37 @@ export class HttpError extends Error {
   }
 }
 
+/** The request never reached the server — no connection, a DNS failure, or a
+ *  timeout. Usage views read it as "offline", not as a broken account. */
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
+/** What the native `http_request` command rejects with. */
+interface NativeHttpFailure {
+  kind: "network" | "request";
+  message: string;
+}
+
+function isNativeHttpFailure(value: unknown): value is NativeHttpFailure {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as NativeHttpFailure).kind === "string" &&
+    typeof (value as NativeHttpFailure).message === "string"
+  );
+}
+
+function nativeFailure(error: unknown): Error {
+  if (isNativeHttpFailure(error)) {
+    return error.kind === "network" ? new NetworkError(error.message) : new Error(error.message);
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 interface NativeHttpResponse {
   status: number;
   headers: Record<string, string>;
@@ -39,17 +70,22 @@ function throwIfAborted(signal?: AbortSignal): void {
 
 async function nativeRequest(url: string, init: HttpInit = {}): Promise<NativeHttpResponse> {
   throwIfAborted(init.signal);
-  const res = await invoke<NativeHttpResponse>("http_request", {
-    url,
-    method: init.method ?? "GET",
-    headers: {
-      "User-Agent": BROWSER_UA,
-      Accept: "*/*",
-      ...init.headers,
-    },
-    body: init.body ?? null,
-    encoding: init.encoding ?? "text",
-  });
+  let res: NativeHttpResponse;
+  try {
+    res = await invoke<NativeHttpResponse>("http_request", {
+      url,
+      method: init.method ?? "GET",
+      headers: {
+        "User-Agent": BROWSER_UA,
+        Accept: "*/*",
+        ...init.headers,
+      },
+      body: init.body ?? null,
+      encoding: init.encoding ?? "text",
+    });
+  } catch (error) {
+    throw nativeFailure(error);
+  }
   throwIfAborted(init.signal);
   return res;
 }

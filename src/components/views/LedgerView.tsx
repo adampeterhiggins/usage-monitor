@@ -2,7 +2,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { UsageWindow } from "../../contracts/usage";
 import { formatFetchedAt, formatPercent, formatReset } from "../../lib/usage/format";
-import { severityFillClass, severityTextClass } from "../../lib/usage/presentation";
+import { fetchFailureCopy, severityFillClass, severityTextClass } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/AccountActionsMenu";
 import type { AccountFetchState } from "../../state/usage";
 import { cn } from "../../lib/utils";
@@ -26,7 +26,8 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerV
         const snapshot = result?.snapshot;
         const meta = PROVIDERS[account.provider];
         const stale = result?.stale === true;
-        const isErrorOnly = state.status === "error" && !snapshot;
+        const failure = state.status === "error" && !snapshot ? fetchFailureCopy(state) : undefined;
+        const offline = state.status === "error" && state.offline === true;
 
         return (
           <section key={account.id} className="flex min-w-0 flex-col gap-1">
@@ -56,14 +57,14 @@ export function LedgerView({ accounts, fetchStates, onEdit, onRefresh }: LedgerV
               </div>
             </div>
 
-            {isErrorOnly ? (
+            {failure ? (
               <div className="flex min-w-0 items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
-                  <Text variant="small-strong" color="red">
-                    Couldn’t fetch usage
+                  <Text variant="small-strong" color={offline ? "orange" : "red"}>
+                    {failure.title}
                   </Text>
                   <Text variant="small" color="secondary" className="truncate">
-                    {state.message}
+                    {failure.detail}
                   </Text>
                 </div>
                 <Button size="small" variant="filled" onClick={() => onRefresh(account)}>

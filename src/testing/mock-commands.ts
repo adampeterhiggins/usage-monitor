@@ -7,6 +7,7 @@ import {
   MOCK_DEVIN_MODEL_CATALOG,
   mockUsageHistoryScan,
 } from "./fixtures";
+import { mockNetwork } from "./platform-mock/runtime";
 
 interface NativeHttpResponse {
   status: number;
@@ -16,6 +17,9 @@ interface NativeHttpResponse {
 
 function routeHttp(args: Record<string, unknown>): NativeHttpResponse {
   const url = typeof args.url === "string" ? args.url : "";
+  if (mockNetwork.offline) {
+    throw { kind: "network", message: `Request failed: [mock-tauri] offline: ${url}` };
+  }
   for (const [prefix, route] of MOCK_HTTP_ROUTES) {
     if (url.includes(prefix)) {
       return {

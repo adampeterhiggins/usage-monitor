@@ -26,6 +26,8 @@ assert on it to confirm you are not talking to a real build.
 - `__TAURI_MOCK__.emit("window:shown")` — simulate the tray panel being shown
 - `__TAURI_MOCK__.invokeLog` — every `invoke` call with args, for assertions
 - `__TAURI_MOCK__.reset()` — clear persisted mock stores back to fixtures
+- `__TAURI_MOCK__.setOffline(true)` — fail every provider request the way the
+  native bridge does with no connection (`setOffline(false)` to reconnect)
 
 Fixture stores persist to localStorage across reloads, so settings/theme edits
 survive refresh — reset them with `reset()` or a fresh browser context.

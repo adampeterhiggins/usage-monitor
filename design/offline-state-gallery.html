@@ -1,0 +1,298 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AI Usage — offline state options</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Inter", sans-serif); color: var(--foreground, #111); }
+  .wrap { display: flex; flex-direction: column; gap: 30px; padding: 4px 0 12px; max-width: 760px; }
+  h2 { margin: 6px 0 -12px; font-size: 13px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--muted-foreground, #777); }
+  .lede { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted-foreground, #555); }
+  .facts { margin: 0; padding: 12px 16px 12px 30px; border: 1px solid var(--border, #ddd); border-radius: 12px; font-size: 13px; line-height: 1.55; }
+  .facts li { margin: 2px 0; }
+  .facts code, .opt-desc code { font: 12px var(--font-mono, ui-monospace, monospace); background: rgba(127,127,127,.12); padding: 1px 4px; border-radius: 4px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .opt-head .n { font: 600 11px/1 var(--font-mono, ui-monospace, monospace); color: var(--muted-foreground, #777); border: 1px solid var(--border, #ddd); border-radius: 6px; padding: 3px 6px; }
+  .opt-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .opt-head .tag { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--success, #0a7a50); white-space: nowrap; }
+  .opt-head .tag.warn { color: #b3261e; }
+  .opt-desc { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground, #666); max-width: 680px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cap { font: 600 10px/1 var(--font-mono, ui-monospace, monospace); color: var(--muted-foreground, #888); margin: 0 0 6px 2px; text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ---------- Panel replica ---------- */
+  .panel { --ink:#141414; --mute:#8a8a8a; --faint:#bdbdbd; --track:#e4e4e4;
+    position: relative; background: #ebebeb; border: 1px solid #d4d4d4; border-radius: 18px;
+    overflow: hidden; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 46px; padding: 14px 14px 0; box-sizing: border-box; }
+  .bar > .l, .bar > .r { flex: 1; display: flex; min-width: 0; }
+  .bar > .r { justify-content: flex-end; }
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: #c9c9c9; flex-shrink: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border-radius: 15px; background: rgba(255,255,255,.85);
+    box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.06); font-size: 12px; color: #333; white-space: nowrap; min-width: 0; }
+  .pill svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .pill.off { background: #fff4e0; color: #8a4b00; box-shadow: 0 0 0 .5px rgba(160,90,0,.35); }
+  .pill .soft { color: #a0773f; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; }
+  .card { background: #fafafa; border-radius: 16px; padding: 13px 15px 12px; box-shadow: 0 0 0 .5px rgba(0,0,0,.06); min-width: 0; position: relative; }
+  .card.errb { box-shadow: 0 0 0 1px #d9534f; }
+  .ch { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; white-space: nowrap; overflow: hidden; }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
+  .b-claude { background:#fbe7dc; color:#c2531c; } .b-codex { background:#dcefe6; color:#167150; }
+  .email { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .meta { font-size: 10px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; }
+  .ico { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--mute); font-size: 12px; letter-spacing: 1px; }
+  .ico svg { width: 13px; height: 13px; }
+  .row { margin-bottom: 9px; }
+  .rl { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px; }
+  .rl b { font-weight: 600; }
+  .track { height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .fill { height: 100%; border-radius: 3px; }
+  .sub { font-size: 10px; color: var(--mute); margin-top: 4px; }
+  .red{background:#b3261e}.orange{background:#cc5d0e}.amber{background:#f0a000}.green{background:#0f6b4f}
+  .dim .fill { filter: saturate(.25); opacity: .55; }
+  .dim .rl b { color: #777; }
+  .hatch { background: repeating-linear-gradient(-45deg, #d6d6d6 0 4px, #e9e9e9 4px 8px) !important; }
+  .ghostfill { background: transparent; border: 1px dashed #aaa; box-sizing: border-box; }
+  .asof { font-size: 10px; color: #a0773f; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .asof svg { width: 10px; height: 10px; }
+  .err-t { font-size: 12px; font-weight: 600; color: #b3261e; margin: 2px 0 4px; }
+  .err-m { font-size: 11px; color: #666; line-height: 1.35; word-break: break-all; margin-bottom: 8px; }
+  .btn { display: inline-block; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 7px; background: #222; color: #fff; }
+  .btn.ghost { background: #fff; color: #333; box-shadow: 0 0 0 .5px rgba(0,0,0,.15); }
+  .banner { margin: 12px 14px 0; padding: 9px 12px; border-radius: 11px; background: #fff4e0; color: #6d3c00; font-size: 12px; display: flex; align-items: center; gap: 9px; box-shadow: 0 0 0 .5px rgba(160,90,0,.3); }
+  .banner svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .banner .grow { flex: 1; line-height: 1.35; }
+  .banner .muted { color: #a0773f; }
+  .empty { padding: 34px 20px 38px; text-align: center; }
+  .empty .glyph { width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 .5px rgba(0,0,0,.1); color: #8a4b00; }
+  .empty .glyph svg { width: 20px; height: 20px; }
+  .empty h4 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+  .empty p { margin: 0 auto 12px; font-size: 12px; color: #777; max-width: 280px; line-height: 1.45; }
+  .muted-card { opacity: .5; }
+
+  /* ---------- Menu bar replica ---------- */
+  .menubar { display: flex; justify-content: flex-end; align-items: center; gap: 18px; height: 26px; padding: 0 14px; border-radius: 9px;
+    background: linear-gradient(#f3f3f3, #e7e7e7); box-shadow: 0 0 0 .5px rgba(0,0,0,.12); color: #222; font-size: 12.5px; }
+  .menubar svg { width: 15px; height: 15px; }
+  .tray { position: relative; display: inline-flex; padding: 2px 5px; border-radius: 5px; }
+  .tray.hl { background: rgba(0,0,0,.08); }
+  .tray .slash { position: absolute; right: 1px; bottom: 1px; width: 7px; height: 7px; border-radius: 50%; background: #f0a000; box-shadow: 0 0 0 1.5px #ececec; }
+
+  /* ---------- Mechanism cards ---------- */
+  .mech { border: 1px solid var(--border, #ddd); border-radius: 14px; padding: 14px 16px; }
+  .mech .opt-desc { margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border, #ddd); color: var(--muted-foreground, #555); }
+  .chip.good { border-color: rgba(10,122,80,.4); color: #0a7a50; }
+  .chip.bad { border-color: rgba(179,38,30,.35); color: #b3261e; }
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; font: 11px var(--font-mono, ui-monospace, monospace); }
+  .flow span { padding: 4px 7px; border-radius: 6px; background: rgba(127,127,127,.12); }
+  .flow i { font-style: normal; color: var(--muted-foreground, #999); }
+  .rec { border-radius: 14px; padding: 16px 18px; background: rgba(10,122,80,.07); border: 1px solid rgba(10,122,80,.3); font-size: 13px; line-height: 1.55; }
+  .rec h3 { margin: 0 0 6px; font-size: 15px; }
+  .rec ol { margin: 6px 0 0; padding-left: 20px; }
+  .rec li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+const I = {
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  wifiOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="m2 2 20 20"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="#c77700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  gauge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+  wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.86a10 10 0 0 1 14 0"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/></svg>',
+};
+
+const RAW_ERR = "Request failed: error sending request for url (https://api.anthropic.com/api/oauth/usage)";
+
+function toolbar(left) {
+  return `<div class="bar"><div class="l">${left}</div><span class="grab"></span>
+    <div class="r"><span class="pill">${I.gear}Settings</span></div></div>`;
+}
+const pill = (text, cls = "", icon = I.refresh) => `<span class="pill ${cls}">${icon}<span style="overflow:hidden;text-overflow:ellipsis">${text}</span></span>`;
+
+function meter(label, pct, color, sub, opts = {}) {
+  const fill = opts.ghost
+    ? `<div class="fill ghostfill" style="width:100%"></div>`
+    : `<div class="fill ${color} ${opts.hatch ? "hatch" : ""}" style="width:${pct}"></div>`;
+  return `<div class="row"><div class="rl"><span>${label}</span><b>${opts.value ?? pct}</b></div>
+    <div class="track">${fill}</div><div class="sub">${sub}</div>${opts.note ?? ""}</div>`;
+}
+
+const head = (badge, cls, meta, ico = "•••") =>
+  `<div class="ch"><span class="badge ${cls}">${badge}</span><span class="email">adam@focaldata.com</span><span class="meta">· ${meta}</span><span class="ico">${ico}</span></div>`;
+
+/* Card variants. `mode`: live | dim | asof | projected | error */
+function claudeCard(mode = "live") {
+  const asof = mode === "asof" ? `<div class="asof">${I.clock}as of 12:04 · 38 min ago</div>` : "";
+  if (mode === "error") {
+    return `<div class="card errb">${head("Claude", "b-claude", "Max")}
+      <div class="err-t">Couldn’t load usage</div><div class="err-m">${RAW_ERR}</div><span class="btn">Try again</span></div>`;
+  }
+  const cls = mode === "dim" ? "card dim" : "card";
+  const session = mode === "projected"
+    ? meter("Current session", "", "", "reset at 12:30 · probably fresh now", { ghost: true, value: "≈ 0%" })
+    : meter("Current session", "100%", "red", mode === "asof" ? "reset was due 12:30" : "resets in 3 hr 33 min");
+  return `<div class="${cls}">${head("Claude", "b-claude", "Max", mode === "asof" ? I.warn + "•••" : "•••")}
+    ${session}
+    ${meter("Weekly · All models", "54%", "amber", "resets in 5 d 13 hr")}
+    ${asof}</div>`;
+}
+function codexCard(mode = "live") {
+  if (mode === "error") {
+    return `<div class="card errb">${head("Codex", "b-codex", "Team")}
+      <div class="err-t">Couldn’t load usage</div><div class="err-m">Request failed: error sending request for url (https://chatgpt.com/backend-api/wham/usage)</div><span class="btn">Try again</span></div>`;
+  }
+  const cls = mode === "dim" ? "card dim" : "card";
+  const asof = mode === "asof" ? `<div class="asof">${I.clock}as of 12:04 · 38 min ago</div>` : "";
+  return `<div class="${cls}">${head("Codex", "b-codex", "Team", mode === "asof" ? I.warn + "•••" : "•••")}
+    ${meter("5h limit", "85%", "orange", "resets in 2 hr 6 min")}
+    ${meter("Weekly limit", "33%", "green", "resets in 5 d 10 hr")}
+    ${asof}</div>`;
+}
+const cards = (mode) => `<div class="grid">${claudeCard(mode)}${codexCard(mode)}</div>`;
+
+const presentation = [
+  {
+    n: "0", title: "Today", tag: "Baseline", warn: true,
+    desc: "Two cases. <b>Cold start offline</b> (app launched at login on a train): usage is only kept in memory, so every card goes red with the raw reqwest message. <b>Warm, then drop off</b>: the cards keep their old numbers, and the pill reads “Updated 38 min ago · 2 failed”, which looks the same as a broken token. Either way the countdowns keep running on old data.",
+    pair: [
+      ["Cold start, offline", toolbar(pill("Couldn’t update")) + cards("error")],
+      ["Was online, now offline", toolbar(pill("Updated 38 min ago · 2 failed")) + cards("live")],
+    ],
+  },
+  {
+    n: "A", title: "The refresh pill turns into an offline pill", tag: "Recommended",
+    desc: "The pill already reports freshness for the whole panel, so offline becomes one more state of it: an amber <b>Offline · updated 38 min ago</b> with a wifi-off glyph. The cards stay as they are with no red borders or raw errors, because the cause is the network, not the account. Clicking the pill still tries again. The smallest change, and it fits the toolbar from #58/#59.",
+    html: toolbar(pill(`Offline <span class="soft">· updated 38 min ago</span>`, "off", I.wifiOff)) + cards("live"),
+  },
+  {
+    n: "B", title: "Inline banner under the toolbar",
+    desc: "A dismissible strip that spells it out: what happened, what you’re looking at, and what happens next. Very clear, but it costs about 44px on every open while offline, and that space is in short supply in a menu-bar panel. Fits better as the first-open message, collapsing to option A afterwards.",
+    html: toolbar(pill("Updated 38 min ago")) +
+      `<div class="banner">${I.wifiOff}<span class="grow"><b>You’re offline.</b> <span class="muted">Showing usage from 12:04. It’ll refresh when you reconnect.</span></span><span class="btn ghost">Retry</span></div>` +
+      cards("live"),
+  },
+  {
+    n: "C", title: "Dim the data, stamp each card",
+    desc: "The meters lose saturation and each card gets an amber <b>as of 12:04</b> stamp, so the numbers read as a record, not a live reading. Pairs well with A. The stamp is per card because accounts can go stale at different times (one fetched just before the drop, another an hour earlier).",
+    html: toolbar(pill(`Offline <span class="soft">· updated 38 min ago</span>`, "off", I.wifiOff)) +
+      `<div class="grid">${claudeCard("asof").replace('class="card"', 'class="card dim"')}${codexCard("asof").replace('class="card"', 'class="card dim"')}</div>`,
+  },
+  {
+    n: "D", title: "Project resets that have passed",
+    desc: "The app already knows each window’s <code>resetsAt</code>. Offline, a window that has passed its reset can’t still be at 100%, so show it as a dashed, empty bar marked <b>≈ 0%</b> with “probably fresh now”. That answers the question you opened the panel for (“can I use Claude again?”) without a network call. The usual caveat applies: the provider may not have reset it exactly on time.",
+    html: toolbar(pill(`Offline <span class="soft">· updated 2 hr ago</span>`, "off", I.wifiOff)) +
+      `<div class="grid">${claudeCard("projected")}${codexCard("live")}</div>`,
+  },
+  {
+    n: "E", title: "Cold start with nothing cached: one calm empty state",
+    desc: "If there’s no saved data at all (first launch, or caching isn’t built yet), show one panel-level message instead of N red cards. Once data is cached on disk (mechanism 4 below), this screen only appears on a fresh install.",
+    html: toolbar(pill("Offline", "off", I.wifiOff)) +
+      `<div class="empty"><div class="glyph">${I.wifiOff}</div><h4>No connection</h4>
+        <p>Usage Monitor reads your allowances from Claude, Codex, Cursor and Devin. It’ll load them as soon as you’re back online.</p>
+        <span class="btn ghost">Try again</span></div>`,
+  },
+  {
+    n: "F", title: "Tell the menu-bar icon too",
+    desc: "A small amber dot on the tray icon, plus a tooltip saying “Usage Monitor — offline, last updated 12:04”, so you know the numbers are old before you open the panel. Cheap to add: <code>tray.rs</code> already builds the icon and tooltip, and it only needs a second template image.",
+    menubars: true,
+  },
+];
+
+const mechanisms = [
+  {
+    n: "1", title: "Classify errors at the HTTP bridge", tag: "Do first",
+    desc: "In <code>http.rs</code>, check reqwest’s error kind (<code>is_connect()</code>, <code>is_timeout()</code>, DNS failures) and return a typed <code>{ kind: \"network\" }</code> instead of a <code>\"Request failed: …\"</code> string. <code>platform/http.ts</code> throws a <code>NetworkError</code>, and the usage store gets a fourth state: <code>status: \"offline\"</code> (still carrying <code>previous</code>). Everything else hangs off this.",
+    flow: ["reqwest::Error", "is_connect()", "NetworkError", "AccountFetchState.offline", "summarizeFreshness → Offline"],
+    chips: [["good", "No new deps"], ["good", "Truthful per request"], ["", "Only knows after a request fails"]],
+  },
+  {
+    n: "2", title: "Webview online / offline events",
+    desc: "Listen to <code>window</code> <code>online</code>/<code>offline</code> and read <code>navigator.onLine</code>. WKWebView backs these with the system’s reachability. Not trustworthy enough to decide you’re offline (captive portals and VPNs report “online”), but a good <b>trigger</b>: on <code>online</code>, call <code>refreshAll(false)</code> once so the panel heals without being reopened.",
+    flow: ["window 'online'", "debounce 2s", "refreshAll(false)"],
+    chips: [["good", "~15 lines"], ["good", "Reconnect heals the panel"], ["bad", "False ‘online’ on captive portals"]],
+  },
+  {
+    n: "3", title: "Native NWPathMonitor from Rust",
+    desc: "Network.framework’s <code>NWPathMonitor</code> reports path changes (satisfied, unsatisfied, constrained, expensive) and pushes them as a Tauri event. It’s the most accurate source, and it lets us skip requests up front. The catch is more native code: objc2 bindings to the C API, alongside <code>macos.rs</code>. Only worth it if mechanism 2 turns out to be flaky.",
+    flow: ["NWPathMonitor", "emit('network-path')", "store.online", "skip fetches"],
+    chips: [["good", "Most accurate"], ["", "Hotspot/‘expensive’ hint too"], ["bad", "More native surface"]],
+  },
+  {
+    n: "4", title: "Save the last snapshots to disk", tag: "Biggest UX win",
+    desc: "<code>policy.ts</code> keeps snapshots in an in-memory <code>Map</code>, so a restart throws them away. Write the latest <code>UsageSnapshot</code> per account to the store (it’s small: a few windows and a timestamp) and load it on launch as <code>previous</code>. A cold start offline then looks like option A or C, not option 0, and every launch shows numbers straight away instead of skeletons.",
+    flow: ["fetch ok", "persist snapshot", "launch", "hydrate as previous", "fetch"],
+    chips: [["good", "Instant first paint"], ["good", "Fixes cold-start offline"], ["", "Snapshots are non-secret"]],
+  },
+  {
+    n: "5", title: "Don’t make doomed requests while offline",
+    desc: "When the last fetch failed with a network error, or <code>navigator.onLine</code> is false, opening the panel shouldn’t fire N requests that each sit on the 15s connect timeout. Skip the fetches, show cached data, and wait for the <code>online</code> event or a manual click on the pill. Also stops offline failures from being treated as provider problems, so Claude’s sign-in rate limit is never touched for nothing.",
+    flow: ["panel shown", "offline?", "skip · show cache", "'online'", "refresh"],
+    chips: [["good", "No spinner stalls"], ["good", "Protects the OAuth rate limit"]],
+  },
+];
+
+function presentationSection(o) {
+  let body;
+  if (o.pair) {
+    body = `<div style="display:flex;flex-direction:column;gap:12px">${o.pair.map(([c, h]) => `<div><div class="cap">${c}</div><div class="panel">${h}</div></div>`).join("")}</div>`;
+  } else if (o.menubars) {
+    body = `<div class="pair">
+      <div><div class="cap">Online</div><div class="menubar">${I.wifi}<span class="tray">${I.gauge}</span><span>Thu 8 Oct 14:42</span></div></div>
+      <div><div class="cap">Offline</div><div class="menubar">${I.wifiOff}<span class="tray hl">${I.gauge}<span class="slash"></span></span><span>Thu 8 Oct 14:42</span></div>
+        <div style="margin:6px 0 0 auto;width:max-content;font-size:11px;padding:4px 8px;border-radius:6px;background:#2b2b2b;color:#eee">Usage Monitor — offline, last updated 12:04</div></div>
+    </div>`;
+  } else {
+    body = `<div class="panel">${o.html}</div>`;
+  }
+  return `<section>
+    <div class="opt-head"><span class="n">${o.n}</span><h3>${o.title}</h3>${o.tag ? `<span class="tag ${o.warn ? "warn" : ""}">${o.tag}</span>` : ""}</div>
+    <p class="opt-desc">${o.desc}</p>${body}</section>`;
+}
+
+function mechanismSection(m) {
+  return `<section class="mech">
+    <div class="opt-head"><span class="n">${m.n}</span><h3>${m.title}</h3>${m.tag ? `<span class="tag">${m.tag}</span>` : ""}</div>
+    <p class="opt-desc">${m.desc}</p>
+    <div class="flow">${m.flow.map((s) => `<span>${s}</span>`).join("<i>→</i>")}</div>
+    <div class="chips">${m.chips.map(([k, t]) => `<span class="chip ${k}">${t}</span>`).join("")}</div>
+  </section>`;
+}
+
+document.getElementById("root").innerHTML = `
+  <p class="lede">Usage Monitor has no idea what “offline” means. A dropped connection comes back as a generic fetch error, so it looks the same as an expired token or a provider outage. What happens today:</p>
+  <ul class="facts">
+    <li>Snapshots live only in memory (<code>policy.ts</code>), so <b>launching offline shows red error cards</b> with the raw <code>Request failed: error sending request…</code> text.</li>
+    <li>Going offline mid-session keeps the old numbers, but the pill says <b>“· N failed”</b>, which reads like something is broken.</li>
+    <li>Every panel open fires a fetch per account, and each waits for the native 15s connect timeout before it fails.</li>
+    <li>Nothing refreshes when the connection comes back; you have to reopen the panel or press refresh.</li>
+    <li>Countdowns keep ticking on old data, so a window can show “100%” after its reset time has passed.</li>
+  </ul>
+  <h2>What you see</h2>
+  ${presentation.map(presentationSection).join("")}
+  <h2>How it knows</h2>
+  ${mechanisms.map(mechanismSection).join("")}
+  <div class="rec">
+    <h3>Suggested combination</h3>
+    Build it in this order. Each step ships on its own:
+    <ol>
+      <li><b>1 + A</b>: classify network errors and turn the refresh pill amber “Offline · updated 38 min ago”. Drop the red borders and raw messages for network failures.</li>
+      <li><b>2 + 5</b>: refresh on the <code>online</code> event, and skip doomed fetches on panel open.</li>
+      <li><b>4</b>: save snapshots to disk, so a cold start offline shows last-known data (option E becomes a fresh-install edge case).</li>
+      <li><b>C + D</b>: “as of” stamps and projected resets, the polish that makes old numbers useful.</li>
+      <li>Leave <b>3</b> (NWPathMonitor) and <b>F</b> (tray dot) until the cheaper signals prove insufficient.</li>
+    </ol>
+  </div>
+`;
+</script>
+</body>
+</html>
