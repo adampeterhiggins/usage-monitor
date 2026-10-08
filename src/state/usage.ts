@@ -11,6 +11,7 @@ import { getAccount } from "../lib/accounts/repository";
 import type { AccountPublic } from "../contracts/accounts";
 import type { AccountFetchState, UsageResult } from "../contracts/usage";
 import { fetchUsage } from "../lib/usage/policy";
+import { NetworkError } from "../platform/http";
 
 export type { AccountFetchState } from "../contracts/usage";
 
@@ -73,6 +74,7 @@ export function createUsageService(fetcher: AccountUsageFetcher) {
             [accountId]: {
               status: "error",
               message,
+              offline: e instanceof NetworkError,
               previous: previousResult(prev.states[accountId]),
             },
           },

@@ -355,6 +355,17 @@ const THEME_BLOCK = `
   color: var(--ui-glass-pressed-foreground);
 }
 
+/* Offline: the refresh pill takes the warning tint. */
+.glass-button[data-tone="warning"] {
+  background: var(--local-status-warning-soft-background);
+  box-shadow: 0 1px 2px var(--ui-shadow),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--local-status-warning-fill) 40%, transparent);
+}
+
+.glass-button[data-tone="warning"]:hover {
+  background: color-mix(in srgb, var(--local-status-warning-soft-background), var(--local-status-warning-fill) 12%);
+}
+
 .glass-button:disabled,
 .glass-button[data-disabled] {
   background: var(--ui-glass-disabled-background);

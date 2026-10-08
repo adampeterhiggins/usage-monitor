@@ -4,7 +4,7 @@
  *  and from provider identity colors. The thresholds are shared by production
  *  views and the appearance preview so they never drift. */
 
-import type { UsageWindow } from "../../contracts/usage";
+import type { AccountFetchState, UsageWindow } from "../../contracts/usage";
 
 export type Severity = "ok" | "warn" | "high" | "critical" | "neutral";
 
@@ -92,4 +92,15 @@ export function worstPercent(windows: UsageWindow[]): number | undefined {
   const values = windows.map((w) => w.usedPercent).filter((p): p is number => p !== undefined);
   if (values.length === 0) return undefined;
   return Math.max(...values);
+}
+
+/** Headline and detail for an account whose fetch failed with no earlier
+ *  usage to fall back on. A network failure isn't the account's fault, so it
+ *  gets calmer copy than the provider's raw error. */
+export function fetchFailureCopy(
+  state: Extract<AccountFetchState, { status: "error" }>,
+): { title: string; detail: string } {
+  return state.offline
+    ? { title: "Offline", detail: "Check your connection, then try again." }
+    : { title: "Couldn’t load usage", detail: state.message };
 }

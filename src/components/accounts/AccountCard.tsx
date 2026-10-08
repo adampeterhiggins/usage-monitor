@@ -3,6 +3,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { AccountFetchState } from "../../state/usage";
 import { AccountActionsMenu } from "./AccountActionsMenu";
+import { fetchFailureCopy } from "../../lib/usage/presentation";
 import { UsageProgress } from "../ui/UsageProgress";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -20,7 +21,8 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
   const result = state.status === "ok" ? state.result : state.previous;
   const snapshot = result?.snapshot;
   const isLoading = state.status === "loading";
-  const isError = state.status === "error";
+  const failure = state.status === "error" ? fetchFailureCopy(state) : undefined;
+  const offline = state.status === "error" && state.offline === true;
   const stale = result?.stale === true;
 
   // Every dimension below belongs to the active visual identity. The card fill
@@ -35,7 +37,7 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
         borderRadius: "var(--form-card-radius)",
         borderWidth: "var(--form-card-border-width)",
         borderColor:
-          isError && !snapshot
+          failure && !offline && !snapshot
             ? "var(--local-status-critical-fill)"
             : "var(--form-card-border-color)",
         boxShadow: "var(--form-card-shadow)",
@@ -77,13 +79,13 @@ export function AccountCard({ account, state, onEdit, onRefresh }: AccountCardPr
             />
           ))}
         </div>
-      ) : isError ? (
+      ) : failure ? (
         <div className="flex flex-col gap-1.5 py-1">
-          <Text variant="small-strong" color="red">
-            Couldn’t load usage
+          <Text variant="small-strong" color={offline ? "orange" : "red"}>
+            {failure.title}
           </Text>
           <Text variant="small" color="secondary" className="line-clamp-3">
-            {state.message}
+            {failure.detail}
           </Text>
           <div>
             <Button size="small" variant="filled" onClick={() => onRefresh(account)}>

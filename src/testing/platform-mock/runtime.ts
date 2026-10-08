@@ -43,12 +43,17 @@ export function resetMockState(): void {
 
 export { STORE_PREFIX };
 
+/** While true, every mocked `http_request` fails the way the native bridge
+ *  does with no connection. */
+export const mockNetwork = { offline: false };
+
 declare global {
   interface Window {
     __TAURI_MOCK__?: {
       emit: (event: string, payload?: unknown) => void;
       invokeLog: InvokeRecord[];
       reset: () => void;
+      setOffline: (offline: boolean) => void;
     };
   }
 }
@@ -58,6 +63,9 @@ if (typeof window !== "undefined") {
     emit: emitEvent,
     invokeLog,
     reset: resetMockState,
+    setOffline: (offline) => {
+      mockNetwork.offline = offline;
+    },
   };
   // A marker any driver can assert on to confirm the bundle is mocked.
   document.documentElement.dataset.mockTauri = "true";

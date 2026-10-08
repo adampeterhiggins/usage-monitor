@@ -4,7 +4,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { formatFetchedAt } from "../../lib/usage/format";
-import { severityBadgeColor, worstPercent } from "../../lib/usage/presentation";
+import { fetchFailureCopy, severityBadgeColor, worstPercent } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/AccountActionsMenu";
 import type { AccountFetchState } from "../../state/usage";
 import { UsageProgress } from "../ui/UsageProgress";
@@ -42,6 +42,8 @@ export function FocusView({
   const snapshot = result?.snapshot;
   const meta = selected ? PROVIDERS[selected.provider] : undefined;
   const stale = result?.stale === true;
+  const failure = state?.status === "error" ? fetchFailureCopy(state) : undefined;
+  const offline = state?.status === "error" && state.offline === true;
 
   return (
     <div className="flex h-full min-h-0">
@@ -56,6 +58,7 @@ export function FocusView({
               const r = s.status === "ok" ? s.result : s.previous;
               const worst = r ? worstPercent(r.snapshot.windows) : undefined;
               const isErrorOnly = s.status === "error" && !r;
+              const offline = s.status === "error" && s.offline === true;
               const active = selected?.id === account.id;
               return (
                 <button
@@ -68,8 +71,8 @@ export function FocusView({
                 >
                   <span className="truncate text-[13px] font-medium">{account.label}</span>
                   {isErrorOnly ? (
-                    <Badge size="small" color="red">
-                      error
+                    <Badge size="small" color={offline ? "warning" : "red"}>
+                      {offline ? "offline" : "error"}
                     </Badge>
                   ) : worst !== undefined ? (
                     <Badge size="small" color={severityBadgeColor(worst)}>
@@ -125,13 +128,13 @@ export function FocusView({
                   {stale ? " · stale" : ""}
                 </Text>
               </div>
-            ) : state?.status === "error" ? (
+            ) : failure ? (
               <div className="flex flex-col gap-2 border-t border-ui-subtle pt-3">
-                <Text variant="small-strong" color="red">
-                  Couldn’t load usage
+                <Text variant="small-strong" color={offline ? "orange" : "red"}>
+                  {failure.title}
                 </Text>
                 <Text variant="small" color="secondary">
-                  {state.message}
+                  {failure.detail}
                 </Text>
                 <div>
                   <Button size="small" variant="filled" onClick={() => onRefresh(selected)}>

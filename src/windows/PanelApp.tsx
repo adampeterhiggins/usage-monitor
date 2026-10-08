@@ -3,7 +3,7 @@
  *  timestamps, updater polling). */
 
 import * as React from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, WifiOff } from "lucide-react";
 
 import { AccountDialog } from "../components/accounts/AccountDialog";
 import { AccountManagementDialog } from "../components/accounts/AccountManagementDialog";
@@ -222,10 +222,15 @@ export function PanelApp() {
                 size="medium"
                 aria-label={`Refresh all. ${freshness.label}`}
                 className="min-w-0 pl-2.5 tabular-nums"
+                data-tone={freshness.offline ? "warning" : undefined}
                 disabled={visibleAccounts.length === 0 || refreshingAll}
                 onClick={() => void refreshAll(true)}
               >
-                <RefreshCw className={`size-3.5 shrink-0 ${freshness.updating ? "animate-spin" : ""}`} />
+                {freshness.offline ? (
+                  <WifiOff className="size-3.5 shrink-0 text-ui-status-warning-text" />
+                ) : (
+                  <RefreshCw className={`size-3.5 shrink-0 ${freshness.updating ? "animate-spin" : ""}`} />
+                )}
                 <span className="truncate">{freshness.label}</span>
               </Button>
             </span>

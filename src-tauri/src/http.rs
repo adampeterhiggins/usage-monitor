@@ -22,6 +22,27 @@ pub(crate) struct HttpResponse {
     body: String,
 }
 
+/// Why a request produced no response. `Network` means it never reached the
+/// server — no connection, a DNS failure, or a timeout — which the frontend
+/// shows as "offline" instead of blaming the account.
+#[derive(serde::Serialize)]
+#[serde(tag = "kind", content = "message", rename_all = "lowercase")]
+pub(crate) enum HttpFailure {
+    Network(String),
+    Request(String),
+}
+
+impl HttpFailure {
+    fn from_reqwest(context: &str, error: reqwest::Error) -> Self {
+        let message = format!("{context}: {error}");
+        if error.is_connect() || error.is_timeout() {
+            Self::Network(message)
+        } else {
+            Self::Request(message)
+        }
+    }
+}
+
 /// One client for the process so connections and TLS sessions are reused.
 fn client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
@@ -69,8 +90,9 @@ pub(crate) async fn request(
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
     encoding: Option<&str>,
-) -> Result<HttpResponse, String> {
-    let parsed = reqwest::Url::parse(url).map_err(|e| format!("Invalid URL: {e}"))?;
+) -> Result<HttpResponse, HttpFailure> {
+    let parsed =
+        reqwest::Url::parse(url).map_err(|e| HttpFailure::Request(format!("Invalid URL: {e}")))?;
     let allowed = parsed.scheme() == "https"
         && parsed.host_str().is_some_and(|host| {
             ALLOWED_HOSTS.contains(&host)
@@ -78,13 +100,15 @@ pub(crate) async fn request(
                     || parsed.path().starts_with(LITELLM_PATH_PREFIX))
         });
     if !allowed {
-        return Err(format!("http_request is restricted to known provider hosts: {url}"));
+        return Err(HttpFailure::Request(format!(
+            "http_request is restricted to known provider hosts: {url}"
+        )));
     }
 
     let method: reqwest::Method = method
         .unwrap_or("GET")
         .parse()
-        .map_err(|e| format!("Invalid HTTP method: {e}"))?;
+        .map_err(|e| HttpFailure::Request(format!("Invalid HTTP method: {e}")))?;
 
     let mut request = client().request(method, parsed);
     if let Some(headers) = headers {
@@ -99,7 +123,7 @@ pub(crate) async fn request(
     let response = request
         .send()
         .await
-        .map_err(|e| format!("Request failed: {e}"))?;
+        .map_err(|e| HttpFailure::from_reqwest("Request failed", e))?;
     let status = response.status().as_u16();
     let mut response_headers = HashMap::new();
     for (key, value) in response.headers() {
@@ -111,14 +135,14 @@ pub(crate) async fn request(
         let bytes = response
             .bytes()
             .await
-            .map_err(|e| format!("Failed to read response: {e}"))?;
+            .map_err(|e| HttpFailure::from_reqwest("Failed to read response", e))?;
         use base64::Engine;
         base64::engine::general_purpose::STANDARD.encode(bytes)
     } else {
         response
             .text()
             .await
-            .map_err(|e| format!("Failed to read response: {e}"))?
+            .map_err(|e| HttpFailure::from_reqwest("Failed to read response", e))?
     };
     Ok(HttpResponse {
         status,

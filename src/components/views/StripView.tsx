@@ -3,7 +3,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
 import { formatPercent, shortLabel } from "../../lib/usage/format";
-import { severityBadgeColor } from "../../lib/usage/presentation";
+import { fetchFailureCopy, severityBadgeColor } from "../../lib/usage/presentation";
 import { AccountActionsMenu } from "../accounts/AccountActionsMenu";
 import type { AccountFetchState } from "../../state/usage";
 import { Badge } from "../ui/badge";
@@ -29,7 +29,8 @@ export function StripView({ grouped, fetchStates, onEdit, onRefresh }: StripView
             const result = state.status === "ok" ? state.result : state.previous;
             const snapshot = result?.snapshot;
             const stale = result?.stale === true;
-            const isErrorOnly = state.status === "error" && !snapshot;
+            const failure = state.status === "error" && !snapshot ? fetchFailureCopy(state) : undefined;
+            const offline = state.status === "error" && state.offline === true;
             const windows = (snapshot?.windows ?? []).filter((w) => w.usedPercent !== undefined);
 
             return (
@@ -42,14 +43,14 @@ export function StripView({ grouped, fetchStates, onEdit, onRefresh }: StripView
                     {account.label}
                   </Text>
                   <div className="truncate text-[11px] text-ui-tertiary">
-                    {isErrorOnly ? state.message : (snapshot?.planLabel ?? "Loading…")}
+                    {failure ? failure.detail : (snapshot?.planLabel ?? "Loading…")}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {stale ? <Clock className="size-3.5 text-ui-status-high-text" aria-label="Stale data" /> : null}
-                  {isErrorOnly ? (
-                    <Badge size="small" color="red">
-                      error
+                  {failure ? (
+                    <Badge size="small" color={offline ? "warning" : "red"}>
+                      {offline ? "offline" : "error"}
                     </Badge>
                   ) : (
                     windows.map((w) => (

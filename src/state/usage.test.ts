@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createUsageService } from "./usage";
+import { NetworkError } from "../platform/http";
 import type { AccountPublic } from "../contracts/accounts";
 import type { UsageResult } from "../contracts/usage";
 
@@ -74,8 +75,19 @@ describe("usage service", () => {
     expect(state.status).toBe("error");
     if (state.status === "error") {
       expect(state.message).toBe("offline");
+      expect(state.offline).toBe(false);
       expect(state.previous?.snapshot.windows[0].usedPercent).toBe(50);
     }
+  });
+
+  it("marks a failure that never reached the provider as offline", async () => {
+    const service = createUsageService(async () => {
+      throw new NetworkError("Request failed: dns error");
+    });
+    await service.getState().load("a");
+
+    const state = service.getState().states.a;
+    expect(state.status === "error" && state.offline).toBe(true);
   });
 
   it("refreshAll reports refreshing until every account settles", async () => {
