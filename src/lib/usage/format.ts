@@ -34,6 +34,12 @@ export function formatExpiry(expiresAt?: number): string | undefined {
   return `expires in ${formatDuration(ms)}`;
 }
 
+export function formatUsableAt(usableAt?: number): string | undefined {
+  if (usableAt === undefined) return undefined;
+  const ms = usableAt - Date.now();
+  return ms > 0 ? `usable in ${formatDuration(ms)}` : undefined;
+}
+
 export function formatFetchedAt(fetchedAt: number): string {
   const ageMs = Date.now() - fetchedAt;
   if (ageMs < 60_000) return "just now";

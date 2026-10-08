@@ -182,10 +182,26 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
         cedar_ember: {
           eligible: true,
           next_grant_id: "mock_grant",
+          exhausted: ["five_hour"],
           grants: [
-            { id: "mock_grant", resets_left: 1, usable_now: true, ends_at: inHours(24 * 20) },
+            {
+              id: "mock_grant",
+              label: "Full reset",
+              resets_left: 1,
+              usable_now: true,
+              ends_at: inHours(24 * 20),
+              clears: ["five_hour", "seven_day", "seven_day_sonnet"],
+            },
+            {
+              id: "mock_weekly",
+              resets_left: 1,
+              usable_now: true,
+              ends_at: inHours(24 * 30),
+              clears: ["seven_day"],
+            },
           ],
         },
+        juniper_tide: { eligible: true, arm: "reset", available: true, resets_per_week: 1 },
       },
     },
   ],

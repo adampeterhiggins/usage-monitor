@@ -3,7 +3,7 @@ import { LoaderCircle, Ticket } from "lucide-react";
 import { PROVIDERS } from "../../providers/metadata";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ResetCredit, ResetCredits, ResetOutcome } from "../../contracts/resets";
-import { formatExpiry } from "../../lib/usage/format";
+import { formatExpiry, formatUsableAt } from "../../lib/usage/format";
 import { readResetCredits, redeemResetCredit } from "../../lib/usage/resets";
 import { toast } from "../ui/toast";
 import { Button } from "../ui/button";
@@ -28,6 +28,8 @@ interface ResetRow {
   creditId?: string;
   label: string;
   detail?: string;
+  /** What redeeming refills, when the provider says. */
+  refills?: string;
   usable: boolean;
 }
 
@@ -49,12 +51,21 @@ function creditRow(credit: ResetCredit): ResetRow {
     credit.title ?? (credit.resetsLeft === 1 ? "Reset credit" : `${credit.resetsLeft} resets`);
   const detail = [
     credit.title && credit.resetsLeft > 1 ? `${credit.resetsLeft} resets` : undefined,
-    credit.usable ? undefined : "not usable yet",
+    credit.usable
+      ? undefined
+      : (formatUsableAt(credit.usableAt) ?? credit.blockedReason ?? "not usable yet"),
     formatExpiry(credit.expiresAt) ?? "no expiry",
   ]
     .filter(Boolean)
     .join(" · ");
-  return { key: credit.id, creditId: credit.id, label, detail, usable: credit.usable };
+  return {
+    key: credit.id,
+    creditId: credit.id,
+    label,
+    detail,
+    refills: credit.refills,
+    usable: credit.usable,
+  };
 }
 
 function resetRows(credits: ResetCredits): ResetRow[] {
@@ -92,7 +103,11 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
     setStatus(null);
     try {
       const outcome = await redeemResetCredit(account.id, row.creditId);
-      setStatus(OUTCOME_TEXT[outcome]);
+      setStatus(
+        outcome === "reset" && row.refills
+          ? `Reset applied. Your ${row.refills} refilled.`
+          : OUTCOME_TEXT[outcome],
+      );
       if (outcome === "reset") {
         toast.success("Usage reset", { description: `${meta.name} · ${account.label}` });
         onReset(account);
@@ -121,7 +136,11 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
         </div>
         <p className="mt-1 text-[12px] text-ui-secondary">
           {confirming
-            ? "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone."
+            ? `This redeems one credit on your account and ${
+                confirming.refills
+                  ? `refills your ${confirming.refills}`
+                  : "clears the current rate-limit windows"
+              }. It cannot be undone.`
             : `${meta.name} · ${account.label}`}
         </p>
 
