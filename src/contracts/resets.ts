@@ -1,6 +1,6 @@
-/** Banked usage-reset credits — Claude's `cedar_ember` grants and Codex's
- *  rate-limit reset credits. Redeeming one clears the account's current
- *  rate-limit windows. */
+/** Banked usage-reset credits — Claude's `cedar_ember` grants and
+ *  `juniper_tide` session resets, and Codex's rate-limit reset credits.
+ *  Redeeming one clears some or all of the account's rate-limit windows. */
 
 /** One banked credit. A Claude grant can hold several resets; a Codex
  *  credit is always one. */
@@ -9,13 +9,23 @@ export interface ResetCredit {
   resetsLeft: number;
   /** Epoch ms. */
   expiresAt?: number;
+  /** The kind of reset, e.g. "Full reset" or "5-hour reset". */
   title?: string;
-  /** False for credits the provider lists but will not redeem yet (paused or
-   *  not yet usable). They are shown but not counted. */
+  /** The limits redeeming refills, e.g. "5-hour and weekly limits". Absent
+   *  when the provider does not say, in which case it clears every window. */
+  refills?: string;
+  /** False for credits that cannot be redeemed right now. */
   usable: boolean;
+  /** Why an unusable credit cannot be redeemed, e.g. "paused". */
+  blockedReason?: string;
+  /** Epoch ms when an unusable credit becomes usable, when the provider says. */
+  usableAt?: number;
 }
 
 export interface ResetCredits {
+  /** Resets in hand: everything listed except paused, not-yet-started, and
+   *  already-spent credits. A credit held back only because it does not
+   *  cover the limit the account is at still counts. */
   availableCount: number;
   /** Epoch ms when the next credit to be spent expires. */
   nextExpiresAt?: number;
