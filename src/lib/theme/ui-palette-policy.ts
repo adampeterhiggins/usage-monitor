@@ -104,8 +104,24 @@ export const STATUS_SEEDS: Record<ThemeAppearance, Record<"healthy" | "warning" 
 
 /** Provider identity tones — deliberately the app's own brand-adjacent set. */
 export const PROVIDER_SEEDS: Record<ThemeAppearance, Record<UiProviderTone, string>> = {
-  light: { orange: "#c75d07", green: "#006b4f", blue: "#138af2", purple: "#6d4bd8" },
-  dark: { orange: "#f0a15a", green: "#3dba7a", blue: "#5aa0f0", purple: "#a78bfa" },
+  light: {
+    orange: "#c75d07",
+    green: "#006b4f",
+    blue: "#138af2",
+    purple: "#6d4bd8",
+    slate: "#4b5563",
+    teal: "#0f766e",
+    pink: "#c0368c",
+  },
+  dark: {
+    orange: "#f0a15a",
+    green: "#3dba7a",
+    blue: "#5aa0f0",
+    purple: "#a78bfa",
+    slate: "#a3acb9",
+    teal: "#2dd4bf",
+    pink: "#f472b6",
+  },
 };
 
 // --- Stock seeds ------------------------------------------------------------

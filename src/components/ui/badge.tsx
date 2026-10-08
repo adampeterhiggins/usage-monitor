@@ -7,6 +7,9 @@ export type BadgeColor =
   | "green"
   | "blue"
   | "purple"
+  | "slate"
+  | "teal"
+  | "pink"
   | "red"
   | "secondary"
   | "healthy"
@@ -26,6 +29,9 @@ const TONE_BACKGROUND: Record<BadgeColor, string> = {
   green: "var(--local-provider-green-background)",
   blue: "var(--local-provider-blue-background)",
   purple: "var(--local-provider-purple-background)",
+  slate: "var(--local-provider-slate-background)",
+  teal: "var(--local-provider-teal-background)",
+  pink: "var(--local-provider-pink-background)",
   red: "var(--local-status-critical-soft-background)",
   secondary: "var(--local-status-neutral-soft-background)",
   healthy: "var(--local-status-healthy-soft-background)",
@@ -35,7 +41,7 @@ const TONE_BACKGROUND: Record<BadgeColor, string> = {
 };
 
 /**
- * Provider tones (orange/green/blue/purple) read the resolved provider identity
+ * Provider tones (orange/green/blue/purple/slate/teal/pink) read the resolved provider identity
  * palette — they stay stable regardless of the theme accent and never carry
  * usage meaning. Severity tones (healthy/warning/high/critical) read the
  * status palette's soft badge pairs.
@@ -52,6 +58,9 @@ export function Badge({ color = "secondary", size = "medium", className, childre
     green: "text-ui-provider-green-fg",
     blue: "text-ui-provider-blue-fg",
     purple: "text-ui-provider-purple-fg",
+    slate: "text-ui-provider-slate-fg",
+    teal: "text-ui-provider-teal-fg",
+    pink: "text-ui-provider-pink-fg",
     red: "text-ui-status-critical-soft-fg",
     secondary: "text-ui-status-neutral-soft-fg",
     healthy: "text-ui-status-healthy-soft-fg",
