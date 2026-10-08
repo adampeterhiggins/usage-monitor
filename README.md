@@ -56,7 +56,7 @@ On first launch the panel is empty. Add accounts from **Settings → Manage Acco
 | Cursor | Sign in, `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
 | Devin | Sign in, `windsurf_api_key`, or blank | Reads the Devin CLI login from `~/.local/share/devin/credentials.toml` |
 
-Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and nothing about you is sent anywhere else — the only hosts the app can reach are the providers', Open VSX (theme marketplace), and LiteLLM's public model price table on GitHub (a plain download used to price Usage History).
+Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and nothing about you is sent anywhere else — the only hosts the app can reach are the providers', their public status pages (to flag outages), Open VSX (theme marketplace), and LiteLLM's public model price table on GitHub (a plain download used to price Usage History).
 
 Not affiliated with Anthropic, OpenAI, Cursor, or Cognition.
 

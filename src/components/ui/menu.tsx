@@ -89,12 +89,22 @@ export function MenuSeparator({ className }: { className?: string }) {
   return <Command.Separator className={cn("mx-1.5 my-1 h-px bg-ui-subtle", className)} />;
 }
 
+export type MenuItemTone = "info" | "warning" | "high" | "critical";
+
+export const MENU_TONE_TEXT: Record<MenuItemTone, string> = {
+  info: "text-ui-status-info-text",
+  warning: "text-ui-status-warning-text",
+  high: "text-ui-status-high-text",
+  critical: "text-ui-status-critical-text",
+};
+
 export function MenuItem({
   icon: Icon,
   label,
   chip,
   accessory,
   danger,
+  tone = danger ? "critical" : undefined,
   disabled,
   onSelect,
 }: {
@@ -103,6 +113,8 @@ export function MenuItem({
   chip?: string;
   accessory?: string;
   danger?: boolean;
+  /** Colors the label and icon with a status tone; `danger` is `critical`. */
+  tone?: MenuItemTone;
   disabled?: boolean;
   onSelect: () => void;
 }) {
@@ -113,12 +125,10 @@ export function MenuItem({
       className={cn(
         "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none data-[selected=true]:bg-ui-control-hover",
         disabled && "cursor-default opacity-40",
-        danger && "text-ui-status-critical-text",
+        tone && MENU_TONE_TEXT[tone],
       )}
     >
-      <Icon
-        className={cn("size-4 shrink-0", danger ? "text-ui-status-critical-text" : "text-ui-secondary")}
-      />
+      <Icon className={cn("size-4 shrink-0", tone ? MENU_TONE_TEXT[tone] : "text-ui-secondary")} />
       <span className="flex flex-1 items-center gap-1.5">
         {label}
         {chip ? (

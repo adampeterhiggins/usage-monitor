@@ -31,6 +31,7 @@ import { acceleratorGlyphs } from "../lib/settings/shortcuts";
 import { summarizeFreshness } from "../lib/usage/freshness";
 import { startPanelDragging } from "../platform/windows";
 import { useLayout, useRefreshShortcut, useWallColumns } from "../state/preferences";
+import { useProviderStatusStore } from "../state/providerStatus";
 import { useUsageStore } from "../state/usage";
 
 export function PanelApp() {
@@ -71,6 +72,7 @@ export function PanelApp() {
 
   React.useEffect(() => {
     useUsageStore.getState().ensureLoaded(visibleAccounts);
+    void useProviderStatusStore.getState().refresh(visibleAccounts.map((a) => a.provider));
   }, [visibleAccounts]);
 
   const loadOne = React.useCallback(
@@ -78,7 +80,13 @@ export function PanelApp() {
     [],
   );
   const refreshAll = React.useCallback(
-    (force: boolean) => useUsageStore.getState().refreshAll(visibleAccounts, force),
+    (force: boolean) => {
+      void useProviderStatusStore.getState().refresh(
+        visibleAccounts.map((a) => a.provider),
+        force,
+      );
+      return useUsageStore.getState().refreshAll(visibleAccounts, force);
+    },
     [visibleAccounts],
   );
 
