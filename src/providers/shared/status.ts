@@ -1,4 +1,4 @@
-/** Provider service status from each vendor's public Statuspage API. All four
+/** Provider service status from each vendor's public Statuspage API. All of them
  *  serve the Statuspage `/api/v2/status.json` shape (OpenAI's via
  *  incident.io's compatible layer), so one parser covers them. We only read
  *  the page-wide indicator — any incident is worth surfacing, not just ones
@@ -15,7 +15,8 @@ export interface ProviderStatus {
   description: string;
 }
 
-export const STATUS_PAGES: Record<ProviderId, string> = {
+/** Neither xAI nor OpenCode publishes a Statuspage-compatible API. */
+export const STATUS_PAGES: Partial<Record<ProviderId, string>> = {
   claude: "https://status.claude.com",
   codex: "https://status.openai.com",
   cursor: "https://status.cursor.com",
@@ -43,5 +44,7 @@ export function parseStatus(body: unknown): ProviderStatus {
 }
 
 export async function fetchProviderStatus(provider: ProviderId): Promise<ProviderStatus> {
-  return parseStatus(await fetchJson<unknown>(`${STATUS_PAGES[provider]}/api/v2/status.json`));
+  const page = STATUS_PAGES[provider];
+  if (!page) throw new Error("This provider has no status page.");
+  return parseStatus(await fetchJson<unknown>(`${page}/api/v2/status.json`));
 }

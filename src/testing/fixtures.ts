@@ -24,6 +24,21 @@ const DEVIN_CREDENTIALS_TOML = [
   'devin_api_url = "https://api.devin.ai"',
 ].join("\n");
 
+/** The Grok CLI's auth file: one grok.com login keyed by its OIDC deployment. */
+const GROK_AUTH_JSON = JSON.stringify({
+  "https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828": {
+    key: mockJwt({ exp: inDays(1) }),
+    auth_mode: "oidc",
+    email: "grok@example.com",
+  },
+});
+
+/** OpenCode's auth file, with an OpenCode Go key alongside another provider. */
+const OPENCODE_AUTH_JSON = JSON.stringify({
+  anthropic: { type: "oauth", access: "mock-access", refresh: "mock-refresh", expires: 0 },
+  "opencode-go": { type: "api", key: "mock-opencode-go-key" },
+});
+
 export const MOCK_USER_ID = "user_mock_1234";
 export const MOCK_CURSOR_SESSION_JWT = mockJwt({
   sub: `auth0|${MOCK_USER_ID}`,
@@ -51,7 +66,7 @@ const CLAUDE_KEYCHAIN_JSON = JSON.stringify({
   },
 });
 
-/** accounts.json — three native-login accounts, one per provider. */
+/** accounts.json — native-login accounts, one per provider. */
 export const MOCK_ACCOUNTS = [
   {
     id: "acct-claude",
@@ -73,6 +88,20 @@ export const MOCK_ACCOUNTS = [
     label: "Cursor (app login)",
     credential: "",
     extra: "ide",
+    hidden: false,
+  },
+  {
+    id: "acct-grok",
+    provider: "grok",
+    label: "Grok (CLI login)",
+    credential: "",
+    hidden: false,
+  },
+  {
+    id: "acct-opencode",
+    provider: "opencode",
+    label: "OpenCode Go (auth.json)",
+    credential: "",
     hidden: false,
   },
 ];
@@ -107,6 +136,8 @@ export const MOCK_HOME_FILES: Record<string, string> = {
   ".codex/auth.json": CODEX_AUTH_JSON,
   ".cursor/auth.json": MOCK_CURSOR_SESSION_JWT,
   ".local/share/devin/credentials.toml": DEVIN_CREDENTIALS_TOML,
+  ".grok/auth.json": GROK_AUTH_JSON,
+  ".local/share/opencode/auth.json": OPENCODE_AUTH_JSON,
 };
 
 export interface MockHttpResponse {
@@ -140,6 +171,33 @@ const MOCK_CURSOR_EVENTS = Array.from({ length: 120 }, (_, index) => {
 });
 
 export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
+  [
+    "cli-chat-proxy.grok.com/v1/billing",
+    {
+      status: 200,
+      body: {
+        config: {
+          creditUsagePercent: 37,
+          currentPeriod: { type: "USAGE_PERIOD_TYPE_WEEKLY", end: inHours(70) },
+          onDemandCap: { val: 0 },
+          onDemandUsed: { val: 0 },
+        },
+      },
+    },
+  ],
+  [
+    "opencode.ai/zen/go/v1/usage",
+    {
+      status: 200,
+      body: {
+        usage: {
+          rolling: { percent: 22, resetsAt: inHours(3) },
+          weekly: { percent: 48, resetsAt: inHours(90) },
+          monthly: { percent: 15, resetsAt: inHours(400) },
+        },
+      },
+    },
+  ],
   [
     "status.claude.com/api/v2/status.json",
     {
@@ -371,14 +429,23 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
 ];
 
 /** Models the mock usage-history scan emits; `gpt-next-preview` is
- *  deliberately absent from the mock rate tables so "Unpriced" renders. */
-const MOCK_HISTORY_MODELS = [
+ *  deliberately absent from the mock rate tables so "Unpriced" renders.
+ *  `reported` models carry a provider-reported cost, as Grok's do. */
+const MOCK_HISTORY_MODELS: readonly {
+  provider: string;
+  model: string;
+  scale: number;
+  reported?: boolean;
+}[] = [
   { provider: "claude", model: "claude-opus-4-5", scale: 1 },
   { provider: "claude", model: "claude-sonnet-4-5", scale: 0.35 },
   { provider: "codex", model: "gpt-5-codex", scale: 0.6 },
   { provider: "codex", model: "gpt-next-preview", scale: 0.05 },
   { provider: "devin", model: "swe-1-7", scale: 0.5 },
-] as const;
+  { provider: "grok", model: "grok-4.5-build", scale: 0.3, reported: true },
+  { provider: "opencode", model: "claude-sonnet-4-5", scale: 0.25 },
+  { provider: "antigravity", model: "claude-opus-4-5", scale: 0.15 },
+];
 
 /** `devin models list --format json`, trimmed to what pricing reads. */
 export const MOCK_DEVIN_MODEL_CATALOG = JSON.stringify({
@@ -413,8 +480,8 @@ export function mockUsageHistoryScan(boundaries: number[]) {
         provider: entry.provider,
         model: entry.model,
         fast: false,
-        costReported: false,
-        reportedCostUsd: 0,
+        costReported: entry.reported === true,
+        reportedCostUsd: entry.reported ? base * 1e-6 : 0,
         totals: {
           uncachedInputTokens: Math.round(base * 0.04),
           cachedInputTokens: Math.round(base * 0.9),
@@ -452,6 +519,30 @@ export function mockUsageHistoryScan(boundaries: number[]) {
         scannedFiles: 1,
         skippedFiles: 0,
         distinctSessions: 9,
+      },
+      {
+        provider: "grok",
+        path: "~/.grok/sessions",
+        status: "ok",
+        scannedFiles: 6,
+        skippedFiles: 0,
+        distinctSessions: 6,
+      },
+      {
+        provider: "opencode",
+        path: "~/.local/share/opencode",
+        status: "ok",
+        scannedFiles: 1,
+        skippedFiles: 0,
+        distinctSessions: 5,
+      },
+      {
+        provider: "antigravity",
+        path: "~/.gemini/antigravity-cli/conversations",
+        status: "ok",
+        scannedFiles: 3,
+        skippedFiles: 0,
+        distinctSessions: 3,
       },
     ],
     readAtMs: Date.now(),

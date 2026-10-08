@@ -35,6 +35,18 @@ const PROVIDER_FILL_STYLE = {
     background: "var(--ui-canvas-provider-purple-background)",
     color: "var(--ui-canvas-provider-purple-foreground)",
   },
+  slate: {
+    background: "var(--ui-canvas-provider-slate-background)",
+    color: "var(--ui-canvas-provider-slate-foreground)",
+  },
+  teal: {
+    background: "var(--ui-canvas-provider-teal-background)",
+    color: "var(--ui-canvas-provider-teal-foreground)",
+  },
+  pink: {
+    background: "var(--ui-canvas-provider-pink-background)",
+    color: "var(--ui-canvas-provider-pink-foreground)",
+  },
 } as const;
 
 const attachedDone = new WeakSet<ProviderLoginSession>();

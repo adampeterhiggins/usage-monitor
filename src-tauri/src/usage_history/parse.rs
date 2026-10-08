@@ -1,4 +1,5 @@
-//! Pure line parsers for the provider CLIs' on-disk session transcripts.
+//! Pure line parsers for the provider CLIs' on-disk session transcripts
+//! (Claude Code, Codex, Grok).
 //!
 //! Ported from t3code's `usageTranscripts.ts`. Each parser consumes one line
 //! at a time so callers can stream large files; none of them touch the
@@ -13,6 +14,9 @@ pub(crate) enum Provider {
     Claude,
     Codex,
     Devin,
+    Grok,
+    OpenCode,
+    Antigravity,
 }
 
 /// Token counts in a fixed order: uncached input, cached input, cache
@@ -182,7 +186,8 @@ pub(crate) fn might_carry_usage(line: &[u8], provider: Provider) -> bool {
                 || memchr::memmem::find(line, br#""turn_context""#).is_some()
                 || memchr::memmem::find(line, br#""session_meta""#).is_some()
         }
-        Provider::Devin => false,
+        Provider::Grok => memchr::memmem::find(line, br#""turn_completed""#).is_some(),
+        Provider::Devin | Provider::OpenCode | Provider::Antigravity => false,
     }
 }
 
@@ -399,6 +404,121 @@ pub(crate) fn parse_codex_line(line: &str, state: &mut CodexScanState) -> Option
     })
 }
 
+/* -------------------------------------------------------------------------- */
+/* Grok                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/// Grok reports cost in integer ticks of 10^-10 USD (`costUsdTicks`).
+const GROK_TICKS_PER_USD: f64 = 10_000_000_000.0;
+
+struct GrokTotals {
+    tokens: Tokens,
+    cost_ticks: Option<f64>,
+}
+
+fn grok_totals(value: &Value) -> Option<GrokTotals> {
+    if !value.is_object() {
+        return None;
+    }
+    let input = int_value(value.get("inputTokens"));
+    let cached = int_value(value.get("cachedReadTokens"));
+    let creation = int_value(value.get("cacheCreationTokens"));
+    let output = int_value(value.get("outputTokens"));
+    Some(GrokTotals {
+        tokens: [
+            // Grok reports `inputTokens` inclusive of the cached portion, like Codex.
+            input.saturating_sub(cached + creation),
+            cached,
+            creation,
+            output,
+            output.min(int_value(value.get("reasoningTokens"))),
+        ],
+        cost_ticks: value.get("costUsdTicks").and_then(Value::as_f64).filter(|t| t.is_finite()),
+    })
+}
+
+fn grok_cost_usd(ticks: Option<f64>) -> Option<f64> {
+    ticks.filter(|t| *t >= 0.0).map(|t| t / GROK_TICKS_PER_USD)
+}
+
+/// Parses one line of a Grok Build `updates.jsonl` session log, appending
+/// its records to `out`.
+///
+/// Usage lands on `turn_completed` session updates. A `usage.modelUsage` map
+/// breaks a turn down by model; each model becomes its own record, and the
+/// turn's cost is shared out to models that report none by token share.
+pub(crate) fn parse_grok_line(line: &str, out: &mut Vec<UsageRecord>) {
+    let Ok(record) = serde_json::from_str::<Value>(line) else { return };
+    let Some(params) = record.get("params").filter(|p| p.is_object()) else { return };
+    let Some(update) = params.get("update").filter(|u| u.is_object()) else { return };
+    if update.get("sessionUpdate").and_then(Value::as_str) != Some("turn_completed") {
+        return;
+    }
+    let Some(usage) = update.get("usage") else { return };
+    let Some(turn) = grok_totals(usage) else { return };
+
+    // Prefer the agent's millisecond clock; the outer stamp is unix seconds.
+    let timestamp_ms = params
+        .pointer("/_meta/agentTimestampMs")
+        .and_then(Value::as_f64)
+        .filter(|ms| ms.is_finite())
+        .or_else(|| {
+            let ts = record.get("timestamp").and_then(Value::as_f64).filter(|ts| ts.is_finite())?;
+            Some(if ts > 1e12 { ts } else { ts * 1000.0 })
+        });
+    let Some(timestamp_ms) = timestamp_ms.map(|ms| ms.trunc() as i64) else { return };
+    let session_id = params.get("sessionId").and_then(Value::as_str).unwrap_or("");
+    // Without a prompt id two same-instant turns are indistinguishable.
+    let prompt_id = update.get("prompt_id").and_then(Value::as_str);
+    let make = |model: &str, tokens: Tokens, reported_cost_usd: Option<f64>| UsageRecord {
+        provider: Provider::Grok,
+        timestamp_ms,
+        model: model.to_string(),
+        session_id: session_id.to_string(),
+        tokens,
+        reported_cost_usd,
+        fast: false,
+        dedupe_key: prompt_id
+            .map(|prompt| fnv1a64(&[b"grok", session_id.as_bytes(), prompt.as_bytes(), model.as_bytes()])),
+    };
+
+    let models: Vec<(&str, GrokTotals)> = usage
+        .get("modelUsage")
+        .and_then(Value::as_object)
+        .map(|map| {
+            map.iter()
+                .filter(|(model, _)| !model.is_empty())
+                .filter_map(|(model, raw)| Some((model.as_str(), grok_totals(raw)?)))
+                .filter(|(_, totals)| total_tokens(&totals.tokens) > 0)
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if models.is_empty() {
+        if total_tokens(&turn.tokens) > 0 {
+            out.push(make("grok", turn.tokens, grok_cost_usd(turn.cost_ticks)));
+        }
+        return;
+    }
+
+    // Models with their own ticks keep them; whatever is left of the turn's
+    // cost is pro-rated over the rest.
+    let ticked_usd: f64 = models.iter().filter_map(|(_, t)| grok_cost_usd(t.cost_ticks)).sum();
+    let unticked_tokens: u64 = models
+        .iter()
+        .filter(|(_, t)| t.cost_ticks.is_none())
+        .map(|(_, t)| total_tokens(&t.tokens))
+        .sum();
+    let remaining_usd = grok_cost_usd(turn.cost_ticks).map(|usd| (usd - ticked_usd).max(0.0));
+    for (model, totals) in &models {
+        let cost = grok_cost_usd(totals.cost_ticks).or_else(|| {
+            let remaining = remaining_usd.filter(|_| unticked_tokens > 0)?;
+            Some(remaining * total_tokens(&totals.tokens) as f64 / unticked_tokens as f64)
+        });
+        out.push(make(model, totals.tokens, cost));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -483,5 +603,70 @@ mod tests {
         let records = codex_lines(&[meta, TURN, &copy_a, &copy_b, &real]);
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].tokens[OUTPUT], 3);
+    }
+
+    /// Shaped after a real Grok Build `turn_completed` session update.
+    fn grok_turn(usage_extra: &str, model_usage: Option<&str>) -> String {
+        let model_usage = model_usage.map(|m| format!(r#","modelUsage":{m}"#)).unwrap_or_default();
+        format!(
+            r#"{{"timestamp":1786372566,"method":"_x.ai/session/update","params":{{"sessionId":"019fec1a-12f7","update":{{"sessionUpdate":"turn_completed","prompt_id":"prompt-1","stop_reason":"end_turn","usage":{{"inputTokens":20272,"outputTokens":272,"totalTokens":20544,"cachedReadTokens":11264,"cacheCreationTokens":0,"reasoningTokens":180,"costUsdTicks":230272000{usage_extra}{model_usage}}}}},"_meta":{{"eventId":"event-1","agentTimestampMs":1786372566485}}}}}}"#
+        )
+    }
+
+    fn grok_records(line: &str) -> Vec<UsageRecord> {
+        let mut out = Vec::new();
+        parse_grok_line(line, &mut out);
+        out
+    }
+
+    #[test]
+    fn grok_turn_yields_per_model_records_with_tick_cost() {
+        let line = grok_turn(
+            "",
+            Some(r#"{"grok-4.5-build":{"inputTokens":20272,"outputTokens":272,"cachedReadTokens":11264,"reasoningTokens":180,"costUsdTicks":230272000}}"#),
+        );
+        let records = grok_records(&line);
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.provider, Provider::Grok);
+        assert_eq!(record.model, "grok-4.5-build");
+        assert_eq!(record.session_id, "019fec1a-12f7");
+        assert_eq!(record.timestamp_ms, 1_786_372_566_485);
+        assert_eq!(record.tokens, [20_272 - 11_264, 11_264, 0, 272, 180]);
+        assert!((record.reported_cost_usd.unwrap() - 0.023_027_2).abs() < 1e-12);
+        assert!(record.dedupe_key.is_some());
+        assert_eq!(record.dedupe_key, grok_records(&line)[0].dedupe_key);
+    }
+
+    #[test]
+    fn grok_falls_back_to_generic_model_and_outer_timestamp() {
+        let line = grok_turn("", None).replace(r#","agentTimestampMs":1786372566485"#, "");
+        let records = grok_records(&line);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].model, "grok");
+        assert_eq!(records[0].timestamp_ms, 1_786_372_566_000);
+    }
+
+    #[test]
+    fn grok_pro_rates_turn_cost_over_unticked_models() {
+        let line = grok_turn(
+            "",
+            Some(r#"{"grok-4.5":{"inputTokens":300,"costUsdTicks":4000000000},"grok-composer-2.5-fast":{"inputTokens":100},"grok-mini":{"inputTokens":300},"empty":{"inputTokens":0,"costUsdTicks":0}}"#),
+        )
+        .replace(r#""costUsdTicks":230272000"#, r#""costUsdTicks":10000000000"#);
+        let records = grok_records(&line);
+        let cost = |model: &str| {
+            records.iter().find(|r| r.model == model).and_then(|r| r.reported_cost_usd).unwrap()
+        };
+        assert_eq!(records.len(), 3);
+        assert!((cost("grok-4.5") - 0.4).abs() < 1e-12);
+        assert!((cost("grok-composer-2.5-fast") - 0.15).abs() < 1e-12);
+        assert!((cost("grok-mini") - 0.45).abs() < 1e-12);
+    }
+
+    #[test]
+    fn grok_ignores_other_updates() {
+        assert!(grok_records(&grok_turn("", None).replace("turn_completed", "agent_message_chunk")).is_empty());
+        assert!(grok_records("not json").is_empty());
     }
 }

@@ -195,6 +195,6 @@ describe("every provider survives a round trip", () => {
   });
 
   it("still rejects a provider the app does not know", () => {
-    expect(decodeStoredAccount({ id: "x", label: "L", provider: "grok" })).toBeNull();
+    expect(decodeStoredAccount({ id: "x", label: "L", provider: "windsurf" })).toBeNull();
   });
 });

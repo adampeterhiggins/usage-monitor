@@ -16,6 +16,9 @@ export const USAGE_HISTORY_PROVIDERS: readonly UsageHistoryProvider[] = [
   "codex",
   "cursor",
   "devin",
+  "grok",
+  "opencode",
+  "antigravity",
 ];
 
 const SOURCE_NAMES: Record<UsageHistoryProvider, string> = {
@@ -23,6 +26,9 @@ const SOURCE_NAMES: Record<UsageHistoryProvider, string> = {
   codex: "Codex",
   cursor: "Cursor",
   devin: "Devin CLI",
+  grok: "Grok CLI",
+  opencode: "OpenCode",
+  antigravity: "Antigravity",
 };
 
 export interface CostAndTokens {

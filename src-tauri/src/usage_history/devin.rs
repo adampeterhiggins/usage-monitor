@@ -11,12 +11,13 @@
 //! are incremental: `row_id` is AUTOINCREMENT, and each scan asks only for
 //! rows past the cached high-water mark.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
 use super::parse::{fnv1a64, parse_timestamp_ms, total_tokens, Provider, UsageRecord};
+use super::{home, sqlite, xdg_data_home};
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub(super) struct DevinCache {
@@ -34,26 +35,10 @@ pub(super) enum DevinRead {
     Ok,
 }
 
-fn home() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(PathBuf::from)
-}
-
 /// `$XDG_DATA_HOME/devin/cli`, defaulting to `~/.local/share/devin/cli`.
 pub(super) fn devin_cli_dir() -> Option<PathBuf> {
-    let data_home = std::env::var_os("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
-        .or_else(|| home().map(|h| h.join(".local/share")))?;
-    let dir = data_home.join("devin/cli");
+    let dir = xdg_data_home()?.join("devin/cli");
     Some(std::fs::canonicalize(&dir).unwrap_or(dir))
-}
-
-fn sqlite3_bin() -> &'static str {
-    if Path::new("/usr/bin/sqlite3").exists() {
-        "/usr/bin/sqlite3"
-    } else {
-        "sqlite3"
-    }
 }
 
 /// One tab-separated row per assistant message, preceded by a `max` line with
@@ -158,16 +143,7 @@ pub(super) fn refresh(cache: &mut DevinCache, retention_cutoff_ms: i64) -> (Devi
     }
 
     let sql = query(cache.high_water, retention_cutoff_ms.div_euclid(1000));
-    let output = Command::new(sqlite3_bin())
-        .args(["-readonly", "-batch", "-noheader", "-separator", "\t", "-cmd", ".timeout 2000"])
-        .arg(&db_path)
-        .arg(&sql)
-        .output();
-    let Ok(output) = output else { return (DevinRead::Failed, false) };
-    if !output.status.success() {
-        return (DevinRead::Failed, false);
-    }
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let Some(stdout) = sqlite::query(&db, &sql) else { return (DevinRead::Failed, false) };
 
     let before_high_water = cache.high_water;
     let before_len = cache.records.len();

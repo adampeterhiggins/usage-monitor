@@ -72,6 +72,8 @@ const ALLOWED_HOSTS: &[&str] = &[
     "chatgpt.com",
     "server.codeium.com",
     "app.devin.ai",
+    "cli-chat-proxy.grok.com",
+    "opencode.ai",
     "status.claude.com",
     "status.openai.com",
     "status.cursor.com",

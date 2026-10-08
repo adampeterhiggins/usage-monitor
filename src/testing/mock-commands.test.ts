@@ -75,7 +75,14 @@ describe("fixtures parse through the real parsers", () => {
     }) as UsageHistoryScan;
     const rates = handleCommand("http_request", { url: LITELLM_RATES_URL }) as { body: string };
     const summary = summarizeUsage(scan, window, parseRateTable(JSON.parse(rates.body)));
-    expect(summary.providers.map((p) => p.provider)).toEqual(["claude", "codex", "devin"]);
+    expect(summary.providers.map((p) => p.provider)).toEqual([
+      "claude",
+      "codex",
+      "devin",
+      "grok",
+      "opencode",
+      "antigravity",
+    ]);
     expect(summary.costUsd).toBeGreaterThan(0);
     expect(summary.models.some(isModelCostUnknown)).toBe(true);
   });

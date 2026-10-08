@@ -12,6 +12,8 @@ import { consumeCodexResetCredit, fetchCodexResetCredits } from "./codex/resets"
 import { fetchCodexUsage } from "./codex/usage";
 import { fetchCursorUsage } from "./cursor/usage";
 import { fetchDevinUsage } from "./devin/usage";
+import { fetchGrokUsage } from "./grok/usage";
+import { fetchOpenCodeUsage } from "./opencode/usage";
 
 export function fetchProviderUsage(
   account: Account,
@@ -26,6 +28,10 @@ export function fetchProviderUsage(
       return fetchCursorUsage(account);
     case "devin":
       return fetchDevinUsage(account);
+    case "grok":
+      return fetchGrokUsage(account);
+    case "opencode":
+      return fetchOpenCodeUsage(account);
   }
 }
 

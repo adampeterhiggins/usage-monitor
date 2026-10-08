@@ -67,9 +67,33 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     nativeLoginName: "the Devin CLI",
     pasteMethodLabel: "Paste an API key",
   },
+  grok: {
+    id: "grok",
+    name: "Grok",
+    tone: "slate",
+    credentialTitle: "Access Token",
+    credentialHelp:
+      "Paste the access token from ~/.grok/auth.json (the whole file works too). Leave blank to use your Grok CLI login.",
+    credentialOptional: true,
+    credentialPlaceholder: "access token or auth.json",
+    nativeLoginName: "the Grok CLI",
+    pasteMethodLabel: "Paste an access token",
+  },
+  opencode: {
+    id: "opencode",
+    name: "OpenCode",
+    tone: "teal",
+    credentialTitle: "API Key",
+    credentialHelp:
+      "Paste your OpenCode Go API key, or ~/.local/share/opencode/auth.json. Leave blank to use your OpenCode login.",
+    credentialOptional: true,
+    credentialPlaceholder: "OpenCode Go API key or auth.json",
+    nativeLoginName: "OpenCode",
+    pasteMethodLabel: "Paste an API key",
+  },
 };
 
-export const PROVIDER_ORDER: ProviderId[] = ["claude", "codex", "cursor", "devin"];
+export const PROVIDER_ORDER: ProviderId[] = ["claude", "codex", "cursor", "devin", "grok", "opencode"];
 
 export function signInLabel(provider: ProviderId): string {
   switch (provider) {
@@ -81,5 +105,9 @@ export function signInLabel(provider: ProviderId): string {
       return "Sign in with Cursor";
     case "devin":
       return "Sign in with Devin";
+    case "grok":
+      return "Sign in with Grok";
+    case "opencode":
+      return "Sign in with OpenCode";
   }
 }

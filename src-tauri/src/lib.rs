@@ -9,7 +9,7 @@
 //! - `frame`: persisted window geometry
 //! - `credentials`: provider login reads (Keychain, Cursor IDE DB, home files)
 //! - `http`: native fetch so requests carry no webview Origin
-//! - `usage_history`: token usage scanned from local CLI transcripts
+//! - `usage_history`: token usage scanned from local CLI transcripts and databases
 
 mod commands;
 mod credentials;

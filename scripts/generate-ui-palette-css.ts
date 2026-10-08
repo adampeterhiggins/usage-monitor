@@ -217,6 +217,12 @@ const THEME_BLOCK = `
   --color-ui-provider-orange-fg: var(--local-provider-orange-foreground);
   --color-ui-provider-purple: var(--local-provider-purple-background);
   --color-ui-provider-purple-fg: var(--local-provider-purple-foreground);
+  --color-ui-provider-slate: var(--local-provider-slate-background);
+  --color-ui-provider-slate-fg: var(--local-provider-slate-foreground);
+  --color-ui-provider-teal: var(--local-provider-teal-background);
+  --color-ui-provider-teal-fg: var(--local-provider-teal-foreground);
+  --color-ui-provider-pink: var(--local-provider-pink-background);
+  --color-ui-provider-pink-fg: var(--local-provider-pink-foreground);
 
   /* window material */
   --color-ui-glass: var(--ui-glass-rest-background);

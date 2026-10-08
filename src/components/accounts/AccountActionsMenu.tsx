@@ -38,6 +38,8 @@ const DASHBOARD_URLS: Record<ProviderId, string> = {
   codex: "https://chatgpt.com/codex/settings/usage",
   cursor: "https://cursor.com/dashboard",
   devin: "https://app.devin.ai/settings/usage",
+  grok: "https://grok.com",
+  opencode: "https://opencode.ai/auth",
 };
 
 const STATUS_TONES: Record<StatusIndicator, MenuItemTone | undefined> = {
@@ -73,6 +75,7 @@ export function AccountActionsMenu({
   const meta = PROVIDERS[account.provider];
   const issue = useProviderIssue(account.provider);
   const issueTone = issue && STATUS_TONES[issue.indicator];
+  const statusPage = STATUS_PAGES[account.provider];
 
   async function handleRemove() {
     try {
@@ -148,15 +151,17 @@ export function AccountActionsMenu({
                   openLink(DASHBOARD_URLS[account.provider], "Couldn’t open dashboard");
                 }}
               />
-              <MenuItem
-                icon={issue ? TriangleAlert : Activity}
-                label={issue ? issue.description : "Status Page"}
-                tone={issueTone}
-                onSelect={() => {
-                  setOpen(false);
-                  openLink(STATUS_PAGES[account.provider], "Couldn’t open status page");
-                }}
-              />
+              {statusPage ? (
+                <MenuItem
+                  icon={issue ? TriangleAlert : Activity}
+                  label={issue ? issue.description : "Status Page"}
+                  tone={issueTone}
+                  onSelect={() => {
+                    setOpen(false);
+                    openLink(statusPage, "Couldn’t open status page");
+                  }}
+                />
+              ) : null}
               <MenuSeparator />
               <MenuItem
                 icon={Trash2}

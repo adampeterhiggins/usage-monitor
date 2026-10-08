@@ -1,7 +1,7 @@
-//! Usage history: token usage read from the Claude Code and Codex CLIs'
-//! local session transcripts and the Devin CLI's session database, ported
-//! from t3code's `UsageService`. Cursor history comes from its dashboard API
-//! and is fetched by the frontend.
+//! Usage history: token usage read from the Claude Code, Codex, and Grok
+//! CLIs' local session transcripts and the Devin CLI's, OpenCode's, and
+//! Antigravity's SQLite stores, ported from t3code's `UsageService`. Cursor
+//! history comes from its dashboard API and is fetched by the frontend.
 //!
 //! The frontend passes the period boundaries it wants (local midnights, or
 //! hourly steps for a rolling 24 hours) and gets back pre-aggregated
@@ -12,9 +12,12 @@
 //! grew resumes from its cached parse position. The cache is persisted so
 //! history survives Claude Code pruning old transcripts and app restarts.
 
+mod antigravity;
 mod devin;
+mod opencode;
 mod parse;
 mod reader;
+mod sqlite;
 
 pub(crate) use devin::model_catalog as devin_model_catalog;
 
@@ -52,6 +55,8 @@ struct FileEntry {
 struct ScanCache {
     files: HashMap<String, FileEntry>,
     devin: devin::DevinCache,
+    opencode: opencode::OpenCodeCache,
+    antigravity: antigravity::AntigravityCache,
     loaded: bool,
     dirty: bool,
 }
@@ -62,6 +67,10 @@ struct PersistedCache {
     files: HashMap<String, FileEntry>,
     #[serde(default)]
     devin: devin::DevinCache,
+    #[serde(default)]
+    opencode: opencode::OpenCodeCache,
+    #[serde(default)]
+    antigravity: antigravity::AntigravityCache,
 }
 
 fn cache() -> &'static Mutex<ScanCache> {
@@ -149,6 +158,14 @@ fn home() -> Option<PathBuf> {
     std::env::var_os("HOME").map(PathBuf::from)
 }
 
+/// `$XDG_DATA_HOME`, defaulting to `~/.local/share`.
+fn xdg_data_home() -> Option<PathBuf> {
+    std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .or_else(|| home().map(|h| h.join(".local/share")))
+}
+
 fn env_dir(key: &str) -> Option<PathBuf> {
     std::env::var_os(key)
         .map(PathBuf::from)
@@ -158,6 +175,7 @@ fn env_dir(key: &str) -> Option<PathBuf> {
 /// Transcript directories, in scan order. Claude Code writes to
 /// `~/.config/claude` on newer installs and `~/.claude` on older ones; Codex
 /// moves archived rollouts out of `sessions`. Moved copies de-duplicate.
+/// Grok keeps a directory per session under `sessions/<cwd>/`.
 fn transcript_dirs() -> Vec<(Provider, PathBuf)> {
     let mut dirs = Vec::new();
     let home = home();
@@ -174,6 +192,10 @@ fn transcript_dirs() -> Vec<(Provider, PathBuf)> {
     if let Some(codex_home) = codex_home {
         dirs.push((Provider::Codex, codex_home.join("sessions")));
         dirs.push((Provider::Codex, codex_home.join("archived_sessions")));
+    }
+    let grok_home = env_dir("GROK_HOME").or_else(|| home.as_ref().map(|h| h.join(".grok")));
+    if let Some(grok_home) = grok_home {
+        dirs.push((Provider::Grok, grok_home.join("sessions")));
     }
 
     let mut seen = HashSet::new();
@@ -194,6 +216,8 @@ fn load_persisted(cache: &mut ScanCache, path: Option<&Path>) {
     if persisted.version == CACHE_VERSION {
         cache.files = persisted.files;
         cache.devin = persisted.devin;
+        cache.opencode = persisted.opencode;
+        cache.antigravity = persisted.antigravity;
     }
 }
 
@@ -209,6 +233,8 @@ fn persist(cache: &mut ScanCache, path: Option<&Path>) {
         version: CACHE_VERSION,
         files: std::mem::take(&mut cache.files),
         devin: std::mem::take(&mut cache.devin),
+        opencode: std::mem::take(&mut cache.opencode),
+        antigravity: std::mem::take(&mut cache.antigravity),
     };
     let written = serde_json::to_vec(&document).ok().and_then(|bytes| {
         let temp = path.with_extension("json.tmp");
@@ -217,6 +243,8 @@ fn persist(cache: &mut ScanCache, path: Option<&Path>) {
     });
     cache.files = document.files;
     cache.devin = document.devin;
+    cache.opencode = document.opencode;
+    cache.antigravity = document.antigravity;
     // Cleared only after the write lands, so a failed persist retries next scan.
     if written.is_some() {
         cache.dirty = false;
@@ -381,7 +409,10 @@ pub(crate) fn scan(cache_path: Option<&Path>, boundaries: &[i64]) -> Result<Usag
 
     for (provider, dir) in transcript_dirs() {
         let exists = dir.is_dir();
-        let listed = if exists { reader::list_transcript_files(&dir, window_start_ms) } else { Vec::new() };
+        // Grok sessions also keep large chat and event logs; only updates carry usage.
+        let file_name = (provider == Provider::Grok).then_some("updates.jsonl");
+        let listed =
+            if exists { reader::list_transcript_files(&dir, window_start_ms, file_name) } else { Vec::new() };
 
         let mut file_keys: Vec<String> = Vec::with_capacity(listed.len());
         for file in &listed {
@@ -416,7 +447,7 @@ pub(crate) fn scan(cache_path: Option<&Path>, boundaries: &[i64]) -> Result<Usag
             for record in entry.records.iter().chain(&entry.tail_records) {
                 let dedupe_key = match provider {
                     Provider::Codex => codex_dedupe_key(record, &mut occurrences),
-                    Provider::Claude | Provider::Devin => record.dedupe_key,
+                    _ => record.dedupe_key,
                 };
                 if aggregator.add(record, dedupe_key) && !record.session_id.is_empty() {
                     sessions.insert(record.session_id.as_str());
@@ -455,6 +486,65 @@ pub(crate) fn scan(cache_path: Option<&Path>, boundaries: &[i64]) -> Result<Usag
                 _ => SourceStatus::Ok,
             },
             scanned_files: u64::from(has_history),
+            skipped_files: 0,
+            distinct_sessions: sessions.len() as u64,
+        });
+    }
+
+    if let Some(dir) = opencode::opencode_dir() {
+        let (read, changed) = opencode::refresh(&mut cache.opencode, retention_cutoff_ms);
+        if changed {
+            cache.dirty = true;
+        }
+        let mut sessions: HashSet<&str> = HashSet::new();
+        for record in cache.opencode.records() {
+            if aggregator.add(record, record.dedupe_key) && !record.session_id.is_empty() {
+                sessions.insert(record.session_id.as_str());
+            }
+        }
+        let scanned_files = cache.opencode.sources_with_history();
+        sources.push(UsageHistorySource {
+            provider: Provider::OpenCode,
+            path: dir.to_string_lossy().into_owned(),
+            status: match read {
+                opencode::OpenCodeRead::Missing if scanned_files == 0 => SourceStatus::Missing,
+                opencode::OpenCodeRead::Failed => SourceStatus::Partial,
+                _ => SourceStatus::Ok,
+            },
+            scanned_files,
+            skipped_files: 0,
+            distinct_sessions: sessions.len() as u64,
+        });
+    }
+
+    let antigravity_dirs = antigravity::antigravity_dirs();
+    if let Some(first) = antigravity_dirs.first() {
+        let (read, changed) =
+            antigravity::refresh(&mut cache.antigravity, &antigravity_dirs, retention_cutoff_ms);
+        if changed {
+            cache.dirty = true;
+        }
+        let mut sessions: HashSet<&str> = HashSet::new();
+        for record in &cache.antigravity.records {
+            if aggregator.add(record, record.dedupe_key) && !record.session_id.is_empty() {
+                sessions.insert(record.session_id.as_str());
+            }
+        }
+        let has_history = !cache.antigravity.records.is_empty();
+        let dir = antigravity_dirs
+            .iter()
+            .find(|dir| dir.ends_with("conversations") && dir.is_dir())
+            .or_else(|| antigravity_dirs.iter().find(|dir| dir.is_dir()))
+            .unwrap_or(first);
+        sources.push(UsageHistorySource {
+            provider: Provider::Antigravity,
+            path: dir.to_string_lossy().into_owned(),
+            status: match read {
+                antigravity::AntigravityRead::Missing if !has_history => SourceStatus::Missing,
+                antigravity::AntigravityRead::Failed => SourceStatus::Partial,
+                _ => SourceStatus::Ok,
+            },
+            scanned_files: cache.antigravity.databases_with_history(),
             skipped_files: 0,
             distinct_sessions: sessions.len() as u64,
         });
