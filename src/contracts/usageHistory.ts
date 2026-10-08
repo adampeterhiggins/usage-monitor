@@ -1,9 +1,16 @@
-/** Usage history contracts — token usage from the Claude Code and Codex
- *  CLIs' transcripts, the Devin CLI's session database (both scanned
- *  natively), and Cursor's dashboard API. Ported from t3code's usage
- *  contract. UI-neutral. */
+/** Usage history contracts — token usage from the Claude Code, Codex, and
+ *  Grok CLIs' transcripts, the Devin CLI's, OpenCode's, and Antigravity's
+ *  SQLite stores (all scanned natively), and Cursor's dashboard API. Ported
+ *  from t3code's usage contract. UI-neutral. */
 
-export type UsageHistoryProvider = "claude" | "codex" | "cursor" | "devin";
+export type UsageHistoryProvider =
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "devin"
+  | "grok"
+  | "opencode"
+  | "antigravity";
 
 export type UsageWindowDays = 1 | 7 | 30 | 90;
 

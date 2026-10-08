@@ -1,6 +1,6 @@
 /** In-panel Usage History: token usage and cost from local Claude Code,
- *  Codex, and Devin CLI history plus Cursor's dashboard, ported from
- *  t3code's Usage page.
+ *  Codex, Devin CLI, Grok, OpenCode, and Antigravity history plus Cursor's
+ *  dashboard, ported from t3code's Usage page.
  *  A Radix dialog like Appearance — the panel's modal-open bridge keeps it
  *  from blur-hiding. */
 
@@ -136,8 +136,8 @@ function PricingNote({
   return (
     <p className="text-[11px] leading-[1.45] text-ui-tertiary">
       Costs are API-equivalent estimates at LiteLLM and Devin catalog rates (
-      {formatCount(pricing.knownModels)} models{updated}); Cursor reports its own charges. Neither is
-      what a subscription plan bills.{scanned}
+      {formatCount(pricing.knownModels)} models{updated}); Cursor, Grok, and OpenCode report their own
+      charges where they have them. Neither is what a subscription plan bills.{scanned}
     </p>
   );
 }
@@ -364,9 +364,9 @@ function Body() {
       <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
         <p className="text-[13px] font-medium text-ui-primary">No usage history found</p>
         <p className="max-w-sm text-[12px] text-ui-secondary">
-          Usage history reads the session logs Claude Code, Codex, and the Devin CLI keep on this
-          Mac, and the dashboard history of your Cursor accounts. Use any of them and its usage
-          appears here.
+          Usage history reads the session logs Claude Code, Codex, Grok, OpenCode, Antigravity,
+          and the Devin CLI keep on this Mac, and the dashboard history of your Cursor accounts.
+          Use any of them and its usage appears here.
         </p>
       </div>
     );
@@ -422,7 +422,8 @@ export function UsageHistoryDialog({
             <div className="min-w-0">
               <Dialog.Title className="text-[16px] font-semibold">Usage History</Dialog.Title>
               <Dialog.Description className="mt-1 text-[12px] text-ui-secondary">
-                Tokens and cost from Claude Code, Codex, Cursor, and Devin.
+                Tokens and cost from Claude Code, Codex, Cursor, Devin, Grok, OpenCode, and
+                Antigravity.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>

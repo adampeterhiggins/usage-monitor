@@ -429,14 +429,23 @@ export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
 ];
 
 /** Models the mock usage-history scan emits; `gpt-next-preview` is
- *  deliberately absent from the mock rate tables so "Unpriced" renders. */
-const MOCK_HISTORY_MODELS = [
+ *  deliberately absent from the mock rate tables so "Unpriced" renders.
+ *  `reported` models carry a provider-reported cost, as Grok's do. */
+const MOCK_HISTORY_MODELS: readonly {
+  provider: string;
+  model: string;
+  scale: number;
+  reported?: boolean;
+}[] = [
   { provider: "claude", model: "claude-opus-4-5", scale: 1 },
   { provider: "claude", model: "claude-sonnet-4-5", scale: 0.35 },
   { provider: "codex", model: "gpt-5-codex", scale: 0.6 },
   { provider: "codex", model: "gpt-next-preview", scale: 0.05 },
   { provider: "devin", model: "swe-1-7", scale: 0.5 },
-] as const;
+  { provider: "grok", model: "grok-4.5-build", scale: 0.3, reported: true },
+  { provider: "opencode", model: "claude-sonnet-4-5", scale: 0.25 },
+  { provider: "antigravity", model: "claude-opus-4-5", scale: 0.15 },
+];
 
 /** `devin models list --format json`, trimmed to what pricing reads. */
 export const MOCK_DEVIN_MODEL_CATALOG = JSON.stringify({
@@ -471,8 +480,8 @@ export function mockUsageHistoryScan(boundaries: number[]) {
         provider: entry.provider,
         model: entry.model,
         fast: false,
-        costReported: false,
-        reportedCostUsd: 0,
+        costReported: entry.reported === true,
+        reportedCostUsd: entry.reported ? base * 1e-6 : 0,
         totals: {
           uncachedInputTokens: Math.round(base * 0.04),
           cachedInputTokens: Math.round(base * 0.9),
@@ -510,6 +519,30 @@ export function mockUsageHistoryScan(boundaries: number[]) {
         scannedFiles: 1,
         skippedFiles: 0,
         distinctSessions: 9,
+      },
+      {
+        provider: "grok",
+        path: "~/.grok/sessions",
+        status: "ok",
+        scannedFiles: 6,
+        skippedFiles: 0,
+        distinctSessions: 6,
+      },
+      {
+        provider: "opencode",
+        path: "~/.local/share/opencode",
+        status: "ok",
+        scannedFiles: 1,
+        skippedFiles: 0,
+        distinctSessions: 5,
+      },
+      {
+        provider: "antigravity",
+        path: "~/.gemini/antigravity-cli/conversations",
+        status: "ok",
+        scannedFiles: 3,
+        skippedFiles: 0,
+        distinctSessions: 3,
       },
     ],
     readAtMs: Date.now(),

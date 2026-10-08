@@ -74,9 +74,12 @@ The app is an accessory — no Dock icon. Left-click the menu-bar icon or press 
 
 - **Claude Code and Codex** — the session transcripts they keep in `~/.claude/projects` and `~/.codex/sessions`.
 - **Devin** — the Devin CLI's `~/.local/share/devin/cli/sessions.db`, read incrementally through the system `sqlite3`. Devin's own models are priced from `devin models list`.
+- **Grok** — the Grok CLI's `updates.jsonl` session logs in `~/.grok/sessions`, with Grok's own reported cost per turn.
+- **OpenCode** — `~/.local/share/opencode/opencode.db` (read incrementally through `sqlite3`) and its older per-message JSON files, with OpenCode's own cost where it records one.
+- **Antigravity** — the per-conversation databases in `~/.gemini/antigravity-cli/conversations` (and the IDE's), whose protobuf usage metadata is decoded without reading conversation text.
 - **Cursor** — the dashboard usage history of your (visible) Cursor accounts, with Cursor's own reported charge per request. Accounts signed in as the same Cursor user are counted once.
 
-Local history covers all CLI usage, not just what this app fetched, and parsed history is cached in the app's data directory so days survive a CLI pruning old sessions. Costs other than Cursor's are API-equivalent estimates at [LiteLLM](https://github.com/BerriAI/litellm) (or Devin catalog) rates, not what a subscription bills.
+Local history covers all CLI usage, not just what this app fetched, and parsed history is cached in the app's data directory so days survive a CLI pruning old sessions. Costs other than those the provider reports are API-equivalent estimates at [LiteLLM](https://github.com/BerriAI/litellm) (or Devin catalog) rates, not what a subscription bills.
 
 ## Releasing and updating
 

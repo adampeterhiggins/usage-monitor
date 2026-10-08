@@ -1,14 +1,28 @@
-/** Display copy for usage-history providers. Colors reuse the account
- *  cards' provider tones so a provider reads the same across the app. */
+/** Display copy for usage-history providers. Colors use the account cards'
+ *  provider tones so a provider reads the same across the app; history
+ *  sources without an account card get tones of their own. */
 
 import type { UsageHistoryProvider } from "../../contracts/usageHistory";
-import { PROVIDERS } from "../../providers/metadata";
+import type { UiProviderTone } from "../../lib/theme/ui-tokens";
 
 const LABELS: Record<UsageHistoryProvider, string> = {
   claude: "Claude Code",
   codex: "Codex",
   cursor: "Cursor",
   devin: "Devin",
+  grok: "Grok",
+  opencode: "OpenCode",
+  antigravity: "Antigravity",
+};
+
+const TONES: Record<UsageHistoryProvider, UiProviderTone> = {
+  claude: "orange",
+  codex: "green",
+  cursor: "blue",
+  devin: "purple",
+  grok: "slate",
+  opencode: "teal",
+  antigravity: "pink",
 };
 
 export function usageHistoryProvider(provider: UsageHistoryProvider): {
@@ -17,6 +31,6 @@ export function usageHistoryProvider(provider: UsageHistoryProvider): {
 } {
   return {
     label: LABELS[provider],
-    color: `var(--color-ui-provider-${PROVIDERS[provider].tone}-fg)`,
+    color: `var(--color-ui-provider-${TONES[provider]}-fg)`,
   };
 }
