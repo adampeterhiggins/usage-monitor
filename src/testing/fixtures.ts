@@ -24,6 +24,21 @@ const DEVIN_CREDENTIALS_TOML = [
   'devin_api_url = "https://api.devin.ai"',
 ].join("\n");
 
+/** The Grok CLI's auth file: one grok.com login keyed by its OIDC deployment. */
+const GROK_AUTH_JSON = JSON.stringify({
+  "https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828": {
+    key: mockJwt({ exp: inDays(1) }),
+    auth_mode: "oidc",
+    email: "grok@example.com",
+  },
+});
+
+/** OpenCode's auth file, with an OpenCode Go key alongside another provider. */
+const OPENCODE_AUTH_JSON = JSON.stringify({
+  anthropic: { type: "oauth", access: "mock-access", refresh: "mock-refresh", expires: 0 },
+  "opencode-go": { type: "api", key: "mock-opencode-go-key" },
+});
+
 export const MOCK_USER_ID = "user_mock_1234";
 export const MOCK_CURSOR_SESSION_JWT = mockJwt({
   sub: `auth0|${MOCK_USER_ID}`,
@@ -107,6 +122,8 @@ export const MOCK_HOME_FILES: Record<string, string> = {
   ".codex/auth.json": CODEX_AUTH_JSON,
   ".cursor/auth.json": MOCK_CURSOR_SESSION_JWT,
   ".local/share/devin/credentials.toml": DEVIN_CREDENTIALS_TOML,
+  ".grok/auth.json": GROK_AUTH_JSON,
+  ".local/share/opencode/auth.json": OPENCODE_AUTH_JSON,
 };
 
 export interface MockHttpResponse {
@@ -140,6 +157,33 @@ const MOCK_CURSOR_EVENTS = Array.from({ length: 120 }, (_, index) => {
 });
 
 export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
+  [
+    "cli-chat-proxy.grok.com/v1/billing",
+    {
+      status: 200,
+      body: {
+        config: {
+          creditUsagePercent: 37,
+          currentPeriod: { type: "USAGE_PERIOD_TYPE_WEEKLY", end: inHours(70) },
+          onDemandCap: { val: 0 },
+          onDemandUsed: { val: 0 },
+        },
+      },
+    },
+  ],
+  [
+    "opencode.ai/zen/go/v1/usage",
+    {
+      status: 200,
+      body: {
+        usage: {
+          rolling: { percent: 22, resetsAt: inHours(3) },
+          weekly: { percent: 48, resetsAt: inHours(90) },
+          monthly: { percent: 15, resetsAt: inHours(400) },
+        },
+      },
+    },
+  ],
   [
     "status.claude.com/api/v2/status.json",
     {

@@ -9,6 +9,8 @@ const TTL_MS: Record<ProviderId, number> = {
   codex: 90_000,
   cursor: 90_000,
   devin: 90_000,
+  grok: 90_000,
+  opencode: 90_000,
 };
 const DEFAULT_BACKOFF_MS = 300_000;
 const LAPSE_PROBE_MS = 60_000;

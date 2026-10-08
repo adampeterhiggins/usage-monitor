@@ -34,8 +34,12 @@ function isSigninMethod(method: AuthMethod): boolean {
   return method.startsWith("signin:");
 }
 
+/** The provider's best managed sign-in; a provider without one (Grok, OpenCode)
+ *  falls back to its local login, else to pasting a credential. */
 function signinMethod(provider: ProviderId): AuthMethod {
-  return `signin:${providerLoginMethods(provider)[0].id}`;
+  const [first] = providerLoginMethods(provider);
+  if (first) return `signin:${first.id}`;
+  return hasLocalLogin(provider) ? "local" : "paste";
 }
 
 const SELECT_CLASS =
@@ -294,7 +298,7 @@ export function AccountDialog({ open, onOpenChange, account }: AccountDialogProp
                     if (authMethod === "local" && !hasLocalLogin(id)) {
                       setAuthMethod(signinMethod(id));
                     } else if (currentId && !methods.some((m) => m.id === currentId)) {
-                      setAuthMethod(`signin:${methods[0].id}`);
+                      setAuthMethod(signinMethod(id));
                     }
                   }}
                   className={cn(SELECT_CLASS, editing && "opacity-60")}

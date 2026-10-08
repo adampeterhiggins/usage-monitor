@@ -28,6 +28,8 @@ export interface KeychainLogin {
 /** Providers whose native mode reads a CLI login from a file in $HOME. */
 export const FILE_LOGINS: Partial<Record<ProviderId, { path: string; noun: string }>> = {
   devin: { path: ".local/share/devin/credentials.toml", noun: "Devin CLI login" },
+  grok: { path: ".grok/auth.json", noun: "Grok CLI login" },
+  opencode: { path: ".local/share/opencode/auth.json", noun: "OpenCode login" },
 };
 
 /** Whether this provider can read a login that already exists on this Mac. */

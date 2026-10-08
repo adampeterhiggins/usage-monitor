@@ -1,6 +1,6 @@
 # Usage Monitor
 
-A native macOS menu-bar app that tracks usage allowances for **Claude**, **Codex**, **Cursor**, and **Devin** across multiple accounts. Summon it with a global shortcut (default **⌘⇧U**) or the menu-bar icon.
+A native macOS menu-bar app that tracks usage allowances for **Claude**, **Codex**, **Cursor**, **Devin**, **Grok**, and **OpenCode Go** across multiple accounts. Summon it with a global shortcut (default **⌘⇧U**) or the menu-bar icon.
 
 Tauri v2 shell (real `.app`, WKWebView) with all usage fetching, caching, and UI in TypeScript. Ported from the Glaze Usage Monitor panel.
 
@@ -45,7 +45,7 @@ starts cold. Running `cargo` itself (rust-analyzer included) bypasses all this
 and builds into `src-tauri/target`; set `CARGO_TARGET_DIR` for it if you need
 to.
 
-On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Each provider can **Sign in** to create a login session just for that account — the same idea as **Sign in with GitHub** for updates, and independent of your CLI logins. Leaving the credential blank still uses the local Claude Code / Codex / Cursor login when one exists.
+On first launch the panel is empty. Add accounts from **Settings → Manage Accounts** (or **⌘K**). Each provider can **Sign in** to create a login session just for that account — the same idea as **Sign in with GitHub** for updates, and independent of your CLI logins. Leaving the credential blank still uses the local Claude Code / Codex / Cursor / Devin / Grok / OpenCode login when one exists.
 
 ### Providers
 
@@ -55,10 +55,14 @@ On first launch the panel is empty. Add accounts from **Settings → Manage Acco
 | Codex | Sign in, `~/.codex/auth.json` contents, or blank | Auto-reads the Keychain / `~/.codex/auth.json` |
 | Cursor | Sign in, `WorkosCursorSessionToken` cookie, or blank | Reads the Cursor app login (`state.vscdb`) or `cursor-agent` from the Keychain |
 | Devin | Sign in, `windsurf_api_key`, or blank | Reads the Devin CLI login from `~/.local/share/devin/credentials.toml` |
+| Grok | Access token, `~/.grok/auth.json` contents, or blank | Reads the Grok CLI's grok.com login from `~/.grok/auth.json` |
+| OpenCode Go | OpenCode Go API key, `auth.json` contents, or blank | Reads the `opencode-go` key from `~/.local/share/opencode/auth.json` |
+
+Grok and OpenCode have no in-app sign-in. Grok's CLI token lasts six hours and the CLI refreshes it on use, so a Grok card reports an expired login after the CLI has sat idle; running `grok` once fixes it. The app never refreshes the token itself, because that would rotate the CLI's refresh token out from under it. OpenCode accounts need an OpenCode Go subscription: a plain Zen key has no quota to read.
 
 Credentials stay in the app's data directory via `tauri-plugin-store`. They never leave this Mac except to the provider's own usage API. There is no telemetry, no analytics, and nothing about you is sent anywhere else — the only hosts the app can reach are the providers', their public status pages (to flag outages), Open VSX (theme marketplace), and LiteLLM's public model price table on GitHub (a plain download used to price Usage History).
 
-Not affiliated with Anthropic, OpenAI, Cursor, or Cognition.
+Not affiliated with Anthropic, OpenAI, Cursor, Cognition, xAI, or OpenCode.
 
 ## Using it
 

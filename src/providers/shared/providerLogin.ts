@@ -24,7 +24,7 @@ export interface ProviderLoginMethod {
 
 /**
  * Sign-in methods per provider, best first — the loopback browser flow is
- * always the default, with the paste/device-code variants kept for
+ * the default wherever a provider has one, with the paste/device-code variants kept for
  * environments whose browser cannot reach this Mac's loopback listener.
  */
 const LOGIN_METHODS: Record<ProviderId, ProviderLoginMethod[]> = {
@@ -78,6 +78,9 @@ const LOGIN_METHODS: Record<ProviderId, ProviderLoginMethod[]> = {
       start: startDevinPasteCodeLogin,
     },
   ],
+  // No managed sign-in: both CLIs' logins are read from disk or pasted.
+  grok: [],
+  opencode: [],
 };
 
 export function providerLoginMethods(provider: ProviderId): ReadonlyArray<ProviderLoginMethod> {
