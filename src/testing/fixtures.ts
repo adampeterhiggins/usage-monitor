@@ -66,7 +66,7 @@ const CLAUDE_KEYCHAIN_JSON = JSON.stringify({
   },
 });
 
-/** accounts.json — three native-login accounts, one per provider. */
+/** accounts.json — native-login accounts, one per provider. */
 export const MOCK_ACCOUNTS = [
   {
     id: "acct-claude",
@@ -88,6 +88,20 @@ export const MOCK_ACCOUNTS = [
     label: "Cursor (app login)",
     credential: "",
     extra: "ide",
+    hidden: false,
+  },
+  {
+    id: "acct-grok",
+    provider: "grok",
+    label: "Grok (CLI login)",
+    credential: "",
+    hidden: false,
+  },
+  {
+    id: "acct-opencode",
+    provider: "opencode",
+    label: "OpenCode Go (auth.json)",
+    credential: "",
     hidden: false,
   },
 ];
