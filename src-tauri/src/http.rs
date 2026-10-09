@@ -78,6 +78,7 @@ const ALLOWED_HOSTS: &[&str] = &[
     "status.openai.com",
     "status.cursor.com",
     "www.devinstatus.com",
+    "status.x.ai",
     "open-vsx.org",
     "raw.githubusercontent.com",
 ];

@@ -7,7 +7,7 @@
 import { create } from "zustand";
 
 import type { ProviderId } from "../contracts/providers";
-import { fetchProviderStatus, type ProviderStatus } from "../providers/shared/status";
+import { fetchProviderStatus, STATUS_PAGES, type ProviderStatus } from "../providers/shared/status";
 
 const STATUS_TTL_MS = 2 * 60_000;
 
@@ -28,6 +28,7 @@ export function createProviderStatusService(fetcher: StatusFetcher, now: () => n
     async refresh(providers, force = false) {
       const pending: Promise<void>[] = [];
       for (const provider of new Set(providers)) {
+        if (!STATUS_PAGES[provider]) continue;
         const running = inFlight.get(provider);
         if (running) {
           pending.push(running);

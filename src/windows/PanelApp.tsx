@@ -76,7 +76,10 @@ export function PanelApp() {
   }, [visibleAccounts]);
 
   const loadOne = React.useCallback(
-    (account: AccountPublic) => useUsageStore.getState().load(account.id, true),
+    (account: AccountPublic) => {
+      void useProviderStatusStore.getState().refresh([account.provider], true);
+      return useUsageStore.getState().load(account.id, true);
+    },
     [],
   );
   const refreshAll = React.useCallback(
