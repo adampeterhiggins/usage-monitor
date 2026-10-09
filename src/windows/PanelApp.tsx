@@ -31,7 +31,9 @@ import { acceleratorGlyphs } from "../lib/settings/shortcuts";
 import { summarizeFreshness } from "../lib/usage/freshness";
 import { startPanelDragging } from "../platform/windows";
 import { useLayout, useRefreshShortcut, useWallColumns } from "../state/preferences";
+import { supportsResetCredits } from "../providers/registry";
 import { useProviderStatusStore } from "../state/providerStatus";
+import { useResetCreditsStore } from "../state/resetCredits";
 import { useUsageStore } from "../state/usage";
 
 export function PanelApp() {
@@ -70,14 +72,23 @@ export function PanelApp() {
     void useAccountsStore.getState().refresh();
   }, []);
 
+  const resetAccountIds = React.useMemo(
+    () => visibleAccounts.filter((a) => supportsResetCredits(a.provider)).map((a) => a.id),
+    [visibleAccounts],
+  );
+
   React.useEffect(() => {
     useUsageStore.getState().ensureLoaded(visibleAccounts);
     void useProviderStatusStore.getState().refresh(visibleAccounts.map((a) => a.provider));
-  }, [visibleAccounts]);
+    void useResetCreditsStore.getState().refresh(resetAccountIds);
+  }, [visibleAccounts, resetAccountIds]);
 
   const loadOne = React.useCallback(
     (account: AccountPublic) => {
       void useProviderStatusStore.getState().refresh([account.provider], true);
+      if (supportsResetCredits(account.provider)) {
+        void useResetCreditsStore.getState().refresh([account.id], true);
+      }
       return useUsageStore.getState().load(account.id, true);
     },
     [],
@@ -88,9 +99,10 @@ export function PanelApp() {
         visibleAccounts.map((a) => a.provider),
         force,
       );
+      void useResetCreditsStore.getState().refresh(resetAccountIds, force);
       return useUsageStore.getState().refreshAll(visibleAccounts, force);
     },
-    [visibleAccounts],
+    [visibleAccounts, resetAccountIds],
   );
 
   usePanelKeys({

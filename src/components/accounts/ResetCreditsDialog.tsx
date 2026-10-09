@@ -5,6 +5,7 @@ import type { AccountPublic } from "../../contracts/accounts";
 import type { ResetCredit, ResetCredits, ResetOutcome } from "../../contracts/resets";
 import { formatExpiry, formatUsableAt } from "../../lib/usage/format";
 import { readResetCredits, redeemResetCredit } from "../../lib/usage/resets";
+import { useResetCreditsStore } from "../../state/resetCredits";
 import { toast } from "../ui/toast";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -87,7 +88,10 @@ export function ResetCreditsDialog({ account, onClose, onReset }: ResetCreditsDi
   const load = React.useCallback(async () => {
     setState({ status: "loading" });
     try {
-      setState({ status: "ok", credits: await readResetCredits(account.id) });
+      const credits = await readResetCredits(account.id);
+      setState({ status: "ok", credits });
+      const cache = useResetCreditsStore.getState();
+      void cache.record(account.id, credits).then(() => cache.acknowledge(account.id));
     } catch (e) {
       setState({ status: "error", message: e instanceof Error ? e.message : String(e) });
     }

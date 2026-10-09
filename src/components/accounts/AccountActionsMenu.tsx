@@ -17,6 +17,7 @@ import { PROVIDERS } from "../../providers/metadata";
 import { supportsResetCredits } from "../../providers/registry";
 import { STATUS_PAGES, type StatusIndicator } from "../../providers/shared/status";
 import { useProviderIssue } from "../../state/providerStatus";
+import { useResetCredits } from "../../state/resetCredits";
 import { ResetCreditsDialog } from "./ResetCreditsDialog";
 import type { AccountPublic } from "../../contracts/accounts";
 import type { ProviderId } from "../../contracts/providers";
@@ -76,6 +77,12 @@ export function AccountActionsMenu({
   const issue = useProviderIssue(account.provider);
   const issueTone = issue && STATUS_TONES[issue.indicator];
   const statusPage = STATUS_PAGES[account.provider];
+  const resets = useResetCredits(account.id);
+  const triggerLabel = issue
+    ? `${meta.name}: ${issue.description}`
+    : resets.isNew
+      ? `New usage reset available: ${resets.count} banked`
+      : undefined;
 
   async function handleRemove() {
     try {
@@ -97,12 +104,14 @@ export function AccountActionsMenu({
             iconOnly
             variant="transparent"
             size={triggerSize}
-            aria-label={issue ? `Account actions · ${meta.name}: ${issue.description}` : "Account actions"}
-            title={issue ? `${meta.name}: ${issue.description}` : undefined}
+            aria-label={triggerLabel ? `Account actions · ${triggerLabel}` : "Account actions"}
+            title={triggerLabel}
             className={open ? "bg-ui-control" : undefined}
           >
             {issueTone ? (
               <CircleAlert className={`size-4 ${MENU_TONE_TEXT[issueTone]}`} />
+            ) : resets.isNew ? (
+              <Ticket className={`size-4 ${MENU_TONE_TEXT.info}`} />
             ) : (
               <Ellipsis className="size-4" />
             )}
@@ -137,6 +146,9 @@ export function AccountActionsMenu({
                 <MenuItem
                   icon={Ticket}
                   label="Usage Resets"
+                  chip={resets.count ? String(resets.count) : undefined}
+                  tone={resets.isNew ? "info" : undefined}
+                  disabled={resets.count === 0}
                   onSelect={() => {
                     setOpen(false);
                     setShowResets(true);
