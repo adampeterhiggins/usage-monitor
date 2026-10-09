@@ -172,6 +172,13 @@ const MOCK_CURSOR_EVENTS = Array.from({ length: 120 }, (_, index) => {
 
 export const MOCK_HTTP_ROUTES: Array<[string, MockHttpResponse]> = [
   [
+    "status.x.ai/feed.xml",
+    {
+      status: 200,
+      body: '<rss version="2.0"><channel><title>xAI System Status</title><item><title>[Grok Build] Elevated error rates</title><category>disruption</category><category>investigating</category></item></channel></rss>',
+    },
+  ],
+  [
     "cli-chat-proxy.grok.com/v1/billing",
     {
       status: 200,
