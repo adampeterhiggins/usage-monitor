@@ -5,6 +5,7 @@ import {
   Compass,
   Ellipsis,
   Pencil,
+  Plus,
   RefreshCw,
   Ticket,
   Trash2,
@@ -111,7 +112,12 @@ export function AccountActionsMenu({
             {issueTone ? (
               <CircleAlert className={`size-4 ${MENU_TONE_TEXT[issueTone]}`} />
             ) : resets.isNew ? (
-              <Ticket className={`size-4 ${MENU_TONE_TEXT.info}`} />
+              <span className="relative inline-flex">
+                <Ticket className={`size-4 ${MENU_TONE_TEXT.info}`} />
+                <span className="absolute -top-1 -right-1.5 flex size-2.5 items-center justify-center rounded-full bg-ui-status-info text-ui-surface ring-[1.5px] ring-ui-surface">
+                  <Plus className="size-2" strokeWidth={4} />
+                </span>
+              </span>
             ) : (
               <Ellipsis className="size-4" />
             )}
