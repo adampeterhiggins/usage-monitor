@@ -6,6 +6,7 @@ import * as React from "react";
 import { Plus, RefreshCw, WifiOff } from "lucide-react";
 
 import { AccountDialog } from "../components/accounts/AccountDialog";
+import { RefreshFailuresPopover } from "../components/accounts/RefreshFailuresPopover";
 import { AccountManagementDialog } from "../components/accounts/AccountManagementDialog";
 import { AppearanceDialog } from "../components/appearance/AppearanceDialog";
 import { SettingsPopover } from "../components/settings/SettingsPopover";
@@ -43,9 +44,10 @@ export function PanelApp() {
   const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [usageHistoryOpen, setUsageHistoryOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [refreshErrorsOpen, setRefreshErrorsOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AccountPublic | null>(null);
   const accountModalOpen = dialogOpen || manageOpen || appearanceOpen || usageHistoryOpen;
-  const blockingOverlay = accountModalOpen || settingsOpen;
+  const blockingOverlay = accountModalOpen || settingsOpen || refreshErrorsOpen;
   const headerRef = React.useRef<HTMLElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -54,6 +56,10 @@ export function PanelApp() {
   const fetchStates = useUsageStore((s) => s.states);
   const refreshingAll = useUsageStore((s) => s.refreshingAll);
   const visibleAccounts = React.useMemo(() => accounts.filter((a) => !a.hidden), [accounts]);
+  const hasRefreshFailures = visibleAccounts.some((a) => fetchStates[a.id]?.status === "error");
+  React.useEffect(() => {
+    if (!hasRefreshFailures || accountModalOpen || settingsOpen) setRefreshErrorsOpen(false);
+  }, [hasRefreshFailures, accountModalOpen, settingsOpen]);
   const freshness = summarizeFreshness(
     visibleAccounts.map((a) => a.id),
     fetchStates,
@@ -112,7 +118,7 @@ export function PanelApp() {
     onRefreshAll: () => void refreshAll(true),
   });
   useWindowShownRefresh({
-    skip: accountModalOpen || visibleAccounts.length === 0 || refreshingAll,
+    skip: accountModalOpen || refreshErrorsOpen || visibleAccounts.length === 0 || refreshingAll,
     onShown: () => void refreshAll(false),
   });
 
@@ -236,7 +242,7 @@ export function PanelApp() {
                 variant="glass"
                 size="medium"
                 aria-label={`Refresh all. ${freshness.label}`}
-                className="min-w-0 pl-2.5 tabular-nums"
+                className={`min-w-0 pl-2.5 tabular-nums ${hasRefreshFailures ? "rounded-r-none" : ""}`}
                 data-tone={freshness.offline ? "warning" : undefined}
                 disabled={visibleAccounts.length === 0 || refreshingAll}
                 onClick={() => void refreshAll(true)}
@@ -250,6 +256,14 @@ export function PanelApp() {
               </Button>
             </span>
           </Tooltip>
+          <RefreshFailuresPopover
+            accounts={visibleAccounts}
+            states={fetchStates}
+            open={refreshErrorsOpen}
+            onOpenChange={setRefreshErrorsOpen}
+            onRefresh={loadOne}
+            onEdit={openEdit}
+          />
         </div>
         <div
           data-tauri-drag-region
