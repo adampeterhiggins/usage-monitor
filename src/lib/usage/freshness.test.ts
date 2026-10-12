@@ -36,12 +36,12 @@ describe("summarizeFreshness", () => {
     expect(summarizeFreshness(["a"], {}).updating).toBe(true);
   });
 
-  it("counts failures and keeps the previous snapshot's age", () => {
+  it("keeps the previous snapshot's age without duplicating the separate failure control", () => {
     const states: Record<string, AccountFetchState> = {
       a: { status: "ok", result: result(0) },
       b: { status: "error", message: "nope", previous: result(0) },
     };
-    expect(summarizeFreshness(["a", "b"], states).label).toBe("Updated just now · 1 failed");
+    expect(summarizeFreshness(["a", "b"], states).label).toBe("Updated just now");
   });
 
   it("falls back when nothing has ever loaded", () => {
@@ -79,7 +79,7 @@ describe("summarizeFreshness", () => {
     };
     expect(summarizeFreshness(["a", "b"], states)).toMatchObject({
       offline: false,
-      label: "Updated just now · 1 failed",
+      label: "Updated just now",
     });
   });
 });

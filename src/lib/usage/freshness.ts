@@ -50,10 +50,9 @@ export function summarizeFreshness(
   if (oldestFetchedAt === undefined) {
     return { updating, offline: false, label: failed > 0 ? "Couldn’t update" : "Refresh" };
   }
-  const failedSuffix = failed > 0 ? ` · ${failed} failed` : "";
   return {
     updating,
     offline: false,
-    label: `Updated ${formatFetchedAt(oldestFetchedAt)}${failedSuffix}`,
+    label: `Updated ${formatFetchedAt(oldestFetchedAt)}`,
   };
 }
