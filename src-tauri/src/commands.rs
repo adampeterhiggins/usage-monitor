@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use tauri::{AppHandle, Manager};
 
+use crate::tray_menu::{self, TrayMenuState};
 use crate::{credentials, http, oauth, panel, usage_history};
 
 #[tauri::command]
@@ -35,6 +36,12 @@ pub(crate) fn open_settings_popover(app: AppHandle) {
 #[tauri::command]
 pub(crate) fn set_account_modal_open(app: AppHandle, open: bool) {
     panel::set_account_modal(&app, open);
+}
+
+/// The latest usage summary for the status-item menu, rebuilt on each open.
+#[tauri::command]
+pub(crate) fn set_tray_menu(app: AppHandle, snapshot: tray_menu::Snapshot) {
+    app.state::<TrayMenuState>().set(snapshot);
 }
 
 /// Read a file under the user's home directory (Codex auth.json, Claude credentials).

@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Usage Monitor — tray menu options</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Inter", sans-serif); color: var(--foreground, #111); }
+  .wrap { display: flex; flex-direction: column; gap: 30px; padding: 4px 0 8px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .opt-head .n { font: 600 11px/1 var(--font-mono, ui-monospace, monospace); color: var(--muted-foreground, #777); border: 1px solid var(--border, #ddd); border-radius: 6px; padding: 3px 6px; }
+  .opt-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .opt-head .tag { margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tag.easy { color: var(--success, #0a7a50); } .tag.custom { color: var(--warning, #b7791f); }
+  .opt-desc { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground, #666); max-width: 660px; }
+
+  /* ---------- Desktop stage ---------- */
+  .stage { border-radius: 14px; overflow: hidden; padding-bottom: 18px;
+    background: linear-gradient(160deg, #8c7fa8 0%, #6d7fa6 45%, #e9e4ea 46%, #f3f1f2 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; color: #1d1d1f; }
+  .menubar { height: 30px; display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 0 14px;
+    background: rgba(70,70,110,.35); backdrop-filter: blur(20px); color: #fff; font-size: 13px; font-weight: 500; }
+  .menubar .ico { width: 16px; height: 16px; border-radius: 4px; background: rgba(255,255,255,.75); opacity: .8; }
+  .tray { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 6px; }
+  .tray.on { background: rgba(255,255,255,.28); }
+  .tray svg { width: 15px; height: 15px; fill: #fff; }
+  .menurow { display: flex; justify-content: flex-end; gap: 0; padding-right: 64px; margin-top: 5px; align-items: flex-start; }
+
+  /* ---------- Menu ---------- */
+  .menu { width: 310px; background: rgba(246,246,248,.92); backdrop-filter: blur(30px);
+    border-radius: 12px; padding: 5px; box-shadow: 0 0 0 .5px rgba(0,0,0,.18), 0 10px 30px rgba(0,0,0,.22);
+    font-size: 13px; }
+  .menu.narrow { width: 280px; }
+  .sub { margin-top: 88px; margin-right: -4px; order: -1; width: 270px; }
+  .mi { display: flex; align-items: center; gap: 8px; padding: 4px 9px; border-radius: 6px; min-height: 18px; white-space: nowrap; }
+  .mi.hl { background: #3b78d8; color: #fff; }
+  .mi.hl .k, .mi.hl .r, .mi.hl .chev { color: rgba(255,255,255,.85); }
+  .mi .r { margin-left: auto; color: #8a8a8e; font-size: 12px; }
+  .mi .k { margin-left: auto; color: #9a9aa0; font-size: 12px; letter-spacing: .5px; }
+  .mi .chev { color: #8a8a8e; margin-left: 6px; }
+  .mi.dis { color: #9a9aa0; }
+  .pill { margin-left: auto; font-size: 11.5px; font-weight: 500; background: rgba(0,0,0,.08); color: #444; padding: 2px 9px; border-radius: 10px; }
+  .sep { height: 1px; background: rgba(0,0,0,.1); margin: 5px 10px; }
+  .hdr { padding: 7px 9px 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: #8a8a8e; display: flex; gap: 6px; align-items: center; white-space: nowrap; overflow: hidden; }
+  .hdr .em { text-transform: none; letter-spacing: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+  .pdot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+  .lim { padding: 5px 9px 6px; }
+  .lim .lt { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; white-space: nowrap; }
+  .lim .lt .v { margin-left: auto; color: #8a8a8e; font-size: 12px; }
+  .track { height: 6px; border-radius: 3px; background: rgba(0,0,0,.08); overflow: hidden; }
+  .fill { height: 100%; border-radius: 3px; min-width: 4px; }
+  .blue { background: #3b78d8; } .amber { background: #e8a33c; } .red { background: #d9453b; }
+  .tblue { color: #3b78d8; } .tamber { color: #c47f12; } .tred { color: #d9453b; }
+
+  /* compact row */
+  .crow { display: grid; grid-template-columns: 8px 1fr 70px 34px; align-items: center; gap: 8px; padding: 5px 9px; border-radius: 6px; white-space: nowrap; }
+  .crow .nm { overflow: hidden; text-overflow: ellipsis; }
+  .crow .nm small { color: #8a8a8e; font-size: 11.5px; margin-left: 4px; }
+  .crow .track { height: 5px; }
+  .crow .pc { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #555; }
+  .crow.hl { background: #3b78d8; color: #fff; } .crow.hl small, .crow.hl .pc { color: rgba(255,255,255,.85); }
+  .crow.hl .track { background: rgba(255,255,255,.3); } .crow.hl .fill { background: #fff; }
+
+  .alert { margin: 3px 4px 4px; padding: 8px 10px; border-radius: 8px; background: rgba(217,69,59,.09); display: flex; gap: 9px; align-items: center; }
+  .alert b { font-weight: 600; } .alert .s { font-size: 11.5px; color: #8a5a55; }
+  .alert .big { margin-left: auto; font-size: 18px; font-weight: 600; color: #d9453b; font-variant-numeric: tabular-nums; }
+
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; letter-spacing: -.3px; }
+
+  /* tray variants */
+  .vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .vcell { border-radius: 10px; overflow: hidden; background: linear-gradient(160deg, #8c7fa8, #6d7fa6); }
+  .vcell .menubar { justify-content: center; height: 34px; }
+  .vcap { font-size: 11.5px; color: var(--muted-foreground, #666); padding: 6px 2px 0; }
+  .minibars { display: inline-flex; flex-direction: column; gap: 2px; }
+  .minibars i { display: block; width: 22px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.35); position: relative; overflow: hidden; }
+  .minibars i b { position: absolute; inset: 0 auto 0 0; background: #fff; border-radius: 2px; }
+  .ring { width: 15px; height: 15px; border-radius: 50%; }
+  .wdot { width: 6px; height: 6px; border-radius: 50%; background: #ff6b5e; margin-left: -4px; margin-top: -9px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+const ACCOUNTS = [
+  { p: "Claude", c: "#d97757", email: "adam@focaldata.com", plan: "Team",
+    w: [["5-hour limit", 7, "Resets 4h"], ["Weekly · all models", 63, "Resets 3d"], ["Weekly · Fable", 0, "Resets 3d"]] },
+  { p: "Codex", c: "#10a37f", email: "adam@focaldata.com", plan: "Plus",
+    w: [["5-hour limit", 41, "Resets 2h 10m"], ["Weekly", 81, "Resets 1d"]] },
+  { p: "Cursor", c: "#4b6bdb", email: "adam@focaldata.com", plan: "Pro",
+    w: [["Included · $19.20 of $20", 96, "Resets Nov 4"]] },
+  { p: "Devin", c: "#2fb7a3", email: "adam@focaldata.com", plan: "Teams",
+    w: [["ACUs · 75 of 250", 30, "Resets Nov 12"]] },
+];
+const tone = v => v >= 90 ? "red" : v >= 75 ? "amber" : "blue";
+const tight = a => a.w.reduce((m, x) => x[1] > m[1] ? x : m);
+
+const TRAY_SVG = `<svg viewBox="0 0 16 16"><rect x="2" y="7" width="3" height="7" rx="1"/><rect x="6.5" y="3" width="3" height="11" rx="1"/><rect x="11" y="5" width="3" height="9" rx="1"/></svg>`;
+const menubar = (trayInner = TRAY_SVG) => `
+  <div class="menubar"><span class="ico"></span><span class="ico"></span>
+    <span class="tray on">${trayInner}</span><span class="ico"></span><span>Fri 30 Oct 09:58</span></div>`;
+
+const bar = (v, h) => `<div class="track"${h ? ` style="height:${h}px"` : ""}><div class="fill ${tone(v)}" style="width:${v}%"></div></div>`;
+const lim = ([l, v, r]) => `<div class="lim"><div class="lt"><span>${l}</span><span class="v">${v}% · ${r}</span></div>${bar(v)}</div>`;
+const hdr = (a, extra = "") => `<div class="hdr"><span class="pdot" style="background:${a.c}"></span>${a.p} · ${a.plan}<span class="em">— ${a.email}</span>${extra}</div>`;
+const footer = (updated = "Updated just now") => `
+  <div class="sep"></div>
+  <div class="mi">Open Usage Monitor<span class="k">⌘O</span></div>
+  <div class="mi">Refresh<span class="pill">${updated}</span></div>
+  <div class="mi">Settings…<span class="k">⌘,</span></div>
+  <div class="sep"></div>
+  <div class="mi">Quit Usage Monitor<span class="k">⌘Q</span></div>`;
+const crow = (a, hl) => {
+  const [l, v] = tight(a);
+  return `<div class="crow${hl ? " hl" : ""}"><span class="pdot" style="background:${a.c}"></span>
+    <span class="nm">${a.p}<small>${l.split(" ·")[0]}</small></span>${bar(v, 5)}<span class="pc">${v}%</span></div>`;
+};
+
+const OPTIONS = [
+  { title: "Claude-style, every account expanded", tag: ["custom", "Custom NSMenuItem views"],
+    desc: "The closest match to the Claude app: one section per account with a small header (provider · plan — email) and a labelled bar per window, then the usual actions. Reads instantly, but grows tall once you have 4+ accounts.",
+    stage: () => `${menubar()}<div class="menurow"><div class="menu">
+      ${ACCOUNTS.map((a, i) => (i ? '<div class="sep"></div>' : "") + hdr(a) + a.w.map(lim).join("")).join("")}
+      ${footer()}</div></div>` },
+
+  { title: "Compact rows + hover submenus", tag: ["custom", "Custom NSMenuItem views"],
+    desc: "One line per account showing its tightest window as a mini bar. Hovering an account opens a submenu with the full Claude-style breakdown and per-account actions. Scales to many accounts and keeps the menu short.",
+    stage: () => `${menubar()}<div class="menurow">
+      <div class="menu narrow sub">${hdr(ACCOUNTS[0])}${ACCOUNTS[0].w.map(lim).join("")}
+        <div class="sep"></div><div class="mi">Usage history…</div><div class="mi">Open claude.ai/settings/usage</div></div>
+      <div class="menu narrow"><div class="hdr">Usage limits</div>
+        ${ACCOUNTS.map((a, i) => crow(a, i === 0).replace("</div>\n", "</div>")).join("")}
+        ${footer()}</div></div>` },
+
+  { title: "Attention first, pinned account below", tag: ["custom", "Custom NSMenuItem views"],
+    desc: "Leads with whatever is closest to running out (here Cursor at 96%), then expands one pinned account in full, then the rest as compact rows. Good if you mostly care about \"am I about to get blocked?\"",
+    stage: () => `${menubar()}<div class="menurow"><div class="menu">
+      <div class="alert"><span class="pdot" style="background:${ACCOUNTS[2].c}"></span>
+        <div><b>Cursor</b> nearly out<div class="s">Included usage · resets Nov 4</div></div><span class="big">96%</span></div>
+      <div class="sep"></div>
+      ${hdr(ACCOUNTS[0], '<span style="margin-left:auto">📌</span>')}${ACCOUNTS[0].w.map(lim).join("")}
+      <div class="sep"></div><div class="hdr">Other accounts</div>
+      ${ACCOUNTS.slice(1).map(a => crow(a)).join("")}
+      ${footer("Updated 2m ago")}</div></div>` },
+
+  { title: "Native text only (no custom views)", tag: ["easy", "Plain Tauri Menu API"],
+    desc: "What tray.rs can do today with plain MenuItems: disabled text rows, block-character bars and a monospace-ish layout. No colour, no real progress bars, but zero objc work and it follows system styling exactly.",
+    stage: () => {
+      const blocks = v => { const n = Math.round(v / 10); return "▰".repeat(n) + "▱".repeat(10 - n); };
+      return `${menubar()}<div class="menurow"><div class="menu">
+        ${ACCOUNTS.map((a, i) => (i ? '<div class="sep"></div>' : "") +
+          `<div class="mi dis" style="font-weight:600;color:#6e6e73">${a.p} — ${a.plan}</div>` +
+          a.w.map(([l, v, r]) => `<div class="mi"><span class="mono">${blocks(v)}</span><span>${l.split(" ·")[0]}</span><span class="r">${v}% · ${r.replace("Resets ", "")}</span></div>`).join("")).join("")}
+        ${footer()}</div></div>`;
+    } },
+];
+
+const TRAY_VARIANTS = [
+  ["Icon only (today)", TRAY_SVG],
+  ["Icon + tightest %", `${TRAY_SVG}<span>96%</span>`],
+  ["Mini bars (5h / weekly of pinned)", `${TRAY_SVG}<span class="minibars"><i><b style="width:7%"></b></i><i><b style="width:63%"></b></i></span>`],
+  ["Icon + warning dot when any ≥ 90%", `${TRAY_SVG}<span class="wdot"></span>`],
+  ["Ring for pinned weekly limit", `<span class="ring" style="background:conic-gradient(#fff 0 63%, rgba(255,255,255,.3) 0)"></span><span>63%</span>`],
+  ["Pinned account text", `${TRAY_SVG}<span>Claude 7% · 63%</span>`],
+];
+
+document.getElementById("root").innerHTML =
+  OPTIONS.map((o, i) => `<section>
+    <div class="opt-head"><span class="n">${String.fromCharCode(65 + i)}</span><h3>${o.title}</h3><span class="tag ${o.tag[0]}">${o.tag[1]}</span></div>
+    <p class="opt-desc">${o.desc}</p><div class="stage">${o.stage()}</div></section>`).join("") +
+  `<section><div class="opt-head"><span class="n">E</span><h3>Menu bar item variants</h3><span class="tag easy">Tray title / icon</span></div>
+    <p class="opt-desc">Independent of the menu layout: what sits in the menu bar itself. Any of these pairs with A–D.</p>
+    <div class="vgrid">${TRAY_VARIANTS.map(([cap, inner]) =>
+      `<div><div class="vcell"><div class="menubar"><span class="tray">${inner}</span></div></div><div class="vcap">${cap}</div></div>`).join("")}</div></section>`;
+</script>
+</body>
+</html>

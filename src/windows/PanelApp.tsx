@@ -26,6 +26,7 @@ import {
   useWindowShownRefresh,
 } from "../hooks/usePanelLifecycle";
 import { usePanelKeys } from "../hooks/usePanelKeys";
+import { useTrayMenuSync } from "../hooks/useTrayMenuSync";
 import { useUpdaterPoller } from "../hooks/useUpdaterPoller";
 import { useAccountsStore } from "../state/accounts";
 import { acceleratorGlyphs } from "../lib/settings/shortcuts";
@@ -120,6 +121,18 @@ export function PanelApp() {
   useWindowShownRefresh({
     skip: accountModalOpen || refreshErrorsOpen || visibleAccounts.length === 0 || refreshingAll,
     onShown: () => void refreshAll(false),
+  });
+  const canRefreshFromTray = visibleAccounts.length > 0 && !refreshingAll;
+  useTrayMenuSync({
+    enabled: accountsLoaded,
+    accounts: visibleAccounts,
+    states: fetchStates,
+    onOpened: () => {
+      if (canRefreshFromTray) void refreshAll(false);
+    },
+    onRefresh: () => {
+      if (canRefreshFromTray) void refreshAll(true);
+    },
   });
 
   React.useEffect(() => {

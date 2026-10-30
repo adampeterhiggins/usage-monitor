@@ -10,6 +10,8 @@
 export const WINDOW_SHOWN_EVENT = "window:shown";
 export const OPEN_SETTINGS_EVENT = "settings:openPopover";
 export const APPEARANCE_CHANGED_EVENT = "appearance:changed";
+export const TRAY_MENU_OPENED_EVENT = "tray:menuOpened";
+export const TRAY_REFRESH_EVENT = "tray:refresh";
 
 /** A named document store (backed by a `*.json` plugin-store file). */
 export interface DocumentStore {
