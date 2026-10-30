@@ -18,11 +18,11 @@ use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, Bool, NSObject};
 use objc2::{define_class, msg_send, sel, AllocAnyThread, MainThreadMarker, MainThreadOnly};
 use objc2_app_kit::{
-    NSAttributedStringAttachmentConveniences, NSBezierPath, NSColor, NSFont, NSFontAttributeName,
-    NSFontWeightRegular, NSFontWeightSemibold, NSForegroundColorAttributeName, NSImage,
-    NSImageView, NSLineBreakMode, NSMenu, NSMenuItem, NSMutableParagraphStyle,
-    NSParagraphStyleAttributeName, NSTextAlignment, NSTextAttachment, NSTextField, NSTextTab,
-    NSView,
+    NSAttributedStringAttachmentConveniences, NSAttributedStringNSStringDrawing, NSBezierPath,
+    NSColor, NSFont, NSFontAttributeName, NSFontWeightRegular, NSFontWeightSemibold,
+    NSForegroundColorAttributeName, NSImage, NSImageView, NSLineBreakMode, NSMenu, NSMenuItem,
+    NSMutableParagraphStyle, NSParagraphStyleAttributeName, NSTextAlignment, NSTextAttachment,
+    NSTextField, NSTextTab, NSView,
 };
 use objc2_foundation::{
     NSArray, NSAttributedString, NSAttributedStringKey, NSDictionary, NSMutableAttributedString,
@@ -38,13 +38,15 @@ use super::{
 use crate::panel;
 
 /// Top-level account rows: where the bar column starts and where the
-/// percentage column ends, measured from the start of the title.
-const BAR_TAB: f64 = 200.0;
-const VALUE_TAB: f64 = 300.0;
+/// right-aligned percentage column ends, measured from the start of the title.
+const BAR_TAB: f64 = 210.0;
 const SUMMARY_BAR: NSSize = NSSize::new(64.0, 5.0);
-/// Title plus window name beyond this crowds the bar column, so the window
-/// name is dropped (the submenu still has it).
-const ROW_TEXT_BUDGET: usize = 28;
+/// Room for "100%" or "77.8%" after the bar.
+const VALUE_TAB: f64 = BAR_TAB + 64.0 + 52.0;
+/// Clear space kept before the bar column. Text that reaches a tab stop
+/// pushes everything after it to the next stop, so the name is shortened
+/// until it fits.
+const BAR_GAP: f64 = 12.0;
 
 /// Submenu usage rows.
 const DETAIL_WIDTH: f64 = 300.0;
@@ -203,20 +205,37 @@ fn account_item(
         NSFont::monospacedDigitSystemFontOfSize_weight(12.0, unsafe { NSFontWeightRegular });
     let secondary = NSColor::secondaryLabelColor();
 
-    let title = NSMutableAttributedString::new();
-    title.appendAttributedString(&attachment(&dot_image(account.provider_tone), 0.0));
-    let name = truncate(&account.title, 22);
-    title.appendAttributedString(&styled(&format!("  {name}"), &font, None, Some(&style)));
-    if let Some(label) = &account.summary.label {
-        if name.chars().count() + label.chars().count() <= ROW_TEXT_BUDGET {
-            title.appendAttributedString(&styled(
+    // The dot, name and window label must end before the bar column, or the
+    // tab jumps past it and the percentage wraps. Measure the rendered text:
+    // keep the label when it fits, then shorten the name until it does.
+    let dot = dot_image(account.provider_tone);
+    let lead = |name: &str, label: Option<&str>| {
+        let text = NSMutableAttributedString::new();
+        text.appendAttributedString(&attachment(&dot, 0.0));
+        text.appendAttributedString(&styled(&format!("  {name}"), &font, None, Some(&style)));
+        if let Some(label) = label {
+            text.appendAttributedString(&styled(
                 &format!("  {label}"),
                 &small,
                 Some(&secondary),
                 Some(&style),
             ));
         }
-    }
+        text
+    };
+    let fits = |text: &NSMutableAttributedString| text.size().width <= BAR_TAB - BAR_GAP;
+    let label = account.summary.label.as_deref();
+    let title = match label.map(|l| lead(&account.title, Some(l))) {
+        Some(with_label) if fits(&with_label) => with_label,
+        _ => {
+            let chars = account.title.chars().count();
+            (1..=chars)
+                .rev()
+                .map(|max| lead(&truncate(&account.title, max), None))
+                .find(|text| fits(text))
+                .unwrap_or_else(|| lead("…", None))
+        }
+    };
     title.appendAttributedString(&styled("\t", &font, None, Some(&style)));
     if let Some(pct) = account.summary.used_percent {
         title.appendAttributedString(&attachment(
