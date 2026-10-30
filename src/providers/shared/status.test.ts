@@ -3,7 +3,7 @@ import nativeHttp from "../../../src-tauri/src/http.rs?raw";
 
 import { PROVIDER_IDS } from "../../contracts/providers";
 import { fetchJson, fetchText } from "../../platform/http";
-import { fetchProviderStatus, parseGrokStatus, parseStatus, STATUS_PAGES } from "./status";
+import { fetchProviderStatus, parseStatus, parseXaiStatus, STATUS_PAGES } from "./status";
 
 vi.mock("../../platform/http", async (importOriginal) => ({
   ...await importOriginal<typeof import("../../platform/http")>(),
@@ -34,10 +34,11 @@ describe("parseStatus", () => {
 
 const feed = (...items: string[]) =>
   `<rss version="2.0"><channel><title>xAI System Status</title>${items.join("")}</channel></rss>`;
-const incident = (severity: string, state: string, title = "Grok issue") =>
-  `<item><title>${title}</title><category>${severity}</category><category>${state}</category></item>`;
+const incident = (severity: string, state: string, title = "Grok issue", link = "") =>
+  `<item><title>${title}</title>${link ? `<link>${link}</link>` : ""}<category>${severity}</category><category>${state}</category></item>`;
+const parseGrokStatus = (xml: string) => parseXaiStatus(xml, "grok");
 
-describe("parseGrokStatus", () => {
+describe("parseXaiStatus", () => {
   it("ignores resolved history and accepts an empty feed", () => {
     for (const xml of [feed(), feed(incident("outage", "resolved"))]) {
       expect(parseGrokStatus(xml)).toEqual({ indicator: "none", description: "All Systems Operational" });
@@ -58,6 +59,18 @@ describe("parseGrokStatus", () => {
     expect(parseGrokStatus(feed(incident(severity, "investigating"))).indicator).toBe(indicator);
   });
 
+  it("separates Cursor incidents from the rest of xAI", () => {
+    const xml = feed(
+      incident("outage", "investigating", "[Grok (Build)] Grok outage", "https://status.x.ai/grok-build/INC1"),
+      incident("disruption", "investigating", "[Cursor] Slow completions", "https://status.x.ai/cursor/INC2"),
+      incident("outage", "resolved", "[Cursor (Agents)] Old outage", "https://status.x.ai/cursor-agents/INC3"),
+      incident("maintenance", "monitoring", "Untagged title", "https://status.x.ai/cursor-tab/INC4"),
+    );
+    expect(parseXaiStatus(xml, "grok")).toEqual({ indicator: "major", description: "[Grok (Build)] Grok outage" });
+    expect(parseXaiStatus(xml, "cursor")).toEqual({ indicator: "minor", description: "[Cursor] Slow completions" });
+    expect(parseXaiStatus(feed(incident("outage", "investigating")), "cursor").indicator).toBe("none");
+  });
+
   it("rejects blocked, malformed, and structurally incomplete replies", () => {
     for (const xml of ["<html>Blocked</html>", "<rss><channel>", "{}", feed("<item><title>Missing state</title></item>")]) {
       expect(() => parseGrokStatus(xml)).toThrow();
@@ -73,7 +86,7 @@ describe("provider status routing", () => {
     }
   });
 
-  it.each(["claude", "codex", "cursor", "devin"] as const)("fetches %s using Statuspage", async (provider) => {
+  it.each(["claude", "codex", "devin"] as const)("fetches %s using Statuspage", async (provider) => {
     vi.mocked(fetchJson).mockResolvedValue({ status: { indicator: "none" } });
     expect((await fetchProviderStatus(provider)).indicator).toBe("none");
     expect(fetchJson).toHaveBeenCalledWith(`${STATUS_PAGES[provider]}/api/v2/status.json`);
@@ -89,7 +102,29 @@ describe("provider status routing", () => {
 
   it("rejects HTTP failures even if the body looks like a valid feed", async () => {
     vi.mocked(fetchText).mockResolvedValue({ status: 503, headers: {}, body: feed() });
-    await expect(fetchProviderStatus("grok")).rejects.toThrow("Couldn’t fetch Grok status feed");
+    await expect(fetchProviderStatus("grok")).rejects.toThrow("Couldn’t fetch xAI status feed");
+  });
+
+  it("reports the worse of Cursor's xAI feed and its retiring Statuspage", async () => {
+    vi.mocked(fetchText).mockResolvedValue({
+      status: 200, headers: {}, body: feed(incident("disruption", "investigating", "[Cursor] Slow completions")),
+    });
+    vi.mocked(fetchJson).mockResolvedValue({ status: { indicator: "major", description: "Partial System Outage" } });
+    expect(await fetchProviderStatus("cursor")).toEqual({ indicator: "major", description: "Partial System Outage" });
+    expect(fetchText).toHaveBeenCalledWith("https://status.x.ai/feed.xml", { headers: { Accept: "application/rss+xml" } });
+    expect(fetchJson).toHaveBeenCalledWith("https://status.cursor.com/api/v2/status.json");
+    expect(nativeHttp).toContain('"status.cursor.com"');
+  });
+
+  it("falls back to whichever Cursor status source still answers", async () => {
+    vi.mocked(fetchText).mockResolvedValue({
+      status: 200, headers: {}, body: feed(incident("disruption", "investigating", "[Cursor] Slow completions")),
+    });
+    vi.mocked(fetchJson).mockRejectedValue(new Error("gone"));
+    expect((await fetchProviderStatus("cursor")).indicator).toBe("minor");
+
+    vi.mocked(fetchText).mockResolvedValue({ status: 503, headers: {}, body: "" });
+    await expect(fetchProviderStatus("cursor")).rejects.toThrow("Couldn’t fetch xAI status feed");
   });
 
   it("does not invent a health check for OpenCode", async () => {
