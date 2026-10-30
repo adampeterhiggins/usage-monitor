@@ -1,25 +1,59 @@
 //! Status-bar tray icon and its menu.
 
 use tauri::image::Image;
-use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::App;
 
 use crate::panel;
 
-/// Build the tray icon: left-click toggles the panel, right-click menu offers
-/// Show / Settings / Quit.
+/// Build the tray icon: left-click toggles the panel, right-click opens the
+/// menu — usage per account plus Open / Refresh / Settings / Quit on macOS
+/// (see `tray_menu`), a plain Show / Settings / Quit menu elsewhere.
 pub(crate) fn build(app: &App) -> tauri::Result<()> {
+    let handle = app.handle().clone();
+    let builder = TrayIconBuilder::new()
+        .icon(tray_icon()?)
+        .icon_as_template(true)
+        .tooltip("Usage Monitor")
+        .on_tray_icon_event(move |tray, event| {
+            // Only the macOS usage menu needs the tray handle.
+            let _ = tray;
+            let TrayIconEvent::Click {
+                button,
+                button_state: MouseButtonState::Up,
+                rect,
+                ..
+            } = event
+            else {
+                return;
+            };
+            match button {
+                MouseButton::Left => panel::toggle(&handle, Some(rect)),
+                #[cfg(target_os = "macos")]
+                MouseButton::Right => crate::tray_menu::show(&handle, tray, rect),
+                _ => {}
+            }
+        });
+
+    #[cfg(not(target_os = "macos"))]
+    let builder = with_text_menu(app, builder)?;
+
+    builder.build(app)?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn with_text_menu(
+    app: &App,
+    builder: TrayIconBuilder<tauri::Wry>,
+) -> tauri::Result<TrayIconBuilder<tauri::Wry>> {
+    use tauri::menu::{Menu, MenuItem};
+
     let show_item = MenuItem::with_id(app, "show", "Show Usage Monitor", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_item, &settings_item, &quit_item])?;
-
-    let handle = app.handle().clone();
-    TrayIconBuilder::new()
-        .icon(tray_icon()?)
-        .icon_as_template(true)
-        .tooltip("Usage Monitor")
+    Ok(builder
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
@@ -27,21 +61,7 @@ pub(crate) fn build(app: &App) -> tauri::Result<()> {
             "settings" => panel::open_settings(app),
             "quit" => app.exit(0),
             _ => {}
-        })
-        .on_tray_icon_event(move |_tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                rect,
-                ..
-            } = event
-            {
-                panel::toggle(&handle, Some(rect));
-            }
-        })
-        .build(app)?;
-
-    Ok(())
+        }))
 }
 
 /// The menu-bar glyph: the app icon's three chart bars, alone, on transparency.

@@ -81,6 +81,7 @@ export function handleCommand(cmd: string, args: unknown): unknown {
     case "set_account_modal_open":
     case "hide_window":
     case "toggle_window":
+    case "set_tray_menu":
       return null;
     default:
       throw new Error(`[mock-tauri] unstubbed command: ${cmd}`);

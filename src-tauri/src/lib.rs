@@ -4,7 +4,8 @@
 //! - `commands`: the `#[tauri::command]` IPC surface (thin wrappers only)
 //! - `panel`: tray panel lifecycle — placement, focus, the blur-shield protocol
 //! - `macos`: AppKit/NSPanel mechanics (compiled only on macOS)
-//! - `tray`: status-bar icon and menu
+//! - `tray`: status-bar icon and click routing
+//! - `tray_menu`: the usage menu the webview feeds (`set_tray_menu`)
 //! - `state`: `PanelState`, shared window/panel flags
 //! - `frame`: persisted window geometry
 //! - `credentials`: provider login reads (Keychain, Cursor IDE DB, home files)
@@ -21,9 +22,11 @@ mod oauth;
 mod panel;
 mod state;
 mod tray;
+mod tray_menu;
 mod usage_history;
 
 use state::PanelState;
+use tray_menu::TrayMenuState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -41,12 +44,14 @@ pub fn run() {
 
     builder
         .manage(PanelState::default())
+        .manage(TrayMenuState::default())
         .invoke_handler(tauri::generate_handler![
             commands::hide_window,
             commands::show_window,
             commands::toggle_window,
             commands::open_settings_popover,
             commands::set_account_modal_open,
+            commands::set_tray_menu,
             commands::read_home_file,
             commands::read_keychain_password,
             commands::list_keychain_accounts,
