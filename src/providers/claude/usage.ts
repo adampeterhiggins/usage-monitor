@@ -2,10 +2,12 @@ import { readHomeFile } from "../../platform/credentials";
 import {
   isClaudeOauthJson,
   parseClaudeOauthCredentials,
+  refreshClaudeOauth,
   resolveClaudeOauthTokens,
   serializeClaudeOauthCredentials,
+  type ClaudeOauthTokens,
 } from "./auth";
-import { fetchJson } from "../../platform/http";
+import { fetchJson, HttpError } from "../../platform/http";
 import { KEYCHAIN_LOGINS, resolveKeychainCredential } from "../shared/localCredentials";
 import type { Account } from "../../contracts/accounts";
 import { authCredential, authLocalSelector } from "../../contracts/auth";
@@ -195,25 +197,54 @@ async function fetchViaClaudeCode(keychainAccount?: string): Promise<UsageSnapsh
   return fetchViaAccessToken(token, planLabel);
 }
 
-async function storedOauthAccessToken(cred: string, hooks?: UsageFetchHooks): Promise<string> {
-  if (cred.startsWith("sk-ant-oat")) return cred;
-  const stored = parseClaudeOauthCredentials(cred, "Saved Claude login");
-  const { tokens, refreshed } = await resolveClaudeOauthTokens(stored.claudeAiOauth);
-  if (refreshed) {
-    try {
-      await hooks?.persistCredential?.(serializeClaudeOauthCredentials(tokens));
-    } catch {
-      // Usage still works this session even if the store write fails.
-    }
+async function persistTokens(tokens: ClaudeOauthTokens, hooks?: UsageFetchHooks): Promise<void> {
+  try {
+    await hooks?.persistCredential?.(serializeClaudeOauthCredentials(tokens));
+  } catch {
+    // Usage still works this session even if the store write fails.
   }
-  return tokens.accessToken;
 }
 
+/** The saved login's tokens, refreshed first when the access token is about
+ *  to expire. A bare `sk-ant-oat` token has nothing to refresh with. */
+async function storedOauthTokens(cred: string, hooks?: UsageFetchHooks): Promise<ClaudeOauthTokens> {
+  if (cred.startsWith("sk-ant-oat")) return { accessToken: cred };
+  const stored = parseClaudeOauthCredentials(cred, "Saved Claude login");
+  const { tokens, refreshed } = await resolveClaudeOauthTokens(stored.claudeAiOauth);
+  if (refreshed) await persistTokens(tokens, hooks);
+  return tokens;
+}
+
+async function storedOauthAccessToken(cred: string, hooks?: UsageFetchHooks): Promise<string> {
+  return (await storedOauthTokens(cred, hooks)).accessToken;
+}
+
+function isRateLimited(e: unknown): boolean {
+  return e instanceof HttpError && e.status === 429;
+}
+
+/** Claude's usage endpoint can keep answering 429 to one access token long
+ *  after a burst of reads — a reset redeem sets one off — while a freshly
+ *  minted token reads fine. So on a 429, refresh the login once and retry,
+ *  which is what removing and re-adding the account used to do by hand. */
 async function fetchViaStoredOauth(
   cred: string,
   hooks?: UsageFetchHooks,
 ): Promise<UsageSnapshot> {
-  return fetchViaAccessToken(await storedOauthAccessToken(cred, hooks), "Signed in");
+  const tokens = await storedOauthTokens(cred, hooks);
+  try {
+    return await fetchViaAccessToken(tokens.accessToken, "Signed in");
+  } catch (e) {
+    if (!isRateLimited(e) || !tokens.refreshToken) throw e;
+    let fresh: ClaudeOauthTokens;
+    try {
+      fresh = await refreshClaudeOauth(tokens);
+    } catch {
+      throw e;
+    }
+    await persistTokens(fresh, hooks);
+    return fetchViaAccessToken(fresh.accessToken, "Signed in");
+  }
 }
 
 /** The OAuth access token behind an account, or undefined for a claude.ai

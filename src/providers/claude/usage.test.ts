@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { parseUsage, type ClaudeUsageResponse } from "./usage";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Account } from "../../contracts/accounts";
+import { fetchJson, HttpError } from "../../platform/http";
+import { refreshClaudeOauth } from "./auth";
+import { fetchClaudeUsage, parseUsage, type ClaudeUsageResponse } from "./usage";
+
+vi.mock("../../platform/http", async (importActual) => ({
+  ...(await importActual<typeof import("../../platform/http")>()),
+  fetchJson: vi.fn(),
+}));
+vi.mock("./auth", async (importActual) => ({
+  ...(await importActual<typeof import("./auth")>()),
+  refreshClaudeOauth: vi.fn(),
+}));
 
 describe("parseUsage", () => {
   it("maps the well-known buckets to labeled windows", () => {
@@ -74,5 +87,49 @@ describe("parseUsage", () => {
 
   it("handles an empty response", () => {
     expect(parseUsage({} as ClaudeUsageResponse)).toEqual([]);
+  });
+});
+
+describe("fetchClaudeUsage with a saved login", () => {
+  const account = (tokens: object): Account => ({
+    id: "a1",
+    provider: "claude",
+    label: "Claude",
+    auth: { kind: "session", credential: JSON.stringify({ claudeAiOauth: tokens }) },
+  }) as unknown as Account;
+  const live = { accessToken: "old", refreshToken: "r1", expiresAt: Date.now() + 3_600_000 };
+
+  beforeEach(() => {
+    vi.mocked(fetchJson).mockReset();
+    vi.mocked(refreshClaudeOauth).mockReset();
+  });
+
+  it("refreshes the token and retries once when usage answers 429", async () => {
+    vi.mocked(fetchJson).mockImplementation(async (_url, init) => {
+      if (init?.headers?.Authorization === "Bearer old") throw new HttpError("HTTP 429", 429);
+      return { five_hour: { utilization: 3 } };
+    });
+    vi.mocked(refreshClaudeOauth).mockResolvedValue({ accessToken: "new", refreshToken: "r2" });
+    const persistCredential = vi.fn();
+
+    const snapshot = await fetchClaudeUsage(account(live), { persistCredential });
+
+    expect(snapshot.windows[0]).toMatchObject({ label: "Current session", usedPercent: 3 });
+    expect(refreshClaudeOauth).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(persistCredential.mock.calls[0][0]).claudeAiOauth.accessToken).toBe("new");
+  });
+
+  it("keeps the 429 when the refresh fails", async () => {
+    vi.mocked(fetchJson).mockRejectedValue(new HttpError("HTTP 429", 429));
+    vi.mocked(refreshClaudeOauth).mockRejectedValue(new Error("nope"));
+
+    await expect(fetchClaudeUsage(account(live))).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("does not refresh on other errors", async () => {
+    vi.mocked(fetchJson).mockRejectedValue(new HttpError("HTTP 500", 500));
+
+    await expect(fetchClaudeUsage(account(live))).rejects.toMatchObject({ status: 500 });
+    expect(refreshClaudeOauth).not.toHaveBeenCalled();
   });
 });
