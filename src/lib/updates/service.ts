@@ -154,3 +154,27 @@ export function describeUpdateError(err: unknown): string {
   }
   return message;
 }
+
+/**
+ * What the update badge on the Settings button and its menu rows shows.
+ * `available` means there is a release to download (or one is
+ * downloading); `ready` means it's downloaded and only needs a restart.
+ * A failed download or install keeps showing `available` while the release is
+ * still known, so the trail still leads back to the retry button.
+ */
+export type UpdateBadge = "available" | "ready";
+
+export function updateBadge(state: Pick<UpdateState, "phase" | "availableVersion">): UpdateBadge | null {
+  switch (state.phase) {
+    case "available":
+    case "downloading":
+      return "available";
+    case "ready":
+    case "installing":
+      return "ready";
+    case "error":
+      return state.availableVersion ? "available" : null;
+    default:
+      return null;
+  }
+}

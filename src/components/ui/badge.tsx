@@ -13,6 +13,7 @@ export type BadgeColor =
   | "red"
   | "secondary"
   | "healthy"
+  | "info"
   | "warning"
   | "high"
   | "critical";
@@ -35,6 +36,7 @@ const TONE_BACKGROUND: Record<BadgeColor, string> = {
   red: "var(--local-status-critical-soft-background)",
   secondary: "var(--local-status-neutral-soft-background)",
   healthy: "var(--local-status-healthy-soft-background)",
+  info: "var(--local-status-info-soft-background)",
   warning: "var(--local-status-warning-soft-background)",
   high: "var(--local-status-high-soft-background)",
   critical: "var(--local-status-critical-soft-background)",
@@ -43,7 +45,7 @@ const TONE_BACKGROUND: Record<BadgeColor, string> = {
 /**
  * Provider tones (orange/green/blue/purple/slate/teal/pink) read the resolved provider identity
  * palette — they stay stable regardless of the theme accent and never carry
- * usage meaning. Severity tones (healthy/warning/high/critical) read the
+ * usage meaning. Severity tones (healthy/info/warning/high/critical) read the
  * status palette's soft badge pairs.
  *
  * Shape comes from the visual identity: radius, case, tracking, weight, and
@@ -64,6 +66,7 @@ export function Badge({ color = "secondary", size = "medium", className, childre
     red: "text-ui-status-critical-soft-fg",
     secondary: "text-ui-status-neutral-soft-fg",
     healthy: "text-ui-status-healthy-soft-fg",
+    info: "text-ui-status-info-soft-fg",
     warning: "text-ui-status-warning-soft-fg",
     high: "text-ui-status-high-soft-fg",
     critical: "text-ui-status-critical-soft-fg",
