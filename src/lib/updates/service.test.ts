@@ -5,6 +5,7 @@ import {
   formatBytes,
   formatPublished,
   installUpdate,
+  updateBadge,
   type UpdateState,
 } from "./service";
 
@@ -72,5 +73,28 @@ describe("installUpdate progress mapping", () => {
     );
     expect(patches).toContainEqual({ totalBytes: null, downloadedBytes: 0, progress: null });
     expect(patches).toContainEqual({ downloadedBytes: 10, progress: null });
+  });
+});
+
+describe("updateBadge", () => {
+  it("leads to the download while a release is pending", () => {
+    expect(updateBadge({ phase: "available", availableVersion: "1.8.0" })).toBe("available");
+    expect(updateBadge({ phase: "downloading", availableVersion: "1.8.0" })).toBe("available");
+  });
+
+  it("asks for a restart once the update is downloaded", () => {
+    expect(updateBadge({ phase: "ready", availableVersion: "1.8.0" })).toBe("ready");
+    expect(updateBadge({ phase: "installing", availableVersion: "1.8.0" })).toBe("ready");
+  });
+
+  it("keeps pointing at a release whose download failed", () => {
+    expect(updateBadge({ phase: "error", availableVersion: "1.8.0" })).toBe("available");
+    expect(updateBadge({ phase: "error", availableVersion: null })).toBeNull();
+  });
+
+  it("stays hidden when there is nothing to install", () => {
+    for (const phase of ["idle", "checking", "up-to-date"] as const) {
+      expect(updateBadge({ phase, availableVersion: null })).toBeNull();
+    }
   });
 });

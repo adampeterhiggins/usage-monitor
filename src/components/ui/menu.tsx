@@ -3,7 +3,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Badge } from "./badge";
+import { Badge, type BadgeColor } from "./badge";
 
 /**
  * Shared menu kit: Radix Popover for anchoring/dismissal + cmdk for keyboard
@@ -89,9 +89,10 @@ export function MenuSeparator({ className }: { className?: string }) {
   return <Command.Separator className={cn("mx-1.5 my-1 h-px bg-ui-subtle", className)} />;
 }
 
-export type MenuItemTone = "info" | "warning" | "high" | "critical";
+export type MenuItemTone = "healthy" | "info" | "warning" | "high" | "critical";
 
 export const MENU_TONE_TEXT: Record<MenuItemTone, string> = {
+  healthy: "text-ui-status-healthy-text",
   info: "text-ui-status-info-text",
   warning: "text-ui-status-warning-text",
   high: "text-ui-status-high-text",
@@ -102,6 +103,7 @@ export function MenuItem({
   icon: Icon,
   label,
   chip,
+  chipColor = "secondary",
   accessory,
   danger,
   tone = danger ? "critical" : undefined,
@@ -111,6 +113,7 @@ export function MenuItem({
   icon: LucideIcon;
   label: string;
   chip?: string;
+  chipColor?: BadgeColor;
   accessory?: string;
   danger?: boolean;
   /** Colors the label and icon with a status tone; `danger` is `critical`. */
@@ -132,7 +135,7 @@ export function MenuItem({
       <span className="flex flex-1 items-center gap-1.5">
         {label}
         {chip ? (
-          <Badge size="small" color="secondary">
+          <Badge size="small" color={chipColor}>
             {chip}
           </Badge>
         ) : null}

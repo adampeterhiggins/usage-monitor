@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChartSpline,
   ChevronLeft,
+  Download,
   Contrast,
   Eye,
   Info,
@@ -15,6 +16,7 @@ import {
   AlignJustify,
   Rows3,
   RotateCcw,
+  RotateCw,
   Columns2,
   Columns3,
   Columns4,
@@ -47,6 +49,8 @@ import { type Layout, type WallColumns } from "../../lib/settings/layout";
 import { exitApp } from "../../platform/app";
 import { Tooltip } from "../ui/tooltip";
 import { UpdatePanel } from "./UpdatePanel";
+import { useUpdates } from "../../state/updates";
+import { updateBadge, type UpdateBadge } from "../../lib/updates/service";
 import { DeploymentPanel } from "./DeploymentPanel";
 import { Button } from "../ui/button";
 import {
@@ -88,6 +92,28 @@ const WALL_COLUMN_OPTIONS: Array<{ id: WallColumns; label: string; icon: LucideI
   { id: 3, label: "3 Columns", icon: Columns3 },
   { id: 4, label: "4 Columns", icon: Columns4 },
 ];
+
+/**
+ * The update badge on the Settings gear, built like the usage-reset badge on
+ * the account menu: a small filled circle on the icon's top-right corner, ringed
+ * in the surface colour so it reads as cut out of the gear.
+ */
+function GearWithUpdateBadge({ badge }: { badge: UpdateBadge | null }) {
+  if (!badge) return <Settings className="size-3.5 shrink-0" />;
+  const Glyph = badge === "ready" ? RotateCcw : Download;
+  return (
+    <span className="relative inline-flex shrink-0">
+      <Settings className="size-3.5" />
+      <span
+        className={`absolute -top-1.5 -right-2 flex size-3 items-center justify-center rounded-full text-ui-surface ring-[1.5px] ring-ui-surface ${
+          badge === "ready" ? "bg-ui-status-healthy" : "bg-ui-status-info"
+        }`}
+      >
+        <Glyph className="size-2" strokeWidth={3.5} />
+      </span>
+    </span>
+  );
+}
 
 function useShortcutRecorder(
   recording: boolean,
@@ -145,6 +171,27 @@ export function SettingsPopover({
   const [shortcut, setShortcut] = React.useState(DEFAULT_TOGGLE_SHORTCUT);
   const [recordingShortcut, setRecordingShortcut] = React.useState(false);
   const [recordingRefreshShortcut, setRecordingRefreshShortcut] = React.useState(false);
+
+  const updates = useUpdates();
+  const badge = updateBadge(updates);
+  const newVersion = updates.availableVersion ?? undefined;
+  const settingsLabel =
+    badge === "ready"
+      ? `Settings · Update${newVersion ? ` ${newVersion}` : ""} ready, restart to install`
+      : badge === "available"
+        ? `Settings · Update${newVersion ? ` ${newVersion}` : ""} available`
+        : "Settings";
+  const restartItem =
+    badge === "ready" ? (
+      <MenuItem
+        icon={RotateCw}
+        label="Restart to Update"
+        tone="healthy"
+        chip={newVersion}
+        chipColor="healthy"
+        onSelect={() => void updates.restart()}
+      />
+    ) : null;
 
   const refreshShortcutQuery = useQuery({ queryKey: REFRESH_SHORTCUT_QUERY_KEY, queryFn: getRefreshShortcut });
   const refreshShortcut = refreshShortcutQuery.data ?? DEFAULT_REFRESH_SHORTCUT;
@@ -266,12 +313,18 @@ export function SettingsPopover({
         setOpen(next);
       }}
     >
-      <Tooltip label="Settings" shortcut={["⌘", "K"]} disabled={open}>
+      <Tooltip label={settingsLabel} shortcut={["⌘", "K"]} disabled={open}>
         <span className="inline-flex">
           <MenuTrigger asChild>
-            <Button ref={triggerRef} variant="glass" size="medium" className="pr-2.5">
+            <Button
+              ref={triggerRef}
+              variant="glass"
+              size="medium"
+              className="pr-2.5"
+              aria-label={settingsLabel}
+            >
               Settings
-              <Settings className="size-3.5 shrink-0" />
+              <GearWithUpdateBadge badge={badge} />
             </Button>
           </MenuTrigger>
         </span>
@@ -321,6 +374,12 @@ export function SettingsPopover({
             ) : null}
             {page === "root" && (
               <MenuGroup>
+                {restartItem ? (
+                  <>
+                    {restartItem}
+                    <MenuSeparator />
+                  </>
+                ) : null}
                 <MenuItem
                   icon={Users}
                   label="Manage Accounts…"
@@ -359,6 +418,9 @@ export function SettingsPopover({
                 <MenuItem
                   icon={Info}
                   label="Deployment…"
+                  tone={badge === "ready" ? "healthy" : badge === "available" ? "info" : undefined}
+                  chip={badge === "ready" ? "Ready" : badge === "available" ? "Update" : undefined}
+                  chipColor={badge === "ready" ? "healthy" : "info"}
                   onSelect={() => setPage("deployment")}
                 />
                 <MenuItem
@@ -453,7 +515,16 @@ export function SettingsPopover({
                   <DeploymentPanel />
                 </div>
                 <MenuSeparator />
-                <MenuItem icon={RefreshCw} label="Updates…" onSelect={() => setPage("updates")} />
+                {restartItem ?? (
+                  <MenuItem
+                    icon={badge === "available" ? Download : RefreshCw}
+                    label="Updates…"
+                    tone={badge === "available" ? "info" : undefined}
+                    chip={badge === "available" ? newVersion : undefined}
+                    chipColor="info"
+                    onSelect={() => setPage("updates")}
+                  />
+                )}
               </>
             )}
           </MenuList>
