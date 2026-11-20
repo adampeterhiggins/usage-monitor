@@ -224,17 +224,18 @@ export async function fetchClaudeResetCredits(
   hooks?: UsageFetchHooks,
 ): Promise<ResetCredits> {
   const token = await requireToken(account, hooks);
-  const [banked, atLimit] = await Promise.all([
-    fetchJson<{ cedar_ember?: unknown }>(
-      `${API_BASE}/api/oauth/usage?cedar_ember=1&skip_spend=1`,
-      { headers: headers(token) },
-    ),
-    // The session reset only comes back from the read the CLI makes at a
-    // usage limit. Without it the banked grants still list.
-    fetchJson<{ juniper_tide?: unknown }>(`${API_BASE}/api/oauth/usage?at_wall=1&skip_spend=1`, {
-      headers: headers(token),
-    }).catch(() => undefined),
-  ]);
+  // One read after the other: a burst of usage reads is what gets an access
+  // token rate limited, and a redeem already sets off a usage refresh.
+  const banked = await fetchJson<{ cedar_ember?: unknown }>(
+    `${API_BASE}/api/oauth/usage?cedar_ember=1&skip_spend=1`,
+    { headers: headers(token) },
+  );
+  // The session reset only comes back from the read the CLI makes at a
+  // usage limit. Without it the banked grants still list.
+  const atLimit = await fetchJson<{ juniper_tide?: unknown }>(
+    `${API_BASE}/api/oauth/usage?at_wall=1&skip_spend=1`,
+    { headers: headers(token) },
+  ).catch(() => undefined);
   const now = Date.now();
   return withSessionReset(
     parseCedarEmber(banked.cedar_ember, now),
